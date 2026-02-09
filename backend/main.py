@@ -31,7 +31,7 @@ app.add_middleware(
 )
 
 # --- Service Account Configuration ---
-CREDENTIALS_PATH = r"C:\Users\User\Documents\Gemini3Pro\backend\service-account.json"
+CREDENTIALS_PATH = os.path.join(os.path.dirname(__file__), "service-account.json")
 PROJECT_ID = "veriscan-kitahack"
 LOCATION = "us-central1"
 

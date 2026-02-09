@@ -40,3 +40,4 @@ gradle-app.setting
 .project
 .classpath
 backend/service-account.json.json
+backend/service-account.json

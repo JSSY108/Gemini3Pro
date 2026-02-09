@@ -9,6 +9,7 @@ venv/
 ENV/
 .env
 .venv
+backend/service-account.json
 
 # FastAPI
 .pytest_cache/
