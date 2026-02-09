@@ -3,14 +3,15 @@ import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 
 class FactCheckResult {
-  final bool isValid;
+  // 1. CHANGED: Store the exact string ("REAL", "FAKE", "UNVERIFIED")
+  final String verdict; 
   final double confidenceScore;
   final String analysis;
   final List<String> keyFindings;
   final List<Map<String, String>> groundingCitations;
 
   FactCheckResult({
-    required this.isValid,
+    required this.verdict, // Changed from isValid
     required this.confidenceScore,
     required this.analysis,
     required this.keyFindings,
@@ -30,7 +31,9 @@ class FactCheckResult {
     }
 
     return FactCheckResult(
-      isValid: json['verdict'] == 'REAL',
+      // 2. CHANGED: Read the raw string directly
+      verdict: json['verdict']?.toString() ?? 'UNVERIFIED', 
+      
       confidenceScore: (json['confidence_score'] ?? 0.0).toDouble(),
       analysis: json['analysis']?.toString() ?? 'Analysis unavailable',
       keyFindings: (json['key_findings'] as List<dynamic>?)

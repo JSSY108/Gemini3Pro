@@ -71,202 +71,156 @@ async def analyze_multimodal(
     url: Optional[str] = Form(None),
     image: Optional[UploadFile] = File(None)
 ):
-    """
-    Antigravity Endpoint: Analyzes text, URL, or image using VeriScan Core Engine logic.
-    Returns a strict JSON verdict with Google Search grounding.
-    """
     if not VERTEX_AI_READY:
         raise HTTPException(status_code=500, detail="Vertex AI not configured.")
 
     if not text and not url and not image:
-        raise HTTPException(status_code=400, detail="At least one input (text, url, or image) is required.")
+        raise HTTPException(status_code=400, detail="At least one input is required.")
 
     try:
-        # 1. Prepare Inputs (Multimodal)
         parts = []
         
-        # System Instruction for Antigravity
+        # --- 1. SYSTEM INSTRUCTION (Opinion-Proof Version) ---
         system_instruction = """
-# ROLE
-You are the VeriScan Core Engine, an elite Fact-Checking AI specialized in digital forensic analysis and media literacy.
-
-# OBJECTIVE
-Analyze the provided input (Text, URL content, or Image OCR) and provide a rigorous, search-grounded verdict. You must identify logical fallacies and provide evidence through Google Search grounding.
-
-# ANALYSIS PIPELINE
-1. OCR/EXTRACT: If the input is an image, extract all text and describe visual context.
-2. SEARCH: Query authoritative sources to confirm or debunk the claim.
-3. EVALUATE: Check for logical fallacies (e.g., Strawman, Ad Hominem, Appeal to Fear).
-4. SCORE: Assign a confidence score from 0.0 to 1.0 based on the strength of grounding citations.
-
-# OUTPUT FORMAT (STRICT JSON ONLY)
-Return ONLY a JSON object. Do not include markdown code blocks (```json). 
-Schema:
-{
-  "verdict": "REAL" | "FAKE" | "MISLEADING" | "UNVERIFIED",
-  "confidence_score": float,
-  "analysis": "string (2-3 sentences explaining the 'why')",
-  "key_findings": ["list of strings"],
-  "source_metadata": { "type": "text" | "url" | "image", "provided_url": "string or null", "page_title": "string or null" },
-  "grounding_citations": [{"title": "string", "url": "string", "snippet": "string"}],
-  "media_literacy": { "logical_fallacies": ["string"], "tone_analysis": "string" }
-}
-
-# CONSTRAINTS
-- If citations < 1 or confidence < 0.4, verdict MUST be "UNVERIFIED".
-- Tone should be professional, objective, and "Obsidian-class" (premium/serious).
-"""
+        Role: VeriScan Core Engine.
         
-        prompt_content = "Analyze the following content:\n"
+        CRITICAL ANALYSIS PROTOCOL (FOLLOW IN ORDER):
         
-        if text:
-            prompt_content += f"Text: {text}\n"
+        PHASE 1: CLASSIFICATION (The Gatekeeper)
+        - Analyze the input for Subjectivity, Opinions, Insults, or Satire.
+        - EXAMPLES:
+          * "Politician X is corrupt" -> Fact Check required (Check court cases).
+          * "Politician X is stupid/ugly/pointless" -> OPINION (Subjective).
+        - IF OPINION/INSULT: STOP immediately. Proceed to generate JSON with the below rules. 
+          * VERDICT MUST BE: "UNVERIFIED".
+          * VERDICT CANNOT BE: "FAKE" or "FALSE".
+          * Analysis: "This statement is a subjective opinion or insult. Opinions cannot be proven true or false."
         
-        if url:
-            prompt_content += f"URL: {url}\n"
-            
+        PHASE 2: TYPO CORRECTION
+        - If Input is factual (e.g. "Malausia"), correct typos (to "Malaysia") before searching.
+        - DO NOT correct numbers/dates.
+        
+        PHASE 3: FACT CHECKING (Only for Factual Claims)
+        - Perform a Google Search.
+        - If the claim contradicts established facts, Verdict is "FAKE".
+        - If the claim is supported by facts, Verdict is "REAL".
+        - If the claim is partially true/missing context, Verdict is "MISLEADING".
+        
+        Task: 
+        1. Classify (Opinion vs Fact).
+        2. Search (If Fact).
+        3. Output JSON.
+        
+        Output: STRICT JSON only. No Markdown.
+        Format:
+        {
+          "verdict": "REAL" | "FAKE" | "MISLEADING" | "UNVERIFIED",
+          "confidence_score": 0.0 to 1.0,
+          "analysis": "string (2-3 sentences)",
+          "key_findings": ["string"],
+          "media_literacy": { "logical_fallacies": ["string"], "tone_analysis": "string" }
+        }
+        
+        IMPORTANT: Do NOT include a 'grounding_citations' list in your JSON. The system will add them automatically.
+        """
+        
+        prompt_content = "Analyze:\n"
+        if text: prompt_content += f"Text: {text}\n"
+        if url: prompt_content += f"URL: {url}\n"
         parts.append(prompt_content)
 
         if image:
             image_bytes = await image.read()
-            image_part = Part.from_data(data=image_bytes, mime_type=image.content_type)
-            parts.append(image_part)
+            parts.append(Part.from_data(data=image_bytes, mime_type=image.content_type))
 
-        # 2. Configure Model with Grounding
         tools = [Tool.from_dict({"google_search": {}})]
         model = GenerativeModel("gemini-2.5-flash-lite", system_instruction=[system_instruction], tools=tools)
         
-        generation_config = GenerationConfig(
-            temperature=0.0,
-            # response_mime_type="application/json"  # Incompatible with google_search grounding
-        )
+        # --- 2. SAFETY SETTINGS ---
+        # Keep BLOCK_ONLY_HIGH (or BLOCK_NONE if you want to be extra sure)
+        safety_settings = {
+            HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+            HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+            HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+            HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+        }
 
-        # 3. Generate Content
+        # --- 3. GENERATE ---
         response = model.generate_content(
             parts,
-            generation_config=generation_config
+            generation_config=GenerationConfig(temperature=0.0),
+            safety_settings=safety_settings
         )
 
-        # 4. Extract Response and Grounding
-        try:
-            # Check for grounding metadata
-            grounding_citations = []
-            if response.candidates and response.candidates[0].grounding_metadata.grounding_chunks:
-                for chunk in response.candidates[0].grounding_metadata.grounding_chunks:
-                    if chunk.web:
-                        grounding_citations.append(GroundingCitation(
-                            title=chunk.web.title or "Source",
-                            url=chunk.web.uri,
-                            snippet="Grounding source" # API might not return snippet in simple chunks
-                        ))
-            
-            # Check for RECITATION (copyright block)
-            # If the model is reciting, it means the content is likely REAL and found verbatim.
-            # We can't get the text, but we can get the citations.
-            is_recitation = False
-            if response.candidates and response.candidates[0].finish_reason == FinishReason.RECITATION:
-                is_recitation = True
-                print("Finish Reason: RECITATION. Extracting raw citations...")
-                
-                # Extract citation metadata from the candidate (different from grounding metadata)
-                if hasattr(response.candidates[0], 'citation_metadata') and response.candidates[0].citation_metadata:
-                    for citation in response.candidates[0].citation_metadata.citations:
-                        grounding_citations.append(GroundingCitation(
-                            title="Cited Source (Recitation)",
-                            url=citation.uri,
-                            snippet=f"Source found at indices {citation.start_index}-{citation.end_index}"
-                        ))
-
-            if is_recitation:
-                # Return a special "Verified by Recitation" response
+        # Safety Catch
+        if response.candidates and response.candidates[0].finish_reason != FinishReason.STOP:
+             if response.candidates[0].finish_reason != FinishReason.RECITATION:
+                print(f"⚠️ Blocked by AI. Reason: {response.candidates[0].finish_reason}")
                 return AnalysisResponse(
-                    verdict="REAL", # If it's reciting, it found the exact text -> Real
-                    confidence_score=0.99,
-                    analysis="The content was found verbatim in authoritative sources. (Exact text analysis hidden due to copyright/recitation limits).",
-                    key_findings=["Content matches online sources exactly.", "Copyright limits prevented full text analysis.", "Verified via direct citation."],
-                    source_metadata=None,
-                    grounding_citations=[g.model_dump() for g in grounding_citations],
-                    media_literacy={"logical_fallacies": [], "tone_analysis": "N/A (Recitation)"}
+                    verdict="UNVERIFIED",
+                    confidence_score=0.0,
+                    analysis="The AI flagged this content as unsafe or invalid.",
+                    key_findings=["Safety Filter Triggered"],
+                    grounding_citations=[]
                 )
 
-            # Parse JSON
-            # Handle multi-part responses (Text + Grounding/Function calls)
-            try:
-                response_text = response.text.strip()
-            except Exception:
-                # Fallback for "multiple content parts" error
-                response_text = ""
-                if response.candidates:
-                    for part in response.candidates[0].content.parts:
-                        if part.text:
-                            response_text += part.text
-                response_text = response_text.strip()
+        # --- 4. EXTRACTION (Tool > AI) ---
+        
+        # A. Tool Citations
+        tool_citations = []
+        try:
+            candidate = response.candidates[0]
+            if candidate.grounding_metadata.grounding_chunks:
+                for chunk in candidate.grounding_metadata.grounding_chunks:
+                    if chunk.web:
+                        tool_citations.append(GroundingCitation(title=chunk.web.title or "Source", url=chunk.web.uri, snippet="Verified via Google Search"))
+            if candidate.finish_reason == FinishReason.RECITATION:
+                if hasattr(candidate, 'citation_metadata') and candidate.citation_metadata:
+                    for citation in candidate.citation_metadata.citations:
+                        tool_citations.append(GroundingCitation(title="Direct Source Match", url=citation.uri, snippet="Exact match"))
+        except Exception:
+            pass
+
+        # B. Extract JSON Text
+        response_text = ""
+        try:
+            if response.candidates:
+                for part in response.candidates[0].content.parts:
+                    if part.text: response_text += part.text
+        except:
+            response_text = response.text
+
+        response_text = response_text.replace("```json", "").replace("```", "").strip()
+
+        # C. Parse JSON
+        import re
+        try:
+            match = re.search(r'\{[\s\S]*\}', response_text)
+            if match: response_text = match.group(0)
             
-            # Robust JSON extraction using regex
-            import re
-            json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
-            if json_match:
-                response_text = json_match.group(0)
+            data = json.loads(response_text)
             
-            try:
-                data = json.loads(response_text)
-            except json.JSONDecodeError:
-                # Try to fix common JSON issues (e.g. trailing commas) if needed, 
-                # but for now just log and re-raise to catch block
-                print(f"JSON Decode Failed. Regex extracted: {response_text}")
-                raise
-
-            # Map grounding citations if the model didn't provide them but the tool did
-            if not data.get("grounding_citations") and grounding_citations:
-                 data["grounding_citations"] = [g.model_dump() for g in grounding_citations]
-            elif grounding_citations:
-                pass 
-                
-            # Use Pydantic for validation
-            if "source_metadata" not in data:
-                 data["source_metadata"] = None
-            if "media_literacy" not in data:
-                 data["media_literacy"] = None
-                 
-            # Ensure keys exist for Pydantic (though strict schema usually handles this, safe to add defaults)
-            if "key_findings" not in data:
-                data["key_findings"] = []
-            if "grounding_citations" not in data:
-                data["grounding_citations"] = []
-                
-            analysis_response = AnalysisResponse(**data)
-
-            return analysis_response
-
         except json.JSONDecodeError:
-            print(f"JSON Parse Error. Raw: {response.text}")
-            return AnalysisResponse(
-                verdict="UNVERIFIED",
-                confidence_score=0.0,
-                analysis="Failed to parse analysis results.",
-                key_findings=["JSON Decode Error"],
-                source_metadata=None,
-                grounding_citations=[],
-                media_literacy=None
-            )
-        except Exception as e:
-            print(f"Processing Error: {e}")
-            return AnalysisResponse(
-                verdict="UNVERIFIED",
-                confidence_score=0.0,
-                analysis=f"An error occurred during processing: {str(e)}",
-                key_findings=["Processing Error"],
-                source_metadata=None,
-                grounding_citations=[],
-                media_literacy=None
-            )
+            print(f"❌ JSON Parse Failed. Raw Text: {response_text}")
+            data = {
+                "verdict": "UNVERIFIED",
+                "confidence_score": 0.0,
+                "analysis": "The AI response format was invalid.",
+                "key_findings": ["Formatting Error"]
+            }
+
+        # --- 5. MERGE ---
+        data["grounding_citations"] = [c.model_dump() for c in tool_citations]
+        
+        if "grounding_citations" not in data:
+            data["grounding_citations"] = []
+
+        if "source_metadata" not in data: data["source_metadata"] = None
+        if "media_literacy" not in data: data["media_literacy"] = None
+
+        print(f"✅ Verdict: {data.get('verdict')} | Citations: {len(data['grounding_citations'])}")
+        return AnalysisResponse(**data)
 
     except Exception as e:
-        print(f"Critical Error: {e}")
-        return AnalysisResponse(
-            verdict="UNVERIFIED",
-            confidence_score=0.0,
-            analysis="A critical system error occurred.",
-            key_findings=[str(e)],
-            grounding_citations=[]
-        )
+        print(f"🔥 Critical Server Error: {e}")
+        return AnalysisResponse(verdict="UNVERIFIED", confidence_score=0.0, analysis=f"System Error: {str(e)}", key_findings=["Server Crash"], grounding_citations=[])

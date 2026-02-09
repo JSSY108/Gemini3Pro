@@ -19,6 +19,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
   FactCheckResult? _result;
   bool _isLoading = false;
 
+  Color _getStatusColor(String verdict) {
+    switch (verdict.toUpperCase()) {
+      case 'REAL':
+        return const Color(0xFF4CAF50); // Green
+      case 'FAKE':
+        return const Color(0xFFE53935); // Red
+      case 'MISLEADING':
+        return Colors.orange;
+      case 'UNVERIFIED':
+        return const Color(0xFFFFC107); // Amber/Yellow
+      default:
+        return Colors.grey;
+    }
+  }
+
   Future<void> _handleAnalysis(
       String? text, String? url, PlatformFile? image) async {
     setState(() {
@@ -147,7 +162,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ),
                           ),
 
-                          // 3. Verdict/Summary (Takes 1 Column)
+                          // 3. Verdict/Summary (UPDATED)
                           StaggeredGridTile.count(
                             crossAxisCellCount: 1,
                             mainAxisCellCount: 1,
@@ -164,12 +179,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                           MainAxisAlignment.center,
                                       children: [
                                         Text(
-                                          _result!.isValid ? "REAL" : "FAKE",
+                                          // ✅ FIX: Use the actual verdict string
+                                          _result!.verdict.toUpperCase(), 
                                           style: GoogleFonts.outfit(
-                                            color: _result!.isValid
-                                                ? const Color(0xFF4CAF50)
-                                                : const Color(0xFFE53935),
-                                            fontSize: 32,
+                                            // ✅ FIX: Use the helper color function
+                                            color: _getStatusColor(_result!.verdict),
+                                            fontSize: _result!.verdict.length > 8 ? 24 : 32, // Auto-shrink for long words
                                             fontWeight: FontWeight.bold,
                                           ),
                                         ),
