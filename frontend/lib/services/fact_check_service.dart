@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
+import 'package:flutter/foundation.dart';
 
 class FactCheckResult {
   final bool isValid;
@@ -43,7 +44,9 @@ class FactCheckResult {
 }
 
 class FactCheckService {
-  final String baseUrl = 'http://localhost:8000';
+  final String baseUrl = kReleaseMode
+      ? 'https://us-central1-veriscan-kitahack.cloudfunctions.net/analyze'
+      : 'http://127.0.0.1:8080';
 
   Future<FactCheckResult> analyzeNews({
     String? text,
@@ -54,6 +57,9 @@ class FactCheckService {
     try {
       var request =
           http.MultipartRequest('POST', Uri.parse('$baseUrl/analyze'));
+
+      debugPrint(
+          'SERVICE DEBUG: Sending - Text: $text, URL: $url, Image: $imageFilename');
 
       if (text != null && text.isNotEmpty) {
         request.fields['text'] = text;

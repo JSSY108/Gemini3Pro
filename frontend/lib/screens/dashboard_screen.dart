@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/fact_check_service.dart';
-import '../widgets/confidence_gauge.dart';
+import '../widgets/responsive_layout.dart';
+import '../widgets/result_card.dart';
+
 import '../widgets/evidence_card.dart';
 import '../widgets/input_section.dart';
 
@@ -21,9 +23,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _handleAnalysis(
       String? text, String? url, PlatformFile? image) async {
+    debugPrint(
+        'DASHBOARD DEBUG: Analyzing - Text: $text, URL: $url, Image: ${image?.name}');
+
+    if (text == null && url == null && image == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Please provide input (Text, URL, or Image)')),
+      );
+      return;
+    }
+
     setState(() {
       _isLoading = true;
-
       _result = null;
     });
 
@@ -31,7 +43,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final result = await _service.analyzeNews(
         text: text,
         url: url,
-        imageBytes: image?.bytes, // This works for web and generic byte access
+        imageBytes: image?.bytes,
         imageFilename: image?.name,
       );
 
@@ -39,14 +51,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _result = result;
       });
     } catch (e) {
-      setState(() {
-        // _errorMessage = e.toString().replaceAll('Exception: ', '');
-        debugPrint('Error: $e');
-      });
+      debugPrint('Error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -54,199 +73,256 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF121212),
-      body: Row(
-        children: [
-          // Sidebar (Mock)
-          Container(
-            width: 80,
-            color: Colors.black,
+      body: ResponsiveLayout(
+        mobileBody: _buildMobileLayout(),
+        desktopBody: _buildDesktopLayout(),
+      ),
+    );
+  }
+
+  Widget _buildMobileLayout() {
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildMobileHeader(),
+            const SizedBox(height: 24),
+            _BentoCard(
+              title: "INPUT DATA",
+              child: InputSection(
+                onAnalyze: _handleAnalysis,
+                isLoading: _isLoading,
+              ),
+            ),
+            const SizedBox(height: 16),
+            if (_result != null || _isLoading) ...[
+              _BentoCard(
+                title: "ANALYSIS RESULT",
+                child: ResultCard(result: _result),
+              ),
+              const SizedBox(height: 16),
+              _BentoCard(
+                title: "FORENSIC ANALYSIS",
+                child: _result == null
+                    ? const Center(
+                        child: Icon(Icons.analytics_outlined,
+                            color: Colors.white12, size: 40))
+                    : Text(
+                        _result!.analysis,
+                        style: GoogleFonts.outfit(
+                            color: Colors.white70, height: 1.5),
+                      ),
+              ),
+              const SizedBox(height: 16),
+              _BentoCard(
+                title: "GROUNDING EVIDENCE",
+                child: _buildEvidenceList(),
+              ),
+            ]
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDesktopLayout() {
+    return Row(
+      children: [
+        // Sidebar
+        Container(
+          width: 80,
+          color: Colors.black,
+          child: Column(
+            children: [
+              const SizedBox(height: 30),
+              const Icon(Icons.shield_outlined,
+                  color: Color(0xFFD4AF37), size: 40),
+              const SizedBox(height: 40),
+              const _SidebarItem(icon: Icons.dashboard, isActive: true),
+              const _SidebarItem(icon: Icons.history, isActive: false),
+              const _SidebarItem(icon: Icons.settings, isActive: false),
+            ],
+          ),
+        ),
+
+        // Main Content
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SizedBox(height: 30),
-                Icon(Icons.shield_outlined, color: Color(0xFFD4AF37), size: 40),
-                SizedBox(height: 40),
-                _SidebarItem(icon: Icons.dashboard, isActive: true),
-                _SidebarItem(icon: Icons.history, isActive: false),
-                _SidebarItem(icon: Icons.settings, isActive: false),
+                _buildDesktopHeader(),
+                const SizedBox(height: 30),
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: StaggeredGrid.count(
+                      crossAxisCount: 4,
+                      mainAxisSpacing: 16,
+                      crossAxisSpacing: 16,
+                      children: [
+                        // 1. Input Zone (Takes 2 Columns)
+                        StaggeredGridTile.count(
+                          crossAxisCellCount: 2,
+                          mainAxisCellCount: 2,
+                          child: _BentoCard(
+                            title: "INPUT DATA",
+                            child: InputSection(
+                              onAnalyze: _handleAnalysis,
+                              isLoading: _isLoading,
+                            ),
+                          ),
+                        ),
+
+                        // 2. Result Card (Merged Verdict + Score) (Takes 2 Columns)
+                        StaggeredGridTile.count(
+                          crossAxisCellCount: 2,
+                          mainAxisCellCount: 1,
+                          child: _BentoCard(
+                            title: "ANALYSIS RESULT",
+                            child: ResultCard(result: _result),
+                          ),
+                        ),
+
+                        // 3. Analysis Text (Takes 2 Columns)
+                        StaggeredGridTile.count(
+                          crossAxisCellCount: 2,
+                          mainAxisCellCount: 1, // Adjusted height
+                          child: _BentoCard(
+                            title: "FORENSIC ANALYSIS",
+                            child: _result == null
+                                ? const Center(
+                                    child: Icon(Icons.analytics_outlined,
+                                        color: Colors.white12, size: 40))
+                                : SingleChildScrollView(
+                                    child: Text(
+                                      _result!.analysis,
+                                      style: GoogleFonts.outfit(
+                                          color: Colors.white70, height: 1.5),
+                                    ),
+                                  ),
+                          ),
+                        ),
+
+                        // 4. Evidence (Takes 4 Columns - Full Width)
+                        StaggeredGridTile.count(
+                          crossAxisCellCount: 4,
+                          mainAxisCellCount: 2,
+                          child: _BentoCard(
+                            title: "GROUNDING EVIDENCE",
+                            child: _buildEvidenceList(),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
+        ),
+      ],
+    );
+  }
 
-          // Main Content
-          Expanded(
-            child: Padding(
-              padding: EdgeInsets.all(24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'VERISCAN DASHBOARD',
-                            style: GoogleFonts.outfit(
-                              color: Colors.white,
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 2.0,
-                            ),
-                          ),
-                          Text(
-                            'Multimodal Forensic Analysis Engine',
-                            style: GoogleFonts.outfit(
-                              color: Colors.white38,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                      _StatusBadge(),
-                    ],
-                  ),
+  Widget _buildMobileHeader() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'VERISCAN DASHBOARD',
+          style: GoogleFonts.outfit(
+            color: Colors.white,
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 2.0,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Multimodal Forensic Analysis Engine',
+          style: GoogleFonts.outfit(
+            color: Colors.white38,
+            fontSize: 14,
+          ),
+        ),
+        const SizedBox(height: 16),
+        _StatusBadge(),
+      ],
+    );
+  }
 
-                  SizedBox(height: 30),
-
-                  // Bento Grid
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: StaggeredGrid.count(
-                        crossAxisCount: 4,
-                        mainAxisSpacing: 16,
-                        crossAxisSpacing: 16,
-                        children: [
-                          // 1. Input Zone (Takes 2 Columns)
-                          StaggeredGridTile.count(
-                            crossAxisCellCount: 2,
-                            mainAxisCellCount: 2,
-                            child: _BentoCard(
-                              title: "INPUT DATA",
-                              child: InputSection(
-                                onAnalyze: _handleAnalysis,
-                                isLoading: _isLoading,
-                              ),
-                            ),
-                          ),
-
-                          // 2. Confidence Gauge (Takes 1 Column)
-                          StaggeredGridTile.count(
-                            crossAxisCellCount: 1,
-                            mainAxisCellCount: 1,
-                            child: _BentoCard(
-                              title: "VERACITY SCORE",
-                              child: _result == null
-                                  ? Center(
-                                      child: Text("Waiting for analysis...",
-                                          style:
-                                              TextStyle(color: Colors.white24)))
-                                  : ConfidenceGauge(
-                                      score: _result!.confidenceScore),
-                            ),
-                          ),
-
-                          // 3. Verdict/Summary (Takes 1 Column)
-                          StaggeredGridTile.count(
-                            crossAxisCellCount: 1,
-                            mainAxisCellCount: 1,
-                            child: _BentoCard(
-                              title: "VERDICT",
-                              child: _result == null
-                                  ? Center(
-                                      child: Text("--",
-                                          style: TextStyle(
-                                              color: Colors.white24,
-                                              fontSize: 40)))
-                                  : Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Text(
-                                          _result!.isValid ? "REAL" : "FAKE",
-                                          style: GoogleFonts.outfit(
-                                            color: _result!.isValid
-                                                ? const Color(0xFF4CAF50)
-                                                : const Color(0xFFE53935),
-                                            fontSize: 32,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        if (_result!.keyFindings.isNotEmpty)
-                                          Padding(
-                                            padding: EdgeInsets.only(top: 8.0),
-                                            child: Text(
-                                              _result!.keyFindings.first,
-                                              textAlign: TextAlign.center,
-                                              style: TextStyle(
-                                                  color: Colors.white54,
-                                                  fontSize: 12),
-                                              maxLines: 3,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ),
-                                      ],
-                                    ),
-                            ),
-                          ),
-
-                          // 4. Analysis Text (Takes 2 Columns, below Gauge/Verdict)
-                          StaggeredGridTile.count(
-                            crossAxisCellCount: 2,
-                            mainAxisCellCount: 1, // Adjusted height
-                            child: _BentoCard(
-                              title: "FORENSIC ANALYSIS",
-                              child: _result == null
-                                  ? Center(
-                                      child: Icon(Icons.analytics_outlined,
-                                          color: Colors.white12, size: 40))
-                                  : SingleChildScrollView(
-                                      child: Text(
-                                        _result!.analysis,
-                                        style: GoogleFonts.outfit(
-                                            color: Colors.white70, height: 1.5),
-                                      ),
-                                    ),
-                            ),
-                          ),
-
-                          // 5. Evidence (Takes 2 Columns, 2 Rows - Side Panel logic usually, but here stacked)
-                          StaggeredGridTile.count(
-                            crossAxisCellCount: 4,
-                            mainAxisCellCount: 2,
-                            child: _BentoCard(
-                              title: "GROUNDING EVIDENCE",
-                              child: _result == null
-                                  ? Center(
-                                      child: Text("No evidence loaded.",
-                                          style:
-                                              TextStyle(color: Colors.white24)))
-                                  : ListView.builder(
-                                      itemCount:
-                                          _result!.groundingCitations.length,
-                                      itemBuilder: (context, index) {
-                                        final citation =
-                                            _result!.groundingCitations[index];
-                                        return EvidenceCard(
-                                          title: citation['title'] ?? 'Source',
-                                          snippet: citation['snippet'] ?? '',
-                                          url: citation['url'] ?? '',
-                                        );
-                                      },
-                                    ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
+  Widget _buildDesktopHeader() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'VERISCAN DASHBOARD',
+              style: GoogleFonts.outfit(
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 2.0,
               ),
             ),
+            Text(
+              'Multimodal Forensic Analysis Engine',
+              style: GoogleFonts.outfit(
+                color: Colors.white38,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+        _StatusBadge(),
+      ],
+    );
+  }
+
+  Widget _buildEvidenceList() {
+    if (_result == null) {
+      return const Center(
+          child: Text("No evidence loaded.",
+              style: TextStyle(color: Colors.white24)));
+    }
+    if (_result!.groundingCitations.isEmpty) {
+      return Center(
+        child: Text(
+          "No specific external citations found.\nAnalysis based on internal knowledge and context.",
+          textAlign: TextAlign.center,
+          style: GoogleFonts.outfit(
+            color: Colors.white54,
+            fontSize: 14,
           ),
-        ],
-      ),
+        ),
+      );
+    }
+
+    // Check if mobile to use ListView vs Expanded/Flexible logic?
+    // In MobileLayout it's inside a Column.
+    // In DesktopLayout it's inside a StaggeredGridTile (which has fixed height).
+    // So ListView.builder works for both if wrapped correctly.
+    // But prompt said: "Use Expanded inside the desktop result view, but switch to a scrollable ListView for the 'Grounding Citations' on mobile"
+    // My _buildEvidenceList returns the content.
+    // In Desktop, it is inside a BentoCard which has "Expanded(child: child)" in it.
+
+    return ListView.builder(
+      shrinkWrap: true, // Needed for mobile column
+      physics: const ClampingScrollPhysics(), // Scrollable inside the parent
+      itemCount: _result!.groundingCitations.length,
+      itemBuilder: (context, index) {
+        final citation = _result!.groundingCitations[index];
+        return EvidenceCard(
+          title: citation['title'] ?? 'Source',
+          snippet: citation['snippet'] ?? '',
+          url: citation['url'] ?? '',
+        );
+      },
     );
   }
 }
@@ -259,36 +335,44 @@ class _BentoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E1E1E),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.2),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: GoogleFonts.outfit(
-              color: const Color(0xFFD4AF37),
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.2,
-            ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                title,
+                style: GoogleFonts.outfit(
+                  color: const Color(0xFFD4AF37),
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              const SizedBox(height: 16),
+              if (constraints.maxHeight.isFinite)
+                Expanded(child: child)
+              else
+                child,
+            ],
           ),
-          const SizedBox(height: 16),
-          Expanded(child: child),
-        ],
-      ),
+        );
+      },
     );
   }
 }
