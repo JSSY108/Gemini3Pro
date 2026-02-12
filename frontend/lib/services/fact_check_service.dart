@@ -2,53 +2,14 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:flutter/foundation.dart';
-
-class FactCheckResult {
-  final bool isValid;
-  final double confidenceScore;
-  final String analysis;
-  final List<String> keyFindings;
-  final List<Map<String, String>> groundingCitations;
-
-  FactCheckResult({
-    required this.isValid,
-    required this.confidenceScore,
-    required this.analysis,
-    required this.keyFindings,
-    required this.groundingCitations,
-  });
-
-  factory FactCheckResult.fromJson(Map<String, dynamic> json) {
-    var citations = <Map<String, String>>[];
-    if (json['grounding_citations'] != null) {
-      json['grounding_citations'].forEach((v) {
-        citations.add({
-          'title': v['title']?.toString() ?? 'Source',
-          'url': v['url']?.toString() ?? '',
-          'snippet': v['snippet']?.toString() ?? '',
-        });
-      });
-    }
-
-    return FactCheckResult(
-      isValid: json['verdict'] == 'REAL',
-      confidenceScore: (json['confidence_score'] ?? 0.0).toDouble(),
-      analysis: json['analysis']?.toString() ?? 'Analysis unavailable',
-      keyFindings: (json['key_findings'] as List<dynamic>?)
-              ?.map((e) => e.toString())
-              .toList() ??
-          [],
-      groundingCitations: citations,
-    );
-  }
-}
+import '../models/grounding_models.dart';
 
 class FactCheckService {
   final String baseUrl = kReleaseMode
       ? 'https://us-central1-veriscan-kitahack.cloudfunctions.net/analyze'
       : 'http://127.0.0.1:8080';
 
-  Future<FactCheckResult> analyzeNews({
+  Future<AnalysisResponse> analyzeNews({
     String? text,
     String? url,
     List<int>? imageBytes,
@@ -84,7 +45,7 @@ class FactCheckService {
       final response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 200) {
-        return FactCheckResult.fromJson(jsonDecode(response.body));
+        return AnalysisResponse.fromJson(jsonDecode(response.body));
       } else {
         throw Exception(
             'Failed to analyze: ${response.statusCode} ${response.body}');

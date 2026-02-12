@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/fact_check_service.dart';
+import '../models/grounding_models.dart';
 import '../widgets/responsive_layout.dart';
 import '../widgets/result_card.dart';
+import '../widgets/veriscan_interactive_text.dart';
 
 import '../widgets/evidence_card.dart';
 import '../widgets/input_section.dart';
@@ -18,7 +20,7 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   final FactCheckService _service = FactCheckService();
-  FactCheckResult? _result;
+  AnalysisResponse? _result;
   bool _isLoading = false;
 
   Future<void> _handleAnalysis(
@@ -109,10 +111,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ? const Center(
                         child: Icon(Icons.analytics_outlined,
                             color: Colors.white12, size: 40))
-                    : Text(
-                        _result!.analysis,
-                        style: GoogleFonts.outfit(
-                            color: Colors.white70, height: 1.5),
+                    : VeriscanInteractiveText(
+                        analysisText: _result!.analysis,
+                        groundingSupports: _result!.groundingSupports,
+                        groundingCitations: _result!.groundingCitations,
                       ),
               ),
               const SizedBox(height: 16),
@@ -197,10 +199,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     child: Icon(Icons.analytics_outlined,
                                         color: Colors.white12, size: 40))
                                 : SingleChildScrollView(
-                                    child: Text(
-                                      _result!.analysis,
-                                      style: GoogleFonts.outfit(
-                                          color: Colors.white70, height: 1.5),
+                                    child: VeriscanInteractiveText(
+                                      analysisText: _result!.analysis,
+                                      groundingSupports:
+                                          _result!.groundingSupports,
+                                      groundingCitations:
+                                          _result!.groundingCitations,
                                     ),
                                   ),
                           ),
@@ -303,14 +307,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       );
     }
 
-    // Check if mobile to use ListView vs Expanded/Flexible logic?
-    // In MobileLayout it's inside a Column.
-    // In DesktopLayout it's inside a StaggeredGridTile (which has fixed height).
-    // So ListView.builder works for both if wrapped correctly.
-    // But prompt said: "Use Expanded inside the desktop result view, but switch to a scrollable ListView for the 'Grounding Citations' on mobile"
-    // My _buildEvidenceList returns the content.
-    // In Desktop, it is inside a BentoCard which has "Expanded(child: child)" in it.
-
     return ListView.builder(
       shrinkWrap: true, // Needed for mobile column
       physics: const ClampingScrollPhysics(), // Scrollable inside the parent
@@ -318,9 +314,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       itemBuilder: (context, index) {
         final citation = _result!.groundingCitations[index];
         return EvidenceCard(
-          title: citation['title'] ?? 'Source',
-          snippet: citation['snippet'] ?? '',
-          url: citation['url'] ?? '',
+          title: citation.title,
+          snippet: citation.snippet,
+          url: citation.url,
         );
       },
     );
