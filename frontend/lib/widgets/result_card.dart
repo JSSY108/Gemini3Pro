@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../services/fact_check_service.dart';
+import '../models/grounding_models.dart';
 
 import 'confidence_gauge.dart';
 
 class ResultCard extends StatelessWidget {
-  final FactCheckResult? result;
+  final AnalysisResponse? result;
 
   const ResultCard({super.key, required this.result});
 
@@ -32,7 +32,7 @@ class ResultCard extends StatelessWidget {
           );
         }
 
-        final bool isReal = result!.isValid;
+        final bool isReal = result!.verdict == 'REAL';
         final Color accentColor =
             isReal ? const Color(0xFF4CAF50) : const Color(0xFFE53935);
 
