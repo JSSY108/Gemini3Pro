@@ -8,8 +8,9 @@ This file serves as a persistent memory for the project. It documents errors, ro
 
 #### Service Account Path (Vertex AI)
 *   **Context**: 500 Internal Server Error when initializing Vertex AI.
-*   **Root Cause**: Relative paths for `service-account.json` may fail depending on the execution context.
-*   **Solution**: Use an **explicit absolute path** for the `service-account.json` file in `main.py`.
+*   **Root Cause**: Relative paths for `service-account.json` may fail depending on the execution context (especially in Cloud Functions).
+*   **Solution**: Use an **explicit absolute path** for the `service-account.json` file in `main.py` using `base_dir = os.path.dirname(os.path.abspath(__file__))`.
+*   **Production Hardening**: Ensure the file is not ignored during deployment (see Deployment & Environment section).
 
 #### Image Upload (MIME Types)
 *   **Context**: 400 Error: "unable to submit request because it has a mime type parameter with value application".
@@ -40,6 +41,19 @@ This file serves as a persistent memory for the project. It documents errors, ro
 *   **Context**: Deployment issues with Firebase CLI.
 *   **Root Cause**: Windows compatibility and path issues.
 *   **Learnings**: Ensure backend dependencies are in a virtual environment. Some commands may need to be run manually if the agent environment lacks permissions or specific shell configurations.
+
+#### Cloud Function CORS 500 Error
+*   **Context**: Backend crashes with `AttributeError: 'bool' object has no attribute 'cors_methods'` after deployment.
+*   **Root Cause**: The `cors=True` setting in the `@https_fn.on_request` decorator can occasionally fail depending on the SDK version or framework initialization.
+*   **Solution**: Switch to **Manual CORS Handling**. Implement an `if req.method == 'OPTIONS':` block and explicitly add `headers={'Access-Control-Allow-Origin': '*'}` to all HTTP responses.
+
+#### Missing Credentials in Production
+*   **Context**: "Credentials file not found" error on the deployed server.
+*   **Root Cause**: `service-account.json` was excluded from the deployment bundle by default `.gitignore` rules.
+*   **Solution**: 
+    1.  Create a `.gcloudignore` file in the `backend/` directory.
+    2.  Add `!service-account.json` to explicitly whitelist the file for upload.
+    3.  (Optional) Add a custom header or error response with `traceback.format_exc()` to debug silent 500 errors in live environments.
 
 #### Citation Management
 *   **Logic**: Use a robust "String Match" with fallback for citation injection.

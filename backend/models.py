@@ -42,6 +42,14 @@ class AnalysisRequest(BaseModel):
     parts: List[InputPart]
     settings: Optional[AnalysisSettings] = Field(default_factory=AnalysisSettings)
 
+class Source(BaseModel):
+    id: str
+    title: str
+    url: str
+    cited_segment: str
+    source_context: str
+    favicon_url: Optional[str] = None
+
 class AnalysisResponse(BaseModel):
     verdict: Literal["REAL", "FAKE", "MISLEADING", "UNVERIFIED"]
     confidence_score: float
@@ -51,3 +59,4 @@ class AnalysisResponse(BaseModel):
     grounding_citations: List[GroundingCitation] = []
     grounding_supports: List[GroundingSupport] = []
     media_literacy: Optional[MediaLiteracy] = None
+    sources: List[Source] = []
