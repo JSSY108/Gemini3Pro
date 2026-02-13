@@ -117,9 +117,12 @@ Schema:
 }
 
 # CONSTRAINTS
-- If citations < 1 or confidence < 0.4, verdict MUST be "UNVERIFIED".
+- If any URL returns a 403 (Forbidden), 404 (Not Found), or 429 (Too Many Requests) error, you MUST explicitly state this in the 'analysis' field. Use user-friendly wording like: "NOTICE: Verification is limited because the provided source (domain.com) is currently inaccessible—this may be due to a paywall or server restrictions. I have analyzed the remaining multimodal evidence (Images/PDFs) instead."
+- If the only source provided is inaccessible, you must set verdict: "UNVERIFIED" and confidence_score: 0.0.
+- Use the "confidence_score" to drive the verdict: if "confidence_score" < 0.5, the verdict MUST be "UNVERIFIED".
+- The "confidence_score" must reflect the average certainty across all provided parts (Images, PDFs, and accessible URLs).
 - Tone should be professional, objective, and "Obsidian-class".
-- If a citation refers to an uploaded file, include the exact filename in the "title".
+- If a citation refers to an uploaded file, include the exact filename in the "title" or "snippet" of the citation.
 """
         tools = [Tool.from_dict({"google_search": {}})]
         model = GenerativeModel("gemini-2.0-flash-lite-001", system_instruction=[system_instruction], tools=tools)

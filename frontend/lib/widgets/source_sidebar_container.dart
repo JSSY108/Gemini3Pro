@@ -10,6 +10,7 @@ class SourceSidebarContainer extends StatefulWidget {
   final List<SourceAttachment> uploadedAttachments;
   final List<int> activeIndices;
   final Function(int) onCitationSelected;
+  final Function(String) onDeleteAttachment;
   final ScrollController scrollController;
 
   const SourceSidebarContainer({
@@ -20,6 +21,7 @@ class SourceSidebarContainer extends StatefulWidget {
     required this.uploadedAttachments,
     this.activeIndices = const [],
     required this.onCitationSelected,
+    required this.onDeleteAttachment,
     required this.scrollController,
   });
 
@@ -42,30 +44,43 @@ class _SourceSidebarContainerState extends State<SourceSidebarContainer> {
           // Header / Toggle
           Container(
             height: 60,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding:
+                EdgeInsets.symmetric(horizontal: widget.isExpanded ? 16 : 0),
             decoration: BoxDecoration(
               border: Border(
                 bottom: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
               ),
             ),
-            child: Row(
-              mainAxisAlignment: widget.isExpanded
-                  ? MainAxisAlignment.spaceBetween
-                  : MainAxisAlignment.center,
-              children: [
-                if (widget.isExpanded) ...[
-                  _buildTabSwitcher(),
-                ],
-                IconButton(
-                  icon: Icon(
-                    widget.isExpanded
-                        ? Icons.keyboard_double_arrow_left
-                        : Icons.keyboard_double_arrow_right,
-                    color: const Color(0xFFD4AF37),
-                  ),
-                  onPressed: widget.onToggle,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              physics: const NeverScrollableScrollPhysics(),
+              child: SizedBox(
+                width: widget.isExpanded
+                    ? 318
+                    : 60, // Match width to prevent icon clipping
+                child: Row(
+                  mainAxisAlignment: widget.isExpanded
+                      ? MainAxisAlignment.spaceBetween
+                      : MainAxisAlignment.center,
+                  children: [
+                    if (widget.isExpanded) ...[
+                      _buildTabSwitcher(),
+                    ],
+                    IconButton(
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      icon: Icon(
+                        widget.isExpanded
+                            ? Icons.keyboard_double_arrow_left
+                            : Icons.keyboard_double_arrow_right,
+                        color: const Color(0xFFD4AF37),
+                        size: 20,
+                      ),
+                      onPressed: widget.onToggle,
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
           // Content
@@ -177,6 +192,7 @@ class _SourceSidebarContainerState extends State<SourceSidebarContainer> {
                   : "User Uploaded File",
               url: attachment.url ?? "",
               isActive: false,
+              onDelete: () => widget.onDeleteAttachment(attachment.id),
             ),
           ),
         );
