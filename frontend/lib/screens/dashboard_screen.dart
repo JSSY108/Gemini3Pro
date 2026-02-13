@@ -14,14 +14,21 @@ class DashboardScreen extends StatefulWidget {
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+class _DashboardScreenState extends State<DashboardScreen>
+    with TickerProviderStateMixin {
   final FactCheckService _service = FactCheckService();
   final TextEditingController _inputController = TextEditingController();
   final ScrollController _sidebarScrollController = ScrollController();
+  final GlobalKey _sidebarKey = GlobalKey();
 
   AnalysisResponse? _result;
   bool _isLoading = false;
   bool _isSidebarExpanded = true;
+
+  // Attachments State
+  List<SourceAttachment> _pendingAttachments = [];
+  List<SourceAttachment> _migratedAttachments = [];
+  final Map<String, GlobalKey> _chipKeys = {};
 
   // CHANGED: Track both active indices (for sidebar) and active support (for text)
   List<int> _activeCitationIndices = [];
@@ -31,9 +38,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
   //  LOGIC
   // ===========================================================================
 
+  void _handleAddAttachment(SourceAttachment attachment) {
+    setState(() {
+      _pendingAttachments.add(attachment);
+    });
+  }
+
+  void _handleRemoveAttachment(String id) {
+    setState(() {
+      _pendingAttachments.removeWhere((a) => a.id == id);
+      _chipKeys.remove(id);
+    });
+  }
+
   Future<void> _handleAnalysis() async {
     final text = _inputController.text.trim();
-    if (text.isEmpty) return;
+    if (text.isEmpty && _pendingAttachments.isEmpty) return;
+
+    // 1. Start Migration Animation
+    if (_pendingAttachments.isNotEmpty) {
+      await _animateMigration();
+    }
 
     setState(() {
       _isLoading = true;
@@ -42,10 +67,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _activeSupport = null;
     });
 
+    final toMigrate = List<SourceAttachment>.from(_pendingAttachments);
+
     try {
-      final result = await _service.analyzeNews(text: text);
+      final result = await _service.analyzeNews(
+        text: text,
+        attachments: toMigrate,
+      );
       setState(() {
         _result = result;
+        _migratedAttachments.addAll(toMigrate);
+        _pendingAttachments.clear();
+        _chipKeys.clear();
       });
     } catch (e) {
       if (mounted) {
@@ -59,6 +92,48 @@ class _DashboardScreenState extends State<DashboardScreen> {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  Future<void> _animateMigration() async {
+    final List<SourceAttachment> attachments = List.from(_pendingAttachments);
+    final List<OverlayEntry> entries = [];
+
+    // Find target (Sidebar) position
+    final RenderBox? sidebarBox =
+        _sidebarKey.currentContext?.findRenderObject() as RenderBox?;
+    if (sidebarBox == null) return;
+    final Offset targetOffset =
+        sidebarBox.localToGlobal(Offset.zero) + const Offset(150, 40);
+
+    for (final attachment in attachments) {
+      final key = _chipKeys[attachment.id];
+      if (key == null) continue;
+
+      final RenderBox? chipBox =
+          key.currentContext?.findRenderObject() as RenderBox?;
+      if (chipBox == null) continue;
+
+      final Offset startOffset = chipBox.localToGlobal(Offset.zero);
+      final Size blockSize = chipBox.size;
+
+      final entry = OverlayEntry(builder: (context) {
+        return _FlyingAttachment(
+          startOffset: startOffset,
+          endOffset: targetOffset,
+          size: blockSize,
+          attachment: attachment,
+        );
+      });
+      entries.add(entry);
+      Overlay.of(context).insert(entry);
+    }
+
+    // Wait for the animation to complete
+    await Future.delayed(const Duration(milliseconds: 1000));
+
+    for (final entry in entries) {
+      entry.remove();
     }
   }
 
@@ -159,9 +234,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   Flexible(
                     flex: 0,
                     child: SourceSidebarContainer(
+                      key: _sidebarKey,
                       isExpanded: _isSidebarExpanded,
                       onToggle: _toggleSidebar,
                       citations: _result?.groundingCitations ?? [],
+                      uploadedAttachments: _migratedAttachments,
                       activeIndices: _activeCitationIndices,
                       onCitationSelected: _handleCitationSelected,
                       scrollController: _sidebarScrollController,
@@ -237,6 +314,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           child: GlassActionBar(
                             controller: _inputController,
                             onAnalyze: _handleAnalysis,
+                            attachments: _pendingAttachments,
+                            chipKeys: _chipKeys,
+                            onAddAttachment: _handleAddAttachment,
+                            onRemoveAttachment: _handleRemoveAttachment,
                             isLoading: _isLoading,
                           ),
                         ),
@@ -281,6 +362,83 @@ class _SidebarIcons extends StatelessWidget {
         color: isActive ? const Color(0xFFD4AF37) : Colors.white24,
         size: 24,
       ),
+    );
+  }
+}
+
+class _FlyingAttachment extends StatelessWidget {
+  final Offset startOffset;
+  final Offset endOffset;
+  final Size size;
+  final SourceAttachment attachment;
+
+  const _FlyingAttachment({
+    required this.startOffset,
+    required this.endOffset,
+    required this.size,
+    required this.attachment,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<Offset>(
+      tween: Tween<Offset>(begin: startOffset, end: endOffset),
+      duration: const Duration(milliseconds: 1000),
+      curve: Curves.easeInOutCubic, // User requested Curves.easeInOutCubic
+      builder: (context, offset, child) {
+        return Positioned(
+          left: offset.dx,
+          top: offset.dy,
+          child: Material(
+            color: Colors.transparent,
+            child: Opacity(
+              opacity: 1.0 -
+                  (offset.dx - startOffset.dx).abs() /
+                      (endOffset.dx - startOffset.dx)
+                          .abs()
+                          .clamp(1.0, 99999.0)
+                          .toDouble() *
+                      0.5,
+              child: Container(
+                width: size.width,
+                height: size.height,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD4AF37).withValues(alpha: 0.8),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFD4AF37).withValues(alpha: 0.4),
+                      blurRadius: 10,
+                    )
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.auto_awesome,
+                        color: Colors.black, size: 16),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        attachment.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.outfit(
+                          color: Colors.black,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

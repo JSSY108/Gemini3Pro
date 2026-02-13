@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:flutter/foundation.dart';
+import 'package:file_picker/file_picker.dart';
 import '../models/grounding_models.dart';
 
 class FactCheckService {
@@ -11,35 +12,51 @@ class FactCheckService {
 
   Future<AnalysisResponse> analyzeNews({
     String? text,
-    String? url,
-    List<int>? imageBytes,
-    String? imageFilename,
+    List<SourceAttachment>? attachments,
   }) async {
     try {
       var request =
           http.MultipartRequest('POST', Uri.parse('$baseUrl/analyze'));
 
+      // Prepare metadata
+      final List<String> urls = attachments
+              ?.where((a) => a.type == AttachmentType.link && a.url != null)
+              .map((a) => a.url!)
+              .toList() ??
+          [];
+
+      final metadata = {
+        "request_id": DateTime.now().millisecondsSinceEpoch.toString(),
+        "text_claim": text ?? "",
+        "urls": urls,
+      };
+
+      request.fields['metadata'] = jsonEncode(metadata);
+
+      // Add files
+      if (attachments != null) {
+        for (final attachment in attachments) {
+          if (attachment.type != AttachmentType.link &&
+              attachment.file != null) {
+            final file = attachment.file as PlatformFile;
+            if (file.bytes != null) {
+              final mimeType = file.name.toLowerCase().endsWith('pdf')
+                  ? 'application/pdf'
+                  : 'image/jpeg';
+
+              request.files.add(http.MultipartFile.fromBytes(
+                'files',
+                file.bytes!,
+                filename: file.name,
+                contentType: MediaType.parse(mimeType),
+              ));
+            }
+          }
+        }
+      }
+
       debugPrint(
-          'SERVICE DEBUG: Sending - Text: $text, URL: $url, Image: $imageFilename');
-
-      if (text != null && text.isNotEmpty) {
-        request.fields['text'] = text;
-      }
-      if (url != null && url.isNotEmpty) {
-        request.fields['url'] = url;
-      }
-      if (imageBytes != null && imageFilename != null) {
-        // Determine mime type based on extension, or default to jpeg/png
-        final mimeType =
-            imageFilename.toLowerCase().endsWith('png') ? 'png' : 'jpeg';
-
-        request.files.add(http.MultipartFile.fromBytes(
-          'image',
-          imageBytes,
-          filename: imageFilename,
-          contentType: MediaType('image', mimeType),
-        ));
-      }
+          'SERVICE DEBUG: Sending multimodal request with ${request.files.length} files and ${urls.length} URLs');
 
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
@@ -48,7 +65,7 @@ class FactCheckService {
         return AnalysisResponse.fromJson(jsonDecode(response.body));
       } else {
         throw Exception(
-            'Failed to analyze: ${response.statusCode} ${response.body}');
+            'Failed to analyze: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
       throw Exception('Error connecting to backend: $e');

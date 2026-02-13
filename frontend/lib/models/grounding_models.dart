@@ -60,6 +60,24 @@ class GroundingCitation {
   }
 }
 
+enum AttachmentType { image, pdf, link }
+
+class SourceAttachment {
+  final String id;
+  final String title;
+  final AttachmentType type;
+  final String? url;
+  final dynamic file; // PlatformFile or cross_file XFile
+
+  SourceAttachment({
+    required this.id,
+    required this.title,
+    required this.type,
+    this.url,
+    this.file,
+  });
+}
+
 class AnalysisResponse {
   final String verdict;
   final double confidenceScore;
