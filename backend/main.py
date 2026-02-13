@@ -50,20 +50,33 @@ VERTEX_AI_READY = False
 
 def init_vertex():
     global VERTEX_AI_READY
-    CREDENTIALS_PATH = os.path.join(os.path.dirname(__file__), "service-account.json")
+    # Robust absolute pathing for production
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    CREDENTIALS_PATH = os.path.join(base_dir, "service-account.json")
+    
     try:
-        if os.path.exists(CREDENTIALS_PATH):
+        # Check for environment variable fallback first
+        env_creds = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+        
+        if env_creds and os.path.exists(env_creds):
+            vertexai.init(project=PROJECT_ID, location=LOCATION)
+            VERTEX_AI_READY = True
+            logger.info("Vertex AI initialized via environment variable.")
+        elif os.path.exists(CREDENTIALS_PATH):
             credentials = service_account.Credentials.from_service_account_file(CREDENTIALS_PATH)
             vertexai.init(project=PROJECT_ID, location=LOCATION, credentials=credentials)
             VERTEX_AI_READY = True
-            logger.info("Vertex AI initialized with local Service Account.")
+            logger.info(f"Vertex AI initialized with bundled Service Account: {CREDENTIALS_PATH}")
         else:
+            # Fallback to default credentials (works on some GCP environments)
             vertexai.init(project=PROJECT_ID, location=LOCATION)
             VERTEX_AI_READY = True
             logger.info("Vertex AI initialized with Application Default Credentials.")
     except Exception as e:
-        logger.error(f"Error initializing Vertex AI: {e}")
+        logger.error(f"FATAL: Vertex AI Initialization Failed: {e}")
         VERTEX_AI_READY = False
+        # We don't raise here to allow the server to start, 
+        # but subsequent analysis calls will catch VERTEX_AI_READY=False.
 
 # --- Utilities ---
 
@@ -83,7 +96,7 @@ async def process_multimodal_gemini(gemini_parts: List[Any], request_id: str, fi
     if not VERTEX_AI_READY:
         init_vertex()
         if not VERTEX_AI_READY:
-            raise RuntimeError("Vertex AI not configured.")
+            raise RuntimeError("Credentials file not found or Vertex AI configuration invalid.")
 
     logger.info(f"Processing Analysis Request: {request_id}")
     file_names = file_names or []
@@ -327,15 +340,83 @@ def analyze(req: https_fn.Request) -> https_fn.Response:
     if req.method == 'OPTIONS':
         return https_fn.Response(status=204, headers={
             'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'POST',
-            'Access-Control-Allow-Headers': 'Content-Type',
+            'Access-Control-Allow-Methods': 'POST, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         })
 
+    if req.method != 'POST':
+        return https_fn.Response("Method Not Allowed. Use POST.", status=405, headers={'Access-Control-Allow-Origin': '*'})
+
     import asyncio
-    # Simple wrapper for Firebase - in production, you'd parse multipart here too if needed
-    # For now, we'll keep it simple as the FastAPI endpoint is the main target.
-    # If the user needs this specifically worked on, we'll refactor it separately.
-    return https_fn.Response("Use FastAPI endpoint for multimodal analysis.", status=200)
+    import traceback
+    
+    try:
+        # 1. Parse metadata from Form
+        metadata_str = req.form.get("metadata")
+        if not metadata_str:
+             return https_fn.Response(json.dumps({"error": "Missing metadata field"}), status=400, mimetype='application/json')
+        
+        meta_data = json.loads(metadata_str)
+        request_id = meta_data.get("request_id", "prod_req")
+        text_claim = meta_data.get("text_claim", "")
+        provided_urls = meta_data.get("urls", [])
+        
+        # 2. Extract files from Request
+        gemini_parts = []
+        prompt_content = f"Analyze the following parts (Text, Images, Documents, URLs):\n\nTEXT CLAIM: {text_claim}\n"
+        
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+        async def _run():
+            nonlocal prompt_content
+            for url in provided_urls:
+                content = await fetch_url_content(url)
+                prompt_content += f"URL CONTENT (from {url}):\n{content}\n"
+            
+            file_names = []
+            for key in req.files:
+                for f in req.files.getlist(key):
+                    file_bytes = f.read()
+                    if not file_bytes: continue
+                    file_names.append(f.filename)
+                    mime_type = f.content_type or "application/octet-stream"
+                    part_args = {"data": file_bytes, "mime_type": mime_type}
+                    if "image" in mime_type:
+                        gemini_parts.append(Part.from_data(**part_args))
+                        prompt_content += f"[Image Attached: {f.filename}]\n"
+                    elif mime_type == "application/pdf":
+                        gemini_parts.append(Part.from_data(**part_args))
+                        prompt_content += f"[PDF Document Attached: {f.filename}]\n"
+
+            gemini_parts.insert(0, prompt_content)
+            return await process_multimodal_gemini(gemini_parts, request_id, file_names)
+
+        try:
+            result = loop.run_until_complete(_run())
+            return https_fn.Response(
+                json.dumps(result.model_dump()),
+                status=200,
+                mimetype='application/json',
+                headers={'Access-Control-Allow-Origin': '*'}
+            )
+        finally:
+            loop.close()
+
+    except Exception as e:
+        error_msg = f"ERROR: {str(e)}\n{traceback.format_exc()}"
+        logger.error(f"Function Execution Error: {error_msg}")
+        # Explicit error if credentials are the cause
+        if "service-account.json" in str(e) or "Credentials" in str(e):
+             return https_fn.Response(json.dumps({
+                 "error": "Credentials file not found or invalid on production server.",
+                 "debug_trace": error_msg
+             }), status=500, mimetype='application/json', headers={'Access-Control-Allow-Origin': '*'})
+             
+        return https_fn.Response(json.dumps({
+            "error": "Internal Server Error during forensic analysis.",
+            "debug_trace": error_msg
+        }), status=500, mimetype='application/json', headers={'Access-Control-Allow-Origin': '*'})
 
 if __name__ == "__main__":
     import uvicorn
