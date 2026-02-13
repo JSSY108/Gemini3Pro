@@ -28,6 +28,8 @@ class GlassActionBar extends StatefulWidget {
 }
 
 class _GlassActionBarState extends State<GlassActionBar> {
+  bool _isUpdating = false;
+
   @override
   void initState() {
     super.initState();
@@ -35,23 +37,79 @@ class _GlassActionBarState extends State<GlassActionBar> {
   }
 
   void _urlDetector() {
+    if (_isUpdating) return;
+
     final text = widget.controller.text;
+    // Robust URL Regex covering http, https, www, and common TLDs
     final urlRegex = RegExp(
-        r'(https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|www\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9]+\.[^\s]{2,}|www\.[a-zA-Z0-9]+\.[^\s]{2,})');
+        r'((?:https?:\/\/|www\.)[^\s]+|[a-zA-Z0-9.-]+\.(?:com|org|net|gov|edu|io|co|me|site|info)[^\s]*)',
+        caseSensitive: false);
+
     final matches = urlRegex.allMatches(text);
-    if (matches.isNotEmpty) {
-      for (final match in matches) {
-        final url = match.group(0)!;
-        // Check if already added
+    if (matches.isEmpty) return;
+
+    String currentText = text;
+    bool changed = false;
+
+    // Process from end to start to avoid index shifting during replacement
+    for (final match in matches.toList().reversed) {
+      final url = match.group(0)!;
+      final matchEnd = match.end;
+
+      // TRIGGER CONDITIONS:
+      // 1. URL is followed by whitespace (User finished typing)
+      // 2. URL is at the end of text and starts with http/www (User pasted)
+      final bool hasSpaceAfter =
+          matchEnd < text.length && RegExp(r'\s').hasMatch(text[matchEnd]);
+      final bool isExplicitFullLinkAtEnd = matchEnd == text.length &&
+          (url.contains('://') || url.startsWith('www.'));
+
+      if (hasSpaceAfter || isExplicitFullLinkAtEnd) {
         if (!widget.attachments.any((a) => a.url == url)) {
+          _isUpdating = true;
+
+          String title = _formatUrlTitle(url);
+
           widget.onAddAttachment(SourceAttachment(
             id: DateTime.now().millisecondsSinceEpoch.toString(),
-            title: url.split('/').last.isEmpty ? url : url.split('/').last,
+            title: title,
             type: AttachmentType.link,
             url: url,
           ));
+
+          // Remove the Link + the space if there was one
+          int endPos = hasSpaceAfter ? matchEnd + 1 : matchEnd;
+          currentText = currentText.replaceRange(match.start, endPos, '');
+          changed = true;
+          _isUpdating = false;
         }
       }
+    }
+
+    if (changed) {
+      _isUpdating = true;
+      // Use PostFrameCallback for "Atomic" clear/update to avoid cursor jumps
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        // Clear or set text to remaining content
+        final trimmedText = currentText.trimLeft();
+        widget.controller.value = TextEditingValue(
+          text: trimmedText,
+          selection: TextSelection.collapsed(offset: trimmedText.length),
+        );
+        _isUpdating = false;
+      });
+    }
+  }
+
+  String _formatUrlTitle(String url) {
+    try {
+      final uri = Uri.parse(url.startsWith('http') ? url : 'http://$url');
+      String host = uri.host;
+      if (host.startsWith('www.')) host = host.substring(4);
+      if (host.isEmpty) return url;
+      return host[0].toUpperCase() + host.substring(1).split('.').first;
+    } catch (_) {
+      return url.split('/').last.isEmpty ? url : url.split('/').last;
     }
   }
 
@@ -114,7 +172,8 @@ class _GlassActionBarState extends State<GlassActionBar> {
                   minLines: 1,
                   style: GoogleFonts.outfit(color: Colors.white, fontSize: 15),
                   decoration: const InputDecoration(
-                    hintText: 'Enter claim, question, or URL for analysis...',
+                    hintText:
+                        "Enter claim or paste link with source(image,pdf) directly for analysis...",
                     hintStyle: TextStyle(color: Colors.white38),
                     border: InputBorder.none,
                     contentPadding: EdgeInsets.symmetric(vertical: 12),
@@ -210,7 +269,6 @@ class _PickerButton extends StatelessWidget {
       itemBuilder: (context) => [
         _buildMenuItem('Capture Image', Icons.camera_alt, 'image'),
         _buildMenuItem('Upload PDF', Icons.picture_as_pdf, 'pdf'),
-        _buildMenuItem('Add Link', Icons.link, 'link'),
       ],
     );
   }
