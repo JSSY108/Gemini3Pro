@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../models/grounding_models.dart';
-import '../evidence_card.dart';
+import '../source_tile.dart';
 
 class MobileSourceLibrary extends StatefulWidget {
   final List<GroundingCitation> citations;
@@ -96,11 +96,10 @@ class _MobileSourceLibraryState extends State<MobileSourceLibrary> {
       itemCount: widget.citations.length,
       itemBuilder: (context, index) {
         final citation = widget.citations[index];
-        return EvidenceCard(
+        return SourceTile(
           title: citation.title,
-          snippet: citation.snippet,
           url: citation.url,
-          isActive: false,
+          onTap: () => widget.onCitationSelected(index),
         );
       },
     );
@@ -122,13 +121,9 @@ class _MobileSourceLibraryState extends State<MobileSourceLibrary> {
       itemCount: widget.uploadedAttachments.length,
       itemBuilder: (context, index) {
         final attachment = widget.uploadedAttachments[index];
-        return EvidenceCard(
+        return SourceTile(
           title: attachment.title,
-          snippet: attachment.type == AttachmentType.link
-              ? attachment.url!
-              : "User Uploaded File",
           url: attachment.url ?? "",
-          isActive: false,
           onDelete: () => widget.onDeleteAttachment(attachment.id),
         );
       },

@@ -251,35 +251,47 @@ class _DashboardScreenState extends State<DashboardScreen>
             child: Stack(
               fit: StackFit.expand,
               children: [
-                Container(
-                  color: const Color(0xFF121212),
-                  padding: const EdgeInsets.fromLTRB(32, 32, 32, 120),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text("FORENSIC ANALYSIS",
-                          style: GoogleFonts.outfit(
-                            color: const Color(0xFFD4AF37),
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 2.0,
-                          )),
-                      const SizedBox(height: 24),
-                      Expanded(
-                        child: _result == null
-                            ? _buildForensicHubGrid()
-                            : SingleChildScrollView(
-                                child: VeriscanInteractiveText(
-                                  analysisText: _result!.analysis,
-                                  groundingSupports: _result!.groundingSupports,
-                                  groundingCitations:
-                                      _result!.groundingCitations,
-                                  activeSupport: _activeSupport,
-                                  onSupportSelected: _handleSupportSelected,
+                GestureDetector(
+                  onTap: () {
+                    if (_activeSupport != null) {
+                      setState(() {
+                        _activeSupport = null;
+                        _activeCitationIndices = [];
+                      });
+                    }
+                  },
+                  behavior: HitTestBehavior.opaque,
+                  child: Container(
+                    color: const Color(0xFF121212),
+                    padding: const EdgeInsets.fromLTRB(32, 32, 32, 120),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("FORENSIC ANALYSIS",
+                            style: GoogleFonts.outfit(
+                              color: const Color(0xFFD4AF37),
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 2.0,
+                            )),
+                        const SizedBox(height: 24),
+                        Expanded(
+                          child: _result == null
+                              ? _buildForensicHubGrid()
+                              : SingleChildScrollView(
+                                  child: VeriscanInteractiveText(
+                                    analysisText: _result!.analysis,
+                                    groundingSupports:
+                                        _result!.groundingSupports,
+                                    groundingCitations:
+                                        _result!.groundingCitations,
+                                    activeSupport: _activeSupport,
+                                    onSupportSelected: _handleSupportSelected,
+                                  ),
                                 ),
-                              ),
-                      ),
-                    ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 Positioned(
@@ -400,35 +412,46 @@ class _DashboardScreenState extends State<DashboardScreen>
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
             sliver: SliverToBoxAdapter(
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.02),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: const Color(0xFFD4AF37).withValues(alpha: 0.2),
-                    width: 0.5,
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text("FORENSIC ANALYSIS",
-                        style: GoogleFonts.outfit(
-                          color: const Color(0xFFD4AF37),
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.5,
-                        )),
-                    const SizedBox(height: 16),
-                    VeriscanInteractiveText(
-                      analysisText: _result!.analysis,
-                      groundingSupports: _result!.groundingSupports,
-                      groundingCitations: _result!.groundingCitations,
-                      activeSupport: _activeSupport,
-                      onSupportSelected: _handleSupportSelected,
+              child: GestureDetector(
+                onTap: () {
+                  if (_activeSupport != null) {
+                    setState(() {
+                      _activeSupport = null;
+                      _activeCitationIndices = [];
+                    });
+                  }
+                },
+                behavior: HitTestBehavior.opaque,
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.02),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: const Color(0xFFD4AF37).withValues(alpha: 0.2),
+                      width: 0.5,
                     ),
-                  ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("FORENSIC ANALYSIS",
+                          style: GoogleFonts.outfit(
+                            color: const Color(0xFFD4AF37),
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.5,
+                          )),
+                      const SizedBox(height: 16),
+                      VeriscanInteractiveText(
+                        analysisText: _result!.analysis,
+                        groundingSupports: _result!.groundingSupports,
+                        groundingCitations: _result!.groundingCitations,
+                        activeSupport: _activeSupport,
+                        onSupportSelected: _handleSupportSelected,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

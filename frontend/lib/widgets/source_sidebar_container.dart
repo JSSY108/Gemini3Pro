@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/grounding_models.dart';
-import 'evidence_card.dart';
+import 'source_tile.dart';
 
 class SourceSidebarContainer extends StatefulWidget {
   final bool isExpanded;
@@ -161,14 +161,11 @@ class _SourceSidebarContainerState extends State<SourceSidebarContainer> {
       itemBuilder: (context, index) {
         final citation = widget.citations[index];
         final isActive = widget.activeIndices.contains(index);
-        return GestureDetector(
+        return SourceTile(
+          title: citation.title,
+          url: citation.url,
+          isActive: isActive,
           onTap: () => widget.onCitationSelected(index),
-          child: EvidenceCard(
-            title: citation.title,
-            snippet: citation.snippet,
-            url: citation.url,
-            isActive: isActive,
-          ),
         );
       },
     );
@@ -185,11 +182,8 @@ class _SourceSidebarContainerState extends State<SourceSidebarContainer> {
           tag: 'attachment_${attachment.id}',
           child: Material(
             color: Colors.transparent,
-            child: EvidenceCard(
+            child: SourceTile(
               title: attachment.title,
-              snippet: attachment.type == AttachmentType.link
-                  ? attachment.url!
-                  : "User Uploaded File",
               url: attachment.url ?? "",
               isActive: false,
               onDelete: () => widget.onDeleteAttachment(attachment.id),
