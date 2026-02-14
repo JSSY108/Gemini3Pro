@@ -68,43 +68,33 @@ class _VeriscanInteractiveTextState extends State<VeriscanInteractiveText> {
     final beforeChunks = chunks.sublist(0, splitIndex);
     final afterChunks = chunks.sublist(splitIndex);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildRichTextBlock(beforeChunks, baseStyle, strutStyle),
-        AnimatedSwitcher(
-          duration: const Duration(milliseconds: 300),
-          layoutBuilder: (child, previousChildren) => Stack(
-            alignment: Alignment.topLeft,
-            children: [
-              ...previousChildren,
-              if (child != null) child,
-            ],
-          ),
-          transitionBuilder: (child, animation) => SizeTransition(
-            sizeFactor: animation,
-            child: FadeTransition(opacity: animation, child: child),
-          ),
-          child: (activeChunkIndex != -1)
-              ? Container(
-                  key: ValueKey(widget.activeSupport!.segment.startIndex),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  child: Column(
-                    children: _getReferencedCitations(widget.activeSupport!)
-                        .map((citation) => EvidenceCard(
-                              title: citation.title,
-                              snippet: citation.snippet,
-                              url: citation.url,
-                              isActive: true,
-                            ))
-                        .toList(),
-                  ),
-                )
-              : const SizedBox(key: ValueKey('empty_expansion')),
-        ),
-        if (afterChunks.isNotEmpty)
-          _buildRichTextBlock(afterChunks, baseStyle, strutStyle),
-      ],
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.fastOutSlowIn,
+      alignment: Alignment.topCenter,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildRichTextBlock(beforeChunks, baseStyle, strutStyle),
+          if (activeChunkIndex != -1)
+            Padding(
+              key: ValueKey(widget.activeSupport!.segment.startIndex),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Column(
+                children: _getReferencedCitations(widget.activeSupport!)
+                    .map((citation) => EvidenceCard(
+                          title: citation.title,
+                          snippet: citation.snippet,
+                          url: citation.url,
+                          isActive: true,
+                        ))
+                    .toList(),
+              ),
+            ),
+          if (afterChunks.isNotEmpty)
+            _buildRichTextBlock(afterChunks, baseStyle, strutStyle),
+        ],
+      ),
     );
   }
 
