@@ -26,6 +26,7 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   AnalysisResponse? _result;
   bool _isLoading = false;
+  bool _hasError = false;
   bool _isSidebarExpanded = true;
   int _mobileSelectedIndex = 0;
 
@@ -75,8 +76,8 @@ class _DashboardScreenState extends State<DashboardScreen>
 
     setState(() {
       _isLoading = true;
+      _hasError = false;
       _result = null;
-      _activeCitationIndices = [];
       _activeSupport = null;
     });
 
@@ -88,17 +89,21 @@ class _DashboardScreenState extends State<DashboardScreen>
         text: text,
         attachments: allAttachments,
       );
-      setState(() {
-        _result = result;
-        _migratedAttachments.addAll(recentlyMigrated);
-        _pendingAttachments.clear();
-        _chipKeys.clear();
-      });
-    } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-        );
+        setState(() {
+          _result = result;
+          _migratedAttachments.addAll(recentlyMigrated);
+          _pendingAttachments.clear();
+          _chipKeys.clear();
+          _hasError = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('ANALYSIS ERROR: $e');
+      if (mounted) {
+        setState(() {
+          _hasError = true;
+        });
       }
     } finally {
       if (mounted) {
@@ -107,6 +112,93 @@ class _DashboardScreenState extends State<DashboardScreen>
         });
       }
     }
+  }
+
+  Widget _buildErrorRetryCard() {
+    return Center(
+      child: RepaintBoundary(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 400),
+          padding: const EdgeInsets.all(32),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E1E1E),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: const Color(0xFFD4AF37).withOpacity(0.5),
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFFD4AF37).withOpacity(0.1),
+                blurRadius: 40,
+                spreadRadius: 5,
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD4AF37).withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.wb_sunny_outlined,
+                  color: Color(0xFFD4AF37),
+                  size: 32,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                "SYSTEM WARM-UP REQUIRED",
+                textAlign: TextAlign.center,
+                style: GoogleFonts.outfit(
+                  color: const Color(0xFFD4AF37),
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.5,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                "The forensic engine is waking up. Please click below to re-submit your request.",
+                textAlign: TextAlign.center,
+                style: GoogleFonts.outfit(
+                  color: Colors.white70,
+                  fontSize: 14,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: _handleAnalysis,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFD4AF37),
+                    foregroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: Text(
+                    "RE-VERIFY CLAIM",
+                    style: GoogleFonts.outfit(
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _animateMigration() async {
@@ -248,67 +340,73 @@ class _DashboardScreenState extends State<DashboardScreen>
           // Analysis Hub
           Expanded(
             flex: 5,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                GestureDetector(
-                  onTap: () {
-                    if (_activeSupport != null) {
-                      setState(() {
-                        _activeSupport = null;
-                        _activeCitationIndices = [];
-                      });
-                    }
-                  },
-                  behavior: HitTestBehavior.opaque,
-                  child: Container(
-                    color: const Color(0xFF121212),
-                    padding: const EdgeInsets.fromLTRB(32, 32, 32, 120),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text("FORENSIC ANALYSIS",
-                            style: GoogleFonts.outfit(
-                              color: const Color(0xFFD4AF37),
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 2.0,
-                            )),
-                        const SizedBox(height: 24),
-                        Expanded(
-                          child: _result == null
-                              ? _buildForensicHubGrid()
-                              : SingleChildScrollView(
-                                  child: VeriscanInteractiveText(
-                                    analysisText: _result!.analysis,
-                                    groundingSupports:
-                                        _result!.groundingSupports,
-                                    groundingCitations:
-                                        _result!.groundingCitations,
-                                    activeSupport: _activeSupport,
-                                    onSupportSelected: _handleSupportSelected,
-                                  ),
-                                ),
+            child: Container(
+              color: const Color(0xFF121212),
+              child: Column(
+                children: [
+                  // Analysis Content
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        if (_activeSupport != null) {
+                          setState(() {
+                            _activeSupport = null;
+                            _activeCitationIndices = [];
+                          });
+                        }
+                      },
+                      behavior: HitTestBehavior.opaque,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(32, 24, 32, 0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text("FORENSIC ANALYSIS",
+                                style: GoogleFonts.outfit(
+                                  color: const Color(0xFFD4AF37),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 2.0,
+                                )),
+                            const SizedBox(height: 16),
+                            Expanded(
+                              child: _hasError
+                                  ? _buildErrorRetryCard()
+                                  : (_result == null
+                                      ? _buildForensicHubGrid()
+                                      : SingleChildScrollView(
+                                          child: VeriscanInteractiveText(
+                                            analysisText: _result!.analysis,
+                                            groundingSupports:
+                                                _result!.groundingSupports,
+                                            groundingCitations:
+                                                _result!.groundingCitations,
+                                            activeSupport: _activeSupport,
+                                            onSupportSelected:
+                                                _handleSupportSelected,
+                                          ),
+                                        )),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                   ),
-                ),
-                Positioned(
-                  left: 20,
-                  right: 20,
-                  bottom: 20,
-                  child: GlassActionBar(
-                    controller: _inputController,
-                    onAnalyze: _handleAnalysis,
-                    attachments: _pendingAttachments,
-                    chipKeys: _chipKeys,
-                    onAddAttachment: _handleAddAttachment,
-                    onRemoveAttachment: _handleRemoveAttachment,
-                    isLoading: _isLoading,
+                  // Action Bar
+                  Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: GlassActionBar(
+                      controller: _inputController,
+                      onAnalyze: _handleAnalysis,
+                      attachments: _pendingAttachments,
+                      chipKeys: _chipKeys,
+                      onAddAttachment: _handleAddAttachment,
+                      onRemoveAttachment: _handleRemoveAttachment,
+                      isLoading: _isLoading,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           // Verdict Pane
@@ -333,30 +431,29 @@ class _DashboardScreenState extends State<DashboardScreen>
   Widget _buildMobileLayout() {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Stack(
+      body: Column(
         children: [
           // Main Scrollable Content
-          IndexedStack(
-            index: _mobileSelectedIndex,
-            children: [
-              _buildMobileReportView(),
-              _buildMobileSourcesView(),
-            ],
+          Expanded(
+            child: IndexedStack(
+              index: _mobileSelectedIndex,
+              children: [
+                _buildMobileReportView(),
+                _buildMobileSourcesView(),
+              ],
+            ),
           ),
 
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
-              child: GlassActionBar(
-                controller: _inputController,
-                onAnalyze: _handleAnalysis,
-                attachments: _pendingAttachments,
-                chipKeys: _chipKeys,
-                onAddAttachment: _handleAddAttachment,
-                onRemoveAttachment: _handleRemoveAttachment,
-                isLoading: _isLoading,
-              ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+            child: GlassActionBar(
+              controller: _inputController,
+              onAnalyze: _handleAnalysis,
+              attachments: _pendingAttachments,
+              chipKeys: _chipKeys,
+              onAddAttachment: _handleAddAttachment,
+              onRemoveAttachment: _handleRemoveAttachment,
+              isLoading: _isLoading,
             ),
           ),
         ],
@@ -399,7 +496,15 @@ class _DashboardScreenState extends State<DashboardScreen>
           delegate: MobileStickyHeaderDelegate(result: _result),
         ),
 
-        if (_result == null)
+        if (_hasError)
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 160),
+              child: _buildErrorRetryCard(),
+            ),
+          )
+        else if (_result == null)
           SliverFillRemaining(
             hasScrollBody: false,
             child: Padding(
