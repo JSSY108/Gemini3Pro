@@ -1,6 +1,9 @@
 import os
 import json
-from typing import Optional, List
+import logging
+import base64
+import httpx
+from typing import Optional, List, Dict, Any
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
@@ -10,20 +13,35 @@ from vertexai.generative_models import (
     Tool,
     Part,
     GenerationConfig,
-    HarmCategory,
-    HarmBlockThreshold,
     FinishReason,
-    grounding
 )
 from google.oauth2 import service_account
-from models import AnalysisResponse, SourceMetadata, GroundingCitation, MediaLiteracy
+from firebase_functions import https_fn
+from firebase_admin import initialize_app
+import firebase_admin
 
-# Load environment variables
+# Import models
+from models import AnalysisRequest, AnalysisResponse, GroundingCitation, GroundingSupport
+# from grounding_service import GroundingService
+
+# --- Initialization ---
 load_dotenv()
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+if not firebase_admin._apps:
+    initialize_app()
 
 app = FastAPI(title="VeriScan Core Engine")
+_grounding_service = None
 
-# Configure CORS for Flutter frontend
+def get_grounding_service():
+    global _grounding_service
+    if _grounding_service is None:
+        from grounding_service import GroundingService
+        _grounding_service = GroundingService()
+    return _grounding_service
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -32,241 +50,403 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- Service Account Configuration ---
-CREDENTIALS_PATH = os.path.join(os.path.dirname(__file__), "service-account.json")
-PROJECT_ID = "veriscan-kitahack"
-LOCATION = "us-central1"
-
+# --- Vertex AI Configuration ---
+PROJECT_ID = os.getenv("PROJECT_ID", "veriscan-kitahack")
+LOCATION = os.getenv("LOCATION", "us-central1")
 VERTEX_AI_READY = False
-try:
-    if os.path.exists(CREDENTIALS_PATH):
-        credentials = service_account.Credentials.from_service_account_file(CREDENTIALS_PATH)
-        vertexai.init(project=PROJECT_ID, location=LOCATION, credentials=credentials)
-        VERTEX_AI_READY = True
-        print(f"Vertex AI initialized from: {CREDENTIALS_PATH}")
-    else:
-        print(f"CRITICAL: Credentials not found at {CREDENTIALS_PATH}")
-except Exception as e:
-    print(f"Error initializing Vertex AI: {e}")
 
-@app.get("/")
-async def root():
-    return {
-        "message": "VeriScan Core Engine (Antigravity Update)",
-        "status": "running",
-        "vertex_ai": VERTEX_AI_READY
-    }
+def init_vertex():
+    global VERTEX_AI_READY
+    # Robust absolute pathing for production
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    CREDENTIALS_PATH = os.path.join(base_dir, "service-account.json")
+    
+    try:
+        # Check for environment variable fallback first
+        env_creds = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+        
+        if env_creds and os.path.exists(env_creds):
+            vertexai.init(project=PROJECT_ID, location=LOCATION)
+            VERTEX_AI_READY = True
+            logger.info("Vertex AI initialized via environment variable.")
+        elif os.path.exists(CREDENTIALS_PATH):
+            credentials = service_account.Credentials.from_service_account_file(CREDENTIALS_PATH)
+            vertexai.init(project=PROJECT_ID, location=LOCATION, credentials=credentials)
+            VERTEX_AI_READY = True
+            logger.info(f"Vertex AI initialized with bundled Service Account: {CREDENTIALS_PATH}")
+        else:
+            # Fallback to default credentials (works on some GCP environments)
+            vertexai.init(project=PROJECT_ID, location=LOCATION)
+            VERTEX_AI_READY = True
+            logger.info("Vertex AI initialized with Application Default Credentials.")
+    except Exception as e:
+        logger.error(f"FATAL: Vertex AI Initialization Failed: {e}")
+        VERTEX_AI_READY = False
+        # We don't raise here to allow the server to start, 
+        # but subsequent analysis calls will catch VERTEX_AI_READY=False.
 
-@app.get("/health")
-async def health_check():
-    return {
-        "status": "healthy",
-        "vertex_ai_configured": VERTEX_AI_READY,
-        "model": "gemini-2.5-flash-lite"
-    }
+# --- Utilities ---
 
-@app.post("/analyze", response_model=AnalysisResponse)
-async def analyze_multimodal(
-    text: Optional[str] = Form(None),
-    url: Optional[str] = Form(None),
-    image: Optional[UploadFile] = File(None)
-):
-    """
-    Antigravity Endpoint: Analyzes text, URL, or image using VeriScan Core Engine logic.
-    Returns a strict JSON verdict with Google Search grounding.
-    """
+async def fetch_url_content(url: str) -> str:
+    """Fetches text content from a URL."""
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(url)
+            response.raise_for_status()
+            return response.text[:5000]
+    except Exception as e:
+        logger.error(f"Error fetching URL {url}: {e}")
+        return f"[Error fetching content from {url}]"
+
+async def process_multimodal_gemini(gemini_parts: List[Any], request_id: str, file_names: List[str] = None) -> AnalysisResponse:
+    """Core logic to execute Gemini analysis."""
     if not VERTEX_AI_READY:
-        raise HTTPException(status_code=500, detail="Vertex AI not configured.")
+        init_vertex()
+        if not VERTEX_AI_READY:
+            raise RuntimeError("Credentials file not found or Vertex AI configuration invalid.")
 
-    if not text and not url and not image:
-        raise HTTPException(status_code=400, detail="At least one input (text, url, or image) is required.")
+    logger.info(f"Processing Analysis Request: {request_id}")
+    file_names = file_names or []
 
     try:
-        # 1. Prepare Inputs (Multimodal)
-        parts = []
-        
-        # System Instruction for Antigravity
         system_instruction = """
 # ROLE
 You are the VeriScan Core Engine, an elite Fact-Checking AI specialized in digital forensic analysis and media literacy.
 
 # OBJECTIVE
-Analyze the provided input (Text, URL content, or Image OCR) and provide a rigorous, search-grounded verdict. You must identify logical fallacies and provide evidence through Google Search grounding.
+Analyze the provided parts (Text, Images, Documents, URLs). Your goal is to cross-verify the claims in the text against the visual evidence in the images and the data in the PDF/URLs. Provide a rigorous, search-grounded verdict.
 
 # ANALYSIS PIPELINE
-1. OCR/EXTRACT: If the input is an image, extract all text and describe visual context.
-2. SEARCH: Query authoritative sources to confirm or debunk the claim.
-3. EVALUATE: Check for logical fallacies (e.g., Strawman, Ad Hominem, Appeal to Fear).
-4. SCORE: Assign a confidence score from 0.0 to 1.0 based on the strength of grounding citations.
+1. OCR/EXTRACT: Extract text from images/documents and describe visual context.
+2. CROSS-VERIFY: Compare evidence across all provided parts.
+3. SEARCH: Query authoritative sources to confirm or debunk the claim.
+4. EVALUATE: Check for logical fallacies (e.g., Strawman, Ad Hominem, Appeal to Fear).
+5. SCORE: Assign a confidence score from 0.0 to 1.0 based on the strength of grounding citations.
 
 # OUTPUT FORMAT (STRICT JSON ONLY)
-Return ONLY a JSON object. Do not include markdown code blocks (```json). 
+Return ONLY a JSON object. Do not include markdown code blocks. 
 Schema:
 {
   "verdict": "REAL" | "FAKE" | "MISLEADING" | "UNVERIFIED",
   "confidence_score": float,
   "analysis": "string (2-3 sentences explaining the 'why')",
   "key_findings": ["list of strings"],
-  "source_metadata": { "type": "text" | "url" | "image", "provided_url": "string or null", "page_title": "string or null" },
+  "source_metadata": { "type": "text" | "url" | "image" | "document", "provided_url": "string or null", "page_title": "string or null" },
   "grounding_citations": [{"title": "string", "url": "string", "snippet": "string"}],
   "media_literacy": { "logical_fallacies": ["string"], "tone_analysis": "string" }
 }
 
 # CONSTRAINTS
-- If citations < 1 or confidence < 0.4, verdict MUST be "UNVERIFIED".
-- Tone should be professional, objective, and "Obsidian-class" (premium/serious).
+- If any URL returns a 403 (Forbidden), 404 (Not Found), or 429 (Too Many Requests) error, you MUST explicitly state this in the 'analysis' field. Use user-friendly wording like: "NOTICE: Verification is limited because the provided source (domain.com) is currently inaccessible—this may be due to a paywall or server restrictions. I have analyzed the remaining multimodal evidence (Images/PDFs) instead."
+- If the only source provided is inaccessible, you must set verdict: "UNVERIFIED" and confidence_score: 0.0.
+- Use the "confidence_score" to drive the verdict: if "confidence_score" < 0.5, the verdict MUST be "UNVERIFIED".
+- The "confidence_score" must reflect the average certainty across all provided parts (Images, PDFs, and accessible URLs).
+- Tone should be professional, objective, and "Obsidian-class".
+- If a citation refers to an uploaded file, include the exact filename in the "title" or "snippet" of the citation.
 """
-        
-        prompt_content = "Analyze the following content:\n"
-        
-        if text:
-            prompt_content += f"Text: {text}\n"
-        
-        if url:
-            prompt_content += f"URL: {url}\n"
-            
-        parts.append(prompt_content)
-
-        if image:
-            image_bytes = await image.read()
-            image_part = Part.from_data(data=image_bytes, mime_type=image.content_type)
-            parts.append(image_part)
-
-        # 2. Configure Model with Grounding
+        from models import GroundingCitation, GroundingSupport, AnalysisResponse
         tools = [Tool.from_dict({"google_search": {}})]
-        model = GenerativeModel("gemini-2.5-flash-lite", system_instruction=[system_instruction], tools=tools)
+        model = GenerativeModel("gemini-2.0-flash-lite-001", system_instruction=[system_instruction], tools=tools)
         
+        # thinking_level and configuration
         generation_config = GenerationConfig(
-            temperature=0.0,
-            # response_mime_type="application/json"  # Incompatible with google_search grounding
+            temperature=0.0
         )
-
-        # 3. Generate Content
+        
         response = model.generate_content(
-            parts,
+            gemini_parts, 
             generation_config=generation_config
         )
-
-        # 4. Extract Response and Grounding
-        try:
-            # Check for grounding metadata
-            grounding_citations = []
-            if response.candidates and response.candidates[0].grounding_metadata.grounding_chunks:
-                for chunk in response.candidates[0].grounding_metadata.grounding_chunks:
-                    if chunk.web:
-                        grounding_citations.append(GroundingCitation(
-                            title=chunk.web.title or "Source",
-                            url=chunk.web.uri,
-                            snippet="Grounding source" # API might not return snippet in simple chunks
-                        ))
-            
-            # Check for RECITATION (copyright block)
-            # If the model is reciting, it means the content is likely REAL and found verbatim.
-            # We can't get the text, but we can get the citations.
-            is_recitation = False
-            if response.candidates and response.candidates[0].finish_reason == FinishReason.RECITATION:
-                is_recitation = True
-                print("Finish Reason: RECITATION. Extracting raw citations...")
-                
-                # Extract citation metadata from the candidate (different from grounding metadata)
-                if hasattr(response.candidates[0], 'citation_metadata') and response.candidates[0].citation_metadata:
-                    for citation in response.candidates[0].citation_metadata.citations:
-                        grounding_citations.append(GroundingCitation(
-                            title="Cited Source (Recitation)",
-                            url=citation.uri,
-                            snippet=f"Source found at indices {citation.start_index}-{citation.end_index}"
-                        ))
-
-            if is_recitation:
-                # Return a special "Verified by Recitation" response
-                return AnalysisResponse(
-                    verdict="REAL", # If it's reciting, it found the exact text -> Real
-                    confidence_score=0.99,
-                    analysis="The content was found verbatim in authoritative sources. (Exact text analysis hidden due to copyright/recitation limits).",
-                    key_findings=["Content matches online sources exactly.", "Copyright limits prevented full text analysis.", "Verified via direct citation."],
-                    source_metadata=None,
-                    grounding_citations=[g.model_dump() for g in grounding_citations],
-                    media_literacy={"logical_fallacies": [], "tone_analysis": "N/A (Recitation)"}
-                )
-
-            # Parse JSON
-            # Handle multi-part responses (Text + Grounding/Function calls)
-            try:
-                response_text = response.text.strip()
-            except Exception:
-                # Fallback for "multiple content parts" error
-                response_text = ""
-                if response.candidates:
-                    for part in response.candidates[0].content.parts:
-                        if part.text:
-                            response_text += part.text
-                response_text = response_text.strip()
-            
-            # Robust JSON extraction using regex
-            import re
-            json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
-            if json_match:
-                response_text = json_match.group(0)
-            
-            try:
-                data = json.loads(response_text)
-            except json.JSONDecodeError:
-                # Try to fix common JSON issues (e.g. trailing commas) if needed, 
-                # but for now just log and re-raise to catch block
-                print(f"JSON Decode Failed. Regex extracted: {response_text}")
-                raise
-
-            # Map grounding citations if the model didn't provide them but the tool did
-            if not data.get("grounding_citations") and grounding_citations:
-                 data["grounding_citations"] = [g.model_dump() for g in grounding_citations]
-            elif grounding_citations:
-                pass 
-                
-            # Use Pydantic for validation
-            if "source_metadata" not in data:
-                 data["source_metadata"] = None
-            if "media_literacy" not in data:
-                 data["media_literacy"] = None
-                 
-            # Ensure keys exist for Pydantic (though strict schema usually handles this, safe to add defaults)
-            if "key_findings" not in data:
-                data["key_findings"] = []
-            if "grounding_citations" not in data:
-                data["grounding_citations"] = []
-                
-            analysis_response = AnalysisResponse(**data)
-
-            return analysis_response
-
-        except json.JSONDecodeError:
-            print(f"JSON Parse Error. Raw: {response.text}")
-            return AnalysisResponse(
-                verdict="UNVERIFIED",
-                confidence_score=0.0,
-                analysis="Failed to parse analysis results.",
-                key_findings=["JSON Decode Error"],
-                source_metadata=None,
-                grounding_citations=[],
-                media_literacy=None
+        
+        grounding_citations = []
+        if response.candidates and response.candidates[0].grounding_metadata.grounding_chunks:
+            for chunk in response.candidates[0].grounding_metadata.grounding_chunks:
+                snippet_text = "Grounding source"
+                if hasattr(chunk, 'retrieved_context'):
+                    ctx = getattr(chunk, 'retrieved_context')
+                    if ctx:
+                        snippet_text = str(ctx.text) if hasattr(ctx, 'text') else str(ctx)
+                if chunk.web:
+                    grounding_citations.append(GroundingCitation(
+                        title=chunk.web.title or "Unknown Source",
+                        url=chunk.web.uri or "No source link available",
+                        snippet=snippet_text if snippet_text != "Grounding source" else (chunk.web.title or "")
+                    ))
+        
+        if response.candidates and response.candidates[0].finish_reason == FinishReason.RECITATION:
+             return AnalysisResponse(
+                verdict="REAL",
+                confidence_score=0.99,
+                analysis="The content was found verbatim in authoritative sources.",
+                key_findings=["Content matches online sources exactly."],
+                grounding_citations=[g.model_dump() for g in grounding_citations]
             )
+
+        response_text = ""
+        if response.candidates:
+            for part in response.candidates[0].content.parts:
+                if hasattr(part, 'text') and part.text:
+                    response_text += part.text
+        
+        import re
+        json_match = re.search(r'\{.*\}', response_text.strip(), re.DOTALL)
+        if json_match:
+            response_text = json_match.group(0)
+        
+        data = json.loads(response_text)
+        if not data.get("grounding_citations") and grounding_citations:
+             data["grounding_citations"] = [g.model_dump() for g in grounding_citations]
+        
+        # Sanitization & Filename Mapping & URL Diagnostic
+        sanitized_citations = []
+        for gc in data.get("grounding_citations", []):
+            if isinstance(gc, dict):
+                # Detect filename in citation
+                matched_file = None
+                for fname in file_names:
+                    if fname in (gc.get("title") or "") or fname in (gc.get("snippet") or ""):
+                        matched_file = fname
+                        break
+                
+                gc["source_file"] = matched_file
+                if not gc.get("url"):
+                    gc["url"] = "No source link available"
+                if not gc.get("title"):
+                    gc["title"] = matched_file or "Untitled Source"
+                
+                # URL Diagnostic Logic
+                url_str = gc.get("url", "").lower()
+                snippet_str = gc.get("snippet", "").lower()
+                
+                status = "live"
+                # Check for Social Media (Restricted)
+                social_domains = ["instagram.com", "facebook.com", "twitter.com", "x.com", "tiktok.com", "reddit.com"]
+                if any(domain in url_str for domain in social_domains):
+                    status = "restricted"
+                # Check for Dead Link / Inaccessible
+                elif not gc.get("snippet") or "failed to fetch" in snippet_str or "could not be reached" in snippet_str:
+                    status = "dead"
+                
+                gc["status"] = status
+                sanitized_citations.append(gc)
+            else:
+                sanitized_citations.append(gc)
+        data["grounding_citations"] = sanitized_citations
+
+        service_sources = []
+        final_citations = data.get("grounding_citations", [])
+        for gc in final_citations:
+            url_val = gc.get("url") if isinstance(gc, dict) else getattr(gc, "url", "")
+            title_val = gc.get("title") if isinstance(gc, dict) else getattr(gc, "title", "")
+            snippet_val = gc.get("snippet") if isinstance(gc, dict) else getattr(gc, "snippet", "")
+            
+            status_val = gc.get("status", "live") if isinstance(gc, dict) else getattr(gc, "status", "live")
+            
+            service_sources.append({
+                "uri": url_val or "No source link available",
+                "title": title_val or "Untitled Source",
+                "text": snippet_val or title_val,
+                "status": status_val
+            })
+        
+        
+        grounding_service = get_grounding_service()
+        grounding_result = grounding_service.process(data.get("analysis", ""), service_sources)
+        data["grounding_supports"] = grounding_result.get("groundingSupports", [])
+
+        try:
+            from models import AnalysisResponse
+            return AnalysisResponse(**data)
         except Exception as e:
-            print(f"Processing Error: {e}")
+            logger.error(f"Pydantic Validation Error: {e}")
             return AnalysisResponse(
-                verdict="UNVERIFIED",
-                confidence_score=0.0,
-                analysis=f"An error occurred during processing: {str(e)}",
-                key_findings=["Processing Error"],
-                source_metadata=None,
-                grounding_citations=[],
-                media_literacy=None
+                verdict=data.get("verdict", "UNVERIFIED"),
+                confidence_score=data.get("confidence_score", 0.0),
+                analysis="Analysis completed, but some source links are unavailable or malformed.",
+                key_findings=data.get("key_findings", ["Metadata validation issue"]),
+                grounding_citations=sanitized_citations
             )
 
     except Exception as e:
-        print(f"Critical Error: {e}")
+        logger.error(f"Analysis Processing Error: {e}")
         return AnalysisResponse(
             verdict="UNVERIFIED",
             confidence_score=0.0,
-            analysis="A critical system error occurred.",
+            analysis=f"System Error: {str(e)}",
             key_findings=[str(e)],
             grounding_citations=[]
         )
+
+# --- FastAPI Endpoints ---
+
+@app.get("/")
+async def root():
+    return {"status": "running", "vertex_ai": VERTEX_AI_READY}
+
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy", "vertex_ai_configured": VERTEX_AI_READY}
+
+@app.post("/analyze", response_model=AnalysisResponse)
+async def analyze_endpoint(
+    files: Optional[List[UploadFile]] = File(None),
+    metadata: str = Form(...)
+):
+    try:
+        try:
+            meta_data = json.loads(metadata)
+        except json.JSONDecodeError:
+            raise HTTPException(status_code=400, detail="Invalid JSON in metadata field.")
+        
+        request_id = meta_data.get("request_id", "unknown")
+        text_claim = meta_data.get("text_claim")
+        provided_url = meta_data.get("url")
+        provided_urls = meta_data.get("urls", [])
+        
+        gemini_parts = []
+        prompt_content = "Analyze the following parts (Text, Images, Documents, URLs):\n\n"
+        
+        if text_claim:
+            prompt_content += f"TEXT CLAIM: {text_claim}\n"
+        
+        # 3. Process URLs
+        if provided_url:
+            content = await fetch_url_content(provided_url)
+            prompt_content += f"URL CONTENT (from {provided_url}):\n{content}\n"
+        
+        for url in provided_urls:
+            content = await fetch_url_content(url)
+            prompt_content += f"URL CONTENT (from {url}):\n{content}\n"
+        
+        total_size = len(metadata)
+        file_names = []
+        if files:
+            for file in files:
+                file_bytes = await file.read()
+                file_size = len(file_bytes)
+                
+                if file_size > 10 * 1024 * 1024:
+                    raise HTTPException(status_code=413, detail=f"File {file.filename} exceeds 10MB limit.")
+                
+                total_size += file_size
+                if total_size > 20 * 1024 * 1024:
+                    raise HTTPException(status_code=413, detail="Total payload size exceeds 20MB limit.")
+                
+                file_names.append(file.filename)
+                mime_type = file.content_type or "application/octet-stream"
+                part_args = {"data": file_bytes, "mime_type": mime_type}
+                
+                if "image" in mime_type:
+                    gemini_parts.append(Part.from_data(**part_args))
+                    prompt_content += f"[Image Attached: {file.filename} ({mime_type})]\n"
+                elif mime_type == "application/pdf":
+                    gemini_parts.append(Part.from_data(**part_args))
+                    prompt_content += f"[PDF Document Attached (Medium Resolution): {file.filename}]\n"
+                else:
+                    logger.warning(f"Unsupported file type: {mime_type}")
+
+        if total_size > 20 * 1024 * 1024:
+             raise HTTPException(status_code=413, detail="Total payload size exceeds 20MB limit.")
+
+        gemini_parts.insert(0, prompt_content)
+        return await process_multimodal_gemini(gemini_parts, request_id, file_names)
+        
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# --- Firebase Cloud Function Wrapper ---
+
+@https_fn.on_request(
+    region=LOCATION,
+    memory=512,
+    timeout_sec=60,
+    min_instances=0,
+    max_instances=10
+)
+def analyze(req: https_fn.Request) -> https_fn.Response:
+    if req.method == 'OPTIONS':
+        return https_fn.Response(status=204, headers={
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'POST, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        })
+
+    if req.method != 'POST':
+        return https_fn.Response("Method Not Allowed. Use POST.", status=405, headers={'Access-Control-Allow-Origin': '*'})
+
+    import asyncio
+    import traceback
+    
+    try:
+        # 1. Parse metadata from Form
+        metadata_str = req.form.get("metadata")
+        if not metadata_str:
+             return https_fn.Response(json.dumps({"error": "Missing metadata field"}), status=400, mimetype='application/json')
+        
+        meta_data = json.loads(metadata_str)
+        request_id = meta_data.get("request_id", "prod_req")
+        text_claim = meta_data.get("text_claim", "")
+        provided_urls = meta_data.get("urls", [])
+        
+        # 2. Extract files from Request
+        gemini_parts = []
+        prompt_content = f"Analyze the following parts (Text, Images, Documents, URLs):\n\nTEXT CLAIM: {text_claim}\n"
+        
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+        async def _run():
+            nonlocal prompt_content
+            for url in provided_urls:
+                content = await fetch_url_content(url)
+                prompt_content += f"URL CONTENT (from {url}):\n{content}\n"
+            
+            file_names = []
+            for key in req.files:
+                for f in req.files.getlist(key):
+                    file_bytes = f.read()
+                    if not file_bytes: continue
+                    file_names.append(f.filename)
+                    mime_type = f.content_type or "application/octet-stream"
+                    part_args = {"data": file_bytes, "mime_type": mime_type}
+                    if "image" in mime_type:
+                        gemini_parts.append(Part.from_data(**part_args))
+                        prompt_content += f"[Image Attached: {f.filename}]\n"
+                    elif mime_type == "application/pdf":
+                        gemini_parts.append(Part.from_data(**part_args))
+                        prompt_content += f"[PDF Document Attached: {f.filename}]\n"
+
+            gemini_parts.insert(0, prompt_content)
+            return await process_multimodal_gemini(gemini_parts, request_id, file_names)
+
+        try:
+            result = loop.run_until_complete(_run())
+            return https_fn.Response(
+                json.dumps(result.model_dump()),
+                status=200,
+                mimetype='application/json',
+                headers={'Access-Control-Allow-Origin': '*'}
+            )
+        finally:
+            loop.close()
+
+    except Exception as e:
+        error_msg = f"ERROR: {str(e)}\n{traceback.format_exc()}"
+        logger.error(f"Function Execution Error: {error_msg}")
+        # Explicit error if credentials are the cause
+        if "service-account.json" in str(e) or "Credentials" in str(e):
+             return https_fn.Response(json.dumps({
+                 "error": "Credentials file not found or invalid on production server.",
+                 "debug_trace": error_msg
+             }), status=500, mimetype='application/json', headers={'Access-Control-Allow-Origin': '*'})
+             
+        return https_fn.Response(json.dumps({
+            "error": "Internal Server Error during forensic analysis.",
+            "debug_trace": error_msg
+        }), status=500, mimetype='application/json', headers={'Access-Control-Allow-Origin': '*'})
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="127.0.0.1", port=8080)

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/fact_check_service.dart';
+import '../models/grounding_models.dart';
+import '../widgets/veriscan_interactive_text.dart';
 
 class FactCheckScreen extends StatefulWidget {
   const FactCheckScreen({super.key});
@@ -12,7 +14,7 @@ class FactCheckScreen extends StatefulWidget {
 class _FactCheckScreenState extends State<FactCheckScreen> {
   final TextEditingController _controller = TextEditingController();
   final FactCheckService _service = FactCheckService();
-  FactCheckResult? _result;
+  AnalysisResponse? _result;
   bool _isLoading = false;
 
   Future<void> _handleVerify() async {
@@ -34,9 +36,11 @@ class _FactCheckScreenState extends State<FactCheckScreen> {
         SnackBar(content: Text('Error: $e')),
       );
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -121,7 +125,7 @@ class _FactCheckScreenState extends State<FactCheckScreen> {
   }
 
   Widget _buildResultCard() {
-    final bool isReal = _result!.isValid;
+    final bool isReal = _result!.verdict == 'REAL';
     final Color accentColor =
         isReal ? const Color(0xFFD4AF37) : Colors.redAccent;
 
@@ -180,11 +184,16 @@ class _FactCheckScreenState extends State<FactCheckScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          Text(
-            _result!.analysis,
-            style:
-                const TextStyle(color: Colors.white, fontSize: 15, height: 1.5),
+
+          // --- Interactive Grounding Text ---
+          VeriscanInteractiveText(
+            analysisText: _result!.analysis,
+            groundingSupports: _result!.groundingSupports,
+            groundingCitations: _result!.groundingCitations,
+            attachments: const [],
           ),
+          // ----------------------------------
+
           const SizedBox(height: 20),
           Text(
             'Key Findings',
