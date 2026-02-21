@@ -1,0 +1,17 @@
+﻿python : INFO:     Started server process [13352]
+At line:1 char:1
++ python main.py > server_log.txt 2>&1
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (INFO:     Started  
+   server process [13352]:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8080 (Press 
+CTRL+C to quit)
+INFO:__main__:Vertex AI Client (google-genai) initialized via 
+environment variable.
+INFO:__main__:Processing Analysis Request: test-query
+INFO:google_genai.models:AFC is enabled with max remote calls: 
+10.

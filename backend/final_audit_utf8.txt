@@ -1,0 +1,97 @@
+﻿
+[FORENSIC] Grounding metadata dumped to C:\Users\User\Documents\Gemini3Pro\backend\grounding_metadata_dump.json
+
+
+==================================================
+[DEBUG] Raw Model Text:
+```json
+{
+"verdict": "FAKE",
+"confidence_score": 1.0,
+"analysis": "The claim that the Great Wall of China is visible from space with the naked eye is a popular myth that has been disproven by astronauts and scientific analysis. The wall's width and coloration make it difficult to spot, even from low Earth orbit.",
+"multimodal_cross_check": false,
+"key_findings": [
+"The Great Wall of China is not visible from space with the naked eye.",
+"Astronauts have confirmed that the Great Wall is not visible from space.",
+"The wall's thinness and color make it difficult to see, even from low Earth orbit."
+],
+"source_metadata": {
+"type": "text",
+"provided_url": null,
+"page_title": null
+},
+"grounding_citations": [
+{
+"title": "Can you <b>see</b> the <b>Great Wall of China</b> from <b>space</b>? | BBC Sky at Night Magazine",
+"url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQF6DDKA7NH-z9zSSd_0Uqtoeco7lVejiQ7WbDTibI8mweMDzg1FXTwLNwFNu17ZC_jGxHaVeO1tuR7Bkm7-haRAMQdSnjZCDrul9Z4Y7WCyRRFa0cIxEClegJwvWtfu5QxweZEi92iRmN2kAM289NaAsd9fwHY1TIId3e_e3rKDs_i-t011snQlNbWs7t1FWHGUrFQ=",
+"snippet": "(2024-02-27) So while the Great Wall of China can be photographed or observed from space using magnification, it can't be seen with the naked eye. This was confirmed by China's own first astronaut, Yang Liwei, who orbited Earth 14 times in October 2003 during the Chinese space agency's Shenzhou 5 mission."
+},
+{
+"title": "Can you <b>see</b> the <b>Great Wall of China</b> from <b>space</b>? - Britannica",
+"url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQH8Hh9xHFsiNHl-XaW29eNq-KhFaJHxyZOrkuVKvpOC1jJrjcpg6vj36awaRiDvarRJzNUGgoPF_nMIctK0Pw4RUe3TyHAIB2hcoXgh0jb8hoP-6la6svAIGKGElhKVoKG7SS2alQUTwNEyDhcpfwivrFgwwexNa7xfy0jBAoUenMhOnX-Ahseo51KV194=",
+"snippet": "A popular myth, the claim was disproved when astronauts stated that the Great Wall of China was not visible with the naked eye from the Moon. Due to its coloration and pollution, the structure is only sometimes visible from low orbit and the International Space Station."
+},
+{
+"title": "What makes the <b>Great Wall of China</b> the only man-made object <b>visible from space</b>?",
+"url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHkd7EOAAtEDKBoc2O61xX9nY8YTY_xkgFTJd1k-2mqVxjmgIiFjpBJoTM0EZgtIUc8S4zrq9XTIMsv84uHoRZYay67tYLdcdIlO7zHpakKimJAbxwdOB3hAy7YM-QI34tXBWphDjyZqRY0lVRRTYSY6VVFQnKD2-IE74hAwh-mrGJ51NHg5ZgNmKpJuf-uFcTCUqjNM4-b1GHD9ttxtiz23eIMFtyDonppVN92Yc9QcJpb23ngGw==",
+"snippet": "(2012-12-11) The Great Wall of China is not visible to the naked eye from space, even in low-earth orbit, according to NASA. Even though the wall is very long, it is also very thin, making it essentially invisible. In fact, no man-made objects are visible from space by the naked eye, according to astronauts."
+}
+],
+"media_literacy": {
+"logical_fallacies": [
+"Appeal to Common Belief"
+],
+"tone_analysis": "Factual and Disproving"
+}
+}
+```
+==================================================
+
+
+==================================================
+[RAW_METADATA_AUDIT] Grounding Supports Structure
+--- Segment 0 ---
+  Text: 'The claim that the Great Wall of China is visible ...'
+  Chunk Indices: [0, 1]
+  Raw Confidence Scores: [0.10089415, 0.09052321]
+--- Segment 1 ---
+  Text: 'The wall's width and coloration make it difficult ...'
+  Chunk Indices: [2, 3, 4]
+  Raw Confidence Scores: [0.023880675, 0.11991276, 0.4203272]
+--- Segment 2 ---
+  Text: 'The Great Wall of China is not visible from space ...'
+  Chunk Indices: [3, 1, 0]
+  Raw Confidence Scores: [0.70470995, 0.7762531, 0.6805791]
+--- Segment 3 ---
+  Text: 'Astronauts have confirmed that the Great Wall is n...'
+  Chunk Indices: [1, 0]
+  Raw Confidence Scores: [0.85410845, 0.5792642]
+--- Segment 4 ---
+  Text: 'The wall's thinness and color make it difficult to...'
+  Chunk Indices: [3, 4]
+  Raw Confidence Scores: [0.21079986, 0.8287307]
+==================================================
+
+[DEBUG_EVAL] Seg 0 | Chunk 0 | Domain: britannica.com | Conf: 0.10 | Auth: 0.70 | Score: 0.07
+[DEBUG_EVAL] Seg 0 | Chunk 1 | Domain: skyatnightmagazine.com | Conf: 0.09 | Auth: 0.70 | Score: 0.06
+[DEBUG_EVAL] Seg 1 | Chunk 2 | Domain: nih.gov | Conf: 0.02 | Auth: 1.00 | Score: 0.02
+[DEBUG_EVAL] Seg 1 | Chunk 3 | Domain: wtamu.edu | Conf: 0.12 | Auth: 1.00 | Score: 0.12
+[DEBUG_EVAL] Seg 1 | Chunk 4 | Domain: sciencefocus.com | Conf: 0.42 | Auth: 0.70 | Score: 0.29
+[DEBUG_EVAL] Seg 2 | Chunk 3 | Domain: wtamu.edu | Conf: 0.70 | Auth: 1.00 | Score: 0.70
+[DEBUG_EVAL] Seg 2 | Chunk 1 | Domain: skyatnightmagazine.com | Conf: 0.78 | Auth: 0.70 | Score: 0.54
+[DEBUG_EVAL] Seg 2 | Chunk 0 | Domain: britannica.com | Conf: 0.68 | Auth: 0.70 | Score: 0.48
+[DEBUG_EVAL] Seg 3 | Chunk 1 | Domain: skyatnightmagazine.com | Conf: 0.85 | Auth: 0.70 | Score: 0.60
+[DEBUG_EVAL] Seg 3 | Chunk 0 | Domain: britannica.com | Conf: 0.58 | Auth: 0.70 | Score: 0.41
+[DEBUG_EVAL] Seg 4 | Chunk 3 | Domain: wtamu.edu | Conf: 0.21 | Auth: 1.00 | Score: 0.21
+[DEBUG_EVAL] Seg 4 | Chunk 4 | Domain: sciencefocus.com | Conf: 0.83 | Auth: 0.70 | Score: 0.58
+
+[FORENSIC_AUDIT] Segment Breakdown:
+[FORENSIC_AUDIT] Segment 0 | Best Source: britannica.com | Score: 0.07
+[FORENSIC_AUDIT] Segment 1 | Best Source: sciencefocus.com | Score: 0.29
+[FORENSIC_AUDIT] Segment 2 | Best Source: wtamu.edu | Score: 0.70
+[FORENSIC_AUDIT] Segment 3 | Best Source: skyatnightmagazine.com | Score: 0.60
+[FORENSIC_AUDIT] Segment 4 | Best Source: sciencefocus.com | Score: 0.58
+[FORENSIC_AUDIT] Final Base: 0.45 | Consistency: 0.05 | Multimodal: 0.00
+[FORENSIC_AUDIT] Final Reliability Score: 0.50 (Low (Unverified))
+
+INFO:     127.0.0.1:58988 - "POST /analyze HTTP/1.1" 200 OK

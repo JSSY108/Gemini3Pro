@@ -27,6 +27,20 @@ class GroundingSupport(BaseModel):
     groundingChunkIndices: List[int]
     confidenceScores: List[float] = []
 
+class SegmentAudit(BaseModel):
+    text: str
+    top_source_domain: str
+    top_source_score: float  # The Max(Conf * Auth) for this segment
+
+class ReliabilityMetrics(BaseModel):
+    score: float                # Final clamped (0.0 - 1.0)
+    base_grounding: float       # Global Average of SegmentAudit scores
+    consistency_bonus: float    # +0.05 if unique_domains > 1, else 0.0
+    multimodal_bonus: float     # +0.05 if file upload matches web, else 0.0
+    verdict_label: str          # "High", "Medium-High", "Medium", "Low"
+    explanation: str            # Forensic summary
+    segments: List[SegmentAudit]
+
 class InputPart(BaseModel):
     type: Literal["text_claim", "image", "document", "url"]
     content: Optional[str] = None  # For text_claim
@@ -60,4 +74,5 @@ class AnalysisResponse(BaseModel):
     grounding_citations: List[GroundingCitation] = []
     grounding_supports: List[GroundingSupport] = []
     media_literacy: Optional[MediaLiteracy] = None
+    reliability_metrics: Optional[ReliabilityMetrics] = None
     sources: List[Source] = []

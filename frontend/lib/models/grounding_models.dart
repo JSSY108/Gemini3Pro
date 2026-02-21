@@ -84,6 +84,61 @@ class SourceAttachment {
   });
 }
 
+class SegmentAudit {
+  final String text;
+  final String topSourceDomain;
+  final double topSourceScore;
+
+  SegmentAudit({
+    required this.text,
+    required this.topSourceDomain,
+    required this.topSourceScore,
+  });
+
+  factory SegmentAudit.fromJson(Map<String, dynamic> json) {
+    return SegmentAudit(
+      text: json['text'] as String,
+      topSourceDomain: json['top_source_domain'] as String,
+      topSourceScore: (json['top_source_score'] as num).toDouble(),
+    );
+  }
+}
+
+class ReliabilityMetrics {
+  final double score;
+  final double baseGrounding;
+  final double consistencyBonus;
+  final double multimodalBonus;
+  final String verdictLabel;
+  final String explanation;
+  final List<SegmentAudit> segments;
+
+  ReliabilityMetrics({
+    required this.score,
+    required this.baseGrounding,
+    required this.consistencyBonus,
+    required this.multimodalBonus,
+    required this.verdictLabel,
+    required this.explanation,
+    required this.segments,
+  });
+
+  factory ReliabilityMetrics.fromJson(Map<String, dynamic> json) {
+    return ReliabilityMetrics(
+      score: (json['score'] as num).toDouble(),
+      baseGrounding: (json['base_grounding'] as num).toDouble(),
+      consistencyBonus: (json['consistency_bonus'] as num).toDouble(),
+      multimodalBonus: (json['multimodal_bonus'] as num).toDouble(),
+      verdictLabel: json['verdict_label'] as String,
+      explanation: json['explanation'] as String,
+      segments: (json['segments'] as List<dynamic>?)
+              ?.map((e) => SegmentAudit.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+    );
+  }
+}
+
 class AnalysisResponse {
   final String verdict;
   final double confidenceScore;
@@ -91,6 +146,7 @@ class AnalysisResponse {
   final List<String> keyFindings;
   final List<GroundingCitation> groundingCitations;
   final List<GroundingSupport> groundingSupports;
+  final ReliabilityMetrics? reliabilityMetrics;
 
   AnalysisResponse({
     required this.verdict,
@@ -99,6 +155,7 @@ class AnalysisResponse {
     required this.keyFindings,
     required this.groundingCitations,
     required this.groundingSupports,
+    this.reliabilityMetrics,
   });
 
   factory AnalysisResponse.fromJson(Map<String, dynamic> json) {
@@ -115,6 +172,9 @@ class AnalysisResponse {
               ?.map((e) => GroundingSupport.fromJson(e))
               .toList() ??
           [],
+      reliabilityMetrics: json['reliability_metrics'] != null
+          ? ReliabilityMetrics.fromJson(json['reliability_metrics'])
+          : null,
     );
   }
 }
