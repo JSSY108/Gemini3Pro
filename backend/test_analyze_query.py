@@ -19,7 +19,7 @@ def test_analyze(query="Earth is flat."):
     print(f"--- Sending Query: '{query}' ---")
     try:
         # Use a longer timeout for grounding queries
-        response = httpx.post(url, data=data, timeout=30.0)
+        response = httpx.post(url, data=data, timeout=60.0)
         
         if response.status_code == 200:
             res = response.json()

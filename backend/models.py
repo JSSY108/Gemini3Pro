@@ -1,4 +1,4 @@
-from typing import List, Optional, Literal, Dict
+from typing import List, Optional, Literal, Dict, Any
 from pydantic import BaseModel, Field
 
 class SourceMetadata(BaseModel):
@@ -76,11 +76,12 @@ class Source(BaseModel):
     favicon_url: Optional[str] = None
 
 class AnalysisResponse(BaseModel):
-    verdict: Literal["REAL", "FAKE", "MISLEADING", "UNVERIFIED"]
+    verdict: str
     confidence_score: float
-    analysis: str = Field(..., description="2-3 sentences explaining the 'why'")
-    key_findings: List[str]
-    source_metadata: Optional[SourceMetadata] = None
+    analysis: str
+    multimodal_cross_check: Optional[bool] = False
+    key_findings: List[str] = []
+    source_metadata: Optional[Dict[str, Any]] = None
     grounding_citations: List[GroundingCitation] = []
     grounding_supports: List[GroundingSupport] = []
     media_literacy: Optional[MediaLiteracy] = None

@@ -164,30 +164,71 @@ async def process_multimodal_gemini(gemini_parts: List[Any], request_id: str, fi
 
     try:
         system_instruction = """
-You are VeriScan's Forensic Auditor. You will be provided with a claim, and optionally, an uploaded image or PDF.
-1. You must use Google Search to verify the claim.
-2. If the user provides an uploaded file, you must cross-reference its contents with the web facts. If the file's core claim matches the verified web search results, flag "multimodal_cross_check" as true. Otherwise, false.
-You MUST return your final response strictly as a valid JSON object matching this exact structure. 
-CRITICAL: Use clear, standard sentence boundaries for the 'analysis' text. Ensure grounding segments remain within claim boundaries and do not include JSON keys or structural quotes in their boundaries.
-Do not include markdown code blocks (like ```json).
+You are the VeriScan Lead Forensic Auditor, an expert fact-checking AI designed for the KitaHack 2026 platform. Your job is to analyze claims objectively, rely ONLY on the provided evidence, and output a highly structured factual breakdown.
+
+You will be provided with a user's input and, optionally, a combination of uploaded files (images, PDFs) and external URLs. You also have access to Google Search (Grounding Metadata) to verify the facts.
+
+### STRICT RULES OF ENGAGEMENT:
+1. ZERO HALLUCINATION: You must base your analysis entirely on the provided 'Grounding Metadata' (Search Results) and the user's uploaded files/URLs. Do not use outside knowledge.
+2. NO ASSUMPTIONS: If the grounding data does not explicitly confirm or deny a claim, you must categorize the verdict as "UNVERIFIABLE".
+3. VERDICT HIERARCHY:
+    - TRUE: 100% of the claim is factual.
+    - MOSTLY_TRUE: The core claim is factual but contains a minor scientific technicality or rounding error.
+    - MIXTURE: Use this if the input contains multiple facts where at least one is TRUE and at least one is FALSE. (e.g., "A is true and B is false" = MIXTURE).
+    - MISLEADING: The facts are technically true but presented in a way that implies a false conclusion (e.g., correlations presented as causations).
+    - MOSTLY_FALSE: The core claim is false but contains a minor element of truth.
+    - FALSE: The core claim is entirely false.
+    - UNVERIFIABLE: Insufficient grounding data exists.
+    - NOT_A_CLAIM: Subjective, opinion, or future prediction.
+4. MULTIMODAL CROSS-EXAMINATION: You must cross-reference the contents of all uploaded files, images, and URLs against the Google Search results. If the core claim in ANY of the uploaded files is corroborated by high-authority web search, flag the "multimodal_cross_check" boolean as true. If they contradict the web, or if the user provided no files, flag it as false.
+5. LITERAL FACT-CHECKING ONLY: You must evaluate the literal physical reality of the claim. If a user claims an absurd or impossible entity exists (e.g., "There is a teapot in space"), you must fact-check its physical existence. Do NOT output 'TRUE' just because you found an article describing it as a thought experiment, movie plot, or internet meme. If the literal physical claim cannot be proven by evidence, you MUST output "UNVERIFIABLE".
+6. IDENTIFYING NON-CLAIMS (SHORT-CIRCUIT): You can only fact-check objective, verifiable statements of past or present fact. If the user's input is a subjective opinion (e.g., "Vanilla is the best flavor"), a prediction of the future, a question, or a poem, you must immediately classify the verdict as "NOT_A_CLAIM".
+7. TONE: Maintain an objective, journalistic, and highly analytical tone. Avoid emotional language.
+
+### REQUIRED OUTPUT FORMAT:
+You MUST return your final response strictly as a valid JSON object matching the exact structure below. Do NOT wrap the JSON in markdown code blocks (like ```json). Ensure all internal string line breaks are properly escaped (e.g., \\n) and all internal double quotes are escaped (e.g., \").
+
 {
-"verdict": "REAL | FAKE | MISLEADING | UNVERIFIED",
-"confidence_score": 0.0 to 1.0,
-"analysis": "2-3 sentences explaining the reasoning.",
-"multimodal_cross_check": true or false,
-"key_findings": ["list of strings"],
-"source_metadata": { "type": "text" | "url" | "image" | "document", "provided_url": "string or null", "page_title": "string or null" },
-"grounding_citations": [{"title": "string", "url": "string", "snippet": "string"}],
-"media_literacy": { "logical_fallacies": ["string"], "tone_analysis": "string" }
+  "verdict": "TRUE | MOSTLY_TRUE | MIXTURE | MISLEADING | MOSTLY_FALSE | FALSE | UNVERIFIABLE | NOT_A_CLAIM",
+  "confidence_score": [float between 0.0 and 1.0 representing internal reasoning confidence],
+  "analysis": "[A highly detailed markdown-formatted string following the exact structure outlined below]",
+  "multimodal_cross_check": [boolean: true if uploaded files match verified web facts, false otherwise],
+  "source_metadata": { 
+    "types_analyzed": ["array of strings: e.g., 'text', 'image', 'pdf', 'url' based on what was provided"] 
+  },
+  "grounding_citations": [
+    {"title": "string", "url": "string", "snippet": "string"}
+  ],
+  "media_literacy": { 
+    "logical_fallacies": ["array of strings: any logical fallacies detected"], 
+    "tone_analysis": "string" 
+  }
 }
+
+### THE "ANALYSIS" FORMAT:
+The "analysis" string MUST be formatted in Markdown and strictly use these four headings. 
+
+**EXCEPTION FOR 'NOT_A_CLAIM':** If the verdict is "NOT_A_CLAIM", ignore the 4 headings below. Instead, provide a single, brief paragraph explaining why the input is subjective, a future prediction, or otherwise impossible to fact-check objectively.
+
+**1. The Core Claim(s):**
+[Provide a single, precise sentence PARAPHRASING what is being fact-checked. You MUST paraphrase in your own words. DO NOT quote the user's input verbatim under any circumstances to avoid triggering recitation filters.]
+
+**2. Evidence Breakdown:**
+[Use bullet points. State the raw facts found in the retrieved Google Search sources and uploaded files. Extract specific 'factual anchors'—such as numbers, dates, locations, or direct quotes—ONLY IF they are relevant to the claim. Do not force specific details if they do not apply. If the verdict is 'MIXTURE', you MUST explicitly list which specific parts of the input are true and which are false.]
+
+**3. Context & Nuance:**
+[Explain the background. Why might this claim be misleading? Is it a real photo taken out of context? Explain the "how" and "why" behind the verdict.]
+
+**4. Red Flags & Discrepancies:**
+[Use this section ONLY if there is conflicting information (e.g., an uploaded PDF contradicts the web, or two different news sites report different things). If there are no conflicts, write: "No major discrepancies found in the verified sources."]
 """
         from models import GroundingCitation, GroundingSupport, AnalysisResponse
         
         # Configure the tool and system instructions using the new SDK syntax
         config = types.GenerateContentConfig(
             system_instruction=system_instruction,
-            temperature=0.2,
-            tools=[{"google_search": {}}] # Standard format for grounding in the new SDK
+            temperature=0.0,
+            tools=[{"google_search": {}}]
         )
         
         # Execute the call using genai_client
@@ -197,6 +238,13 @@ Do not include markdown code blocks (like ```json).
             config=config
         )
 
+        # DEBUG: Print raw response to console for deep inspection
+        print("\n[DEBUG] RAW RESPONSE METADATA:")
+        if response.candidates:
+            if response.candidates[0].grounding_metadata:
+                print(f"Grounding Metadata Attributes: {dir(response.candidates[0].grounding_metadata)}")
+                print(f"Grounding Metadata Dump: {response.candidates[0].grounding_metadata.model_dump_json(indent=2)}")
+        
         # Forensic Audit: Write the entire grounding metadata object to a file for review
         import os
         base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -213,35 +261,26 @@ Do not include markdown code blocks (like ```json).
             print("NO GROUNDING METADATA FOUND IN RESPONSE")
         
         grounding_citations = []
-        if response.candidates and response.candidates[0].grounding_metadata.grounding_chunks:
-            for chunk in response.candidates[0].grounding_metadata.grounding_chunks:
-                snippet_text = "Grounding source"
-                if hasattr(chunk, 'retrieved_context'):
-                    ctx = getattr(chunk, 'retrieved_context')
-                    if ctx:
-                        snippet_text = str(ctx.text) if hasattr(ctx, 'text') else str(ctx)
-                if chunk.web:
-                    grounding_citations.append(GroundingCitation(
-                        title=chunk.web.title or "Unknown Source",
-                        url=chunk.web.uri or "No source link available",
-                        snippet=snippet_text if snippet_text != "Grounding source" else (chunk.web.title or "")
-                    ))
+        if response.candidates and response.candidates[0].grounding_metadata:
+            chunks = getattr(response.candidates[0].grounding_metadata, 'grounding_chunks', [])
+            if chunks:
+                for chunk_obj in chunks:
+                    web_node = getattr(chunk_obj, 'web', None)
+                    if web_node:
+                        title = getattr(web_node, 'title', getattr(web_node, 'domain', "Unknown Source"))
+                        uri = getattr(web_node, 'uri', "No source link available")
+                        grounding_citations.append(GroundingCitation(
+                            title=title,
+                            url=uri,
+                            snippet=title # Fallback snippet if LLM fails
+                        ))
         
-        if response.candidates and response.candidates[0].finish_reason == types.FinishReason.RECITATION:
-             return AnalysisResponse(
-                verdict="REAL",
-                confidence_score=0.99,
-                analysis="The content was found verbatim in authoritative sources.",
-                key_findings=["Content matches online sources exactly."],
-                grounding_citations=[g.model_dump() for g in grounding_citations]
-            )
-
         response_text = response.text if response.candidates else ""
+        finish_reason = response.candidates[0].finish_reason if response.candidates else "UNKNOWN"
+        print(f"[DEBUG] Finish Reason: {finish_reason}")
         print("\n" + "="*50)
         print(f"[DEBUG] Raw Model Text:\n{response_text}")
         print("="*50 + "\n")
-        import sys
-        sys.stdout.flush()
         
         # Robust parsing using regex to find the first '{' and last '}'
         import re
@@ -254,17 +293,25 @@ Do not include markdown code blocks (like ```json).
         logger.info(f"Cleaned JSON: {clean_json}")
         
         try:
+            if "matches verbatim with a known source" in response_text.lower() or "recitation" in response_text.lower() or finish_reason == types.FinishReason.RECITATION:
+                raise ValueError("Recitation filter triggered.")
+                
             data = json.loads(clean_json)
             is_multimodal_verified = data.get("multimodal_cross_check", False)
-        except json.JSONDecodeError:
-            logger.error("[SYSTEM ERROR] Model failed to return valid JSON.")
+        except Exception as e:
+            logger.error(f"[SYSTEM ERROR/FALLBACK] Error or filter blocked JSON: {e}")
+            logger.debug(f"JSON that failed: {clean_json}")
             is_multimodal_verified = False
-            # Handle non-JSON response by creating a basic dict with required fields
+            # FALLBACK: If the LLM crashed, returned text, or got blocked by safety filters
             data = {
-                "analysis": response_text, 
-                "verdict": "UNVERIFIED",
-                "key_findings": ["Model returned non-JSON response"],
-                "confidence_score": 0.0
+                "verdict": "UNVERIFIABLE",
+                "confidence_score": 0.0,
+                "analysis": "**1. The Core Claim(s):**\nThe provided text could not be independently verified.\n\n**2. Evidence Breakdown:**\n* The AI safety or recitation filters prevented a deep analysis of this specific phrasing.\n* No verifiable search data could be extracted.\n\n**3. Context & Nuance:**\nPlease try rewording your claim or providing more specific factual context.\n\n**4. Red Flags & Discrepancies:**\nNo major discrepancies found in the verified sources.",
+                "multimodal_cross_check": False,
+                "source_metadata": {"types_analyzed": ["text"]},
+                "grounding_citations": [],
+                "media_literacy": {"logical_fallacies": [], "tone_analysis": "Neutral"},
+                "key_findings": ["The AI safety or recitation filters prevented a deep analysis."]
             }
             
         if not data.get("grounding_citations") and grounding_citations:
@@ -379,17 +426,16 @@ Do not include markdown code blocks (like ```json).
             if "verdict" not in data or not data["verdict"]:
                 score = float(reliability_metrics.get("score", 0.0))
                 if score > 0.85:
-                    data["verdict"] = "REAL"
+                    data["verdict"] = "TRUE"
                 elif score > 0.50:
                     data["verdict"] = "MISLEADING"
                 else:
-                    data["verdict"] = "FAKE"
+                    data["verdict"] = "FALSE"
                  
         except Exception as e:
             logger.error(f"Error calculating reliability: {e}")
             import traceback
             traceback.print_exc()
-
 
         try:
             from models import AnalysisResponse
@@ -399,10 +445,10 @@ Do not include markdown code blocks (like ```json).
             logger.error(f"Pydantic Validation Error: {e}")
             logger.error(f"Data that failed validation: {data}")
             return AnalysisResponse(
-                verdict=data.get("verdict", "UNVERIFIED"),
+                verdict=data.get("verdict", "UNVERIFIABLE"),
                 confidence_score=data.get("confidence_score", 0.0),
                 analysis="Analysis completed, but some source data was malformed or missing.",
-                key_findings=data.get("key_findings", ["Metadata validation issue"]),
+                key_findings=data.get("key_findings", []),
                 grounding_citations=data.get("grounding_citations", []),
                 grounding_supports=data.get("grounding_supports", []),
                 reliability_metrics=data.get("reliability_metrics")
@@ -411,7 +457,7 @@ Do not include markdown code blocks (like ```json).
     except Exception as e:
         logger.error(f"Analysis Processing Error: {e}")
         return AnalysisResponse(
-            verdict="UNVERIFIED",
+            verdict="UNVERIFIABLE",
             confidence_score=0.0,
             analysis=f"System Error: {str(e)}",
             key_findings=[str(e)],

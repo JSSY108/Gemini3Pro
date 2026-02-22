@@ -37,6 +37,19 @@ def calculate_reliability(grounding_supports: list, grounding_chunks: list, grou
     """
     Implements the V3 Strongest Link Math Engine.
     """
+    # EARLY EXIT: If there are no sources used, return a safe zeroed payload
+    if not grounding_supports:
+        return {
+            "score": 0.0,
+            "base_grounding": 0.0,
+            "consistency_bonus": 0.0,
+            "multimodal_bonus": 0.0,
+            "verdict_label": "Unverified / No Data",
+            "explanation": "No reliable search results were found to verify this claim.",
+            "segments": [],
+            "unused_sources": [] # Ensure frontend doesn't crash trying to map this
+        }
+
     segment_audits = []
     used_domains = set()
     used_chunk_indices = set()
@@ -183,7 +196,7 @@ def calculate_reliability(grounding_supports: list, grounding_chunks: list, grou
         
     explanation = f"Base grounding evaluated at {base_grounding:.2f} across {len(segment_audits)} segments. "
     if consistency_bonus > 0:
-        explanation += f"Consistency bonus (+0.05) applied for {len(unique_domains)} unique domains. "
+        explanation += f"Consistency bonus (+0.05) applied for {len(used_domains)} unique domains. "
     if multimodal_bonus > 0:
          explanation += "Multimodal cross-check bonus (+0.05) applied."
 
