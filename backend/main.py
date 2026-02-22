@@ -368,6 +368,7 @@ Do not include markdown code blocks (like ```json).
             reliability_metrics = calculate_reliability(
                 final_supports, 
                 grounding_chunks, 
+                data.get("grounding_citations", []),
                 is_multimodal_verified
             )
             data["reliability_metrics"] = reliability_metrics

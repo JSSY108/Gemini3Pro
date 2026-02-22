@@ -23,37 +23,34 @@ class GroundingParser {
       return [TextChunk(text: text, type: ChunkType.plain)];
     }
 
-    // 1. Sort supports by start index
-    final sortedSupports = List<GroundingSupport>.from(supports)
-      ..sort((a, b) => a.segment.startIndex.compareTo(b.segment.startIndex));
-
     List<TextChunk> rawChunks = [];
     int currentIndex = 0;
 
-    for (var support in sortedSupports) {
-      final start = support.segment.startIndex;
-      final end = support.segment.endIndex;
+    for (var support in supports) {
+      final segmentText = support.segment.text;
 
-      if (start < currentIndex || start >= text.length) continue;
+      // Find where this segment starts in the remaining text
+      int matchIndex = text.indexOf(segmentText, currentIndex);
 
-      final safeEnd = end > text.length ? text.length : end;
+      if (matchIndex != -1) {
+        // Add plain text before this segment
+        if (matchIndex > currentIndex) {
+          rawChunks.add(TextChunk(
+            text: text.substring(currentIndex, matchIndex),
+            type: ChunkType.plain,
+          ));
+        }
 
-      // Add plain text before this segment
-      if (start > currentIndex) {
+        // Add the support segment
         rawChunks.add(TextChunk(
-          text: text.substring(currentIndex, start),
-          type: ChunkType.plain,
+          text: segmentText,
+          type: ChunkType.support,
+          support: support,
         ));
+
+        // Update the cursor
+        currentIndex = matchIndex + segmentText.length;
       }
-
-      // Add the support segment
-      rawChunks.add(TextChunk(
-        text: text.substring(start, safeEnd),
-        type: ChunkType.support,
-        support: support,
-      ));
-
-      currentIndex = safeEnd;
     }
 
     // Add remaining plain text

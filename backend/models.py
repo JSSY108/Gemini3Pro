@@ -1,4 +1,4 @@
-from typing import List, Optional, Literal
+from typing import List, Optional, Literal, Dict
 from pydantic import BaseModel, Field
 
 class SourceMetadata(BaseModel):
@@ -27,10 +27,19 @@ class GroundingSupport(BaseModel):
     groundingChunkIndices: List[int]
     confidenceScores: List[float] = []
 
+class SourceAudit(BaseModel):
+    id: int # Keep for backward compatibility or use as generic ID
+    source_index: int
+    chunk_index: int
+    domain: str
+    score: float
+    quote_text: str
+
 class SegmentAudit(BaseModel):
     text: str
     top_source_domain: str
     top_source_score: float  # The Max(Conf * Auth) for this segment
+    sources: List[SourceAudit] = []
 
 class ReliabilityMetrics(BaseModel):
     score: float                # Final clamped (0.0 - 1.0)
@@ -40,6 +49,7 @@ class ReliabilityMetrics(BaseModel):
     verdict_label: str          # "High", "Medium-High", "Medium", "Low"
     explanation: str            # Forensic summary
     segments: List[SegmentAudit]
+    unused_sources: List[Dict[str, str]] = []
 
 class InputPart(BaseModel):
     type: Literal["text_claim", "image", "document", "url"]

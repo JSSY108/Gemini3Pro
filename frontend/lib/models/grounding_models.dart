@@ -84,15 +84,46 @@ class SourceAttachment {
   });
 }
 
+class SourceAudit {
+  final int id;
+  final int sourceIndex;
+  final int chunkIndex;
+  final String domain;
+  final double score;
+  final String quoteText;
+
+  SourceAudit({
+    required this.id,
+    required this.sourceIndex,
+    required this.chunkIndex,
+    required this.domain,
+    required this.score,
+    required this.quoteText,
+  });
+
+  factory SourceAudit.fromJson(Map<String, dynamic> json) {
+    return SourceAudit(
+      id: json['id'] as int,
+      sourceIndex: json['source_index'] as int? ?? -1,
+      chunkIndex: json['chunk_index'] as int? ?? json['id'] as int,
+      domain: json['domain'] as String,
+      score: (json['score'] as num).toDouble(),
+      quoteText: json['quote_text'] as String? ?? json['text'] as String? ?? '',
+    );
+  }
+}
+
 class SegmentAudit {
   final String text;
   final String topSourceDomain;
   final double topSourceScore;
+  final List<SourceAudit> sources;
 
   SegmentAudit({
     required this.text,
     required this.topSourceDomain,
     required this.topSourceScore,
+    required this.sources,
   });
 
   factory SegmentAudit.fromJson(Map<String, dynamic> json) {
@@ -100,6 +131,27 @@ class SegmentAudit {
       text: json['text'] as String,
       topSourceDomain: json['top_source_domain'] as String,
       topSourceScore: (json['top_source_score'] as num).toDouble(),
+      sources: (json['sources'] as List<dynamic>?)
+              ?.map((e) => SourceAudit.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+    );
+  }
+}
+
+class UnusedSourceAudit {
+  final String domain;
+  final String title;
+
+  UnusedSourceAudit({
+    required this.domain,
+    required this.title,
+  });
+
+  factory UnusedSourceAudit.fromJson(Map<String, dynamic> json) {
+    return UnusedSourceAudit(
+      domain: json['domain'] as String? ?? 'unknown',
+      title: json['title'] as String? ?? 'Unknown Title',
     );
   }
 }
@@ -112,6 +164,7 @@ class ReliabilityMetrics {
   final String verdictLabel;
   final String explanation;
   final List<SegmentAudit> segments;
+  final List<UnusedSourceAudit> unusedSources;
 
   ReliabilityMetrics({
     required this.score,
@@ -121,6 +174,7 @@ class ReliabilityMetrics {
     required this.verdictLabel,
     required this.explanation,
     required this.segments,
+    required this.unusedSources,
   });
 
   factory ReliabilityMetrics.fromJson(Map<String, dynamic> json) {
@@ -133,6 +187,11 @@ class ReliabilityMetrics {
       explanation: json['explanation'] as String,
       segments: (json['segments'] as List<dynamic>?)
               ?.map((e) => SegmentAudit.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+      unusedSources: (json['unused_sources'] as List<dynamic>?)
+              ?.map(
+                  (e) => UnusedSourceAudit.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
     );

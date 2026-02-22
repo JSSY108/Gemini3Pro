@@ -158,24 +158,32 @@ class _VeriscanInteractiveTextState extends State<VeriscanInteractiveText> {
               WidgetSpan(
                 alignment: PlaceholderAlignment.top,
                 child: Padding(
-                  padding: const EdgeInsets.only(left: 2.0),
-                  child: Transform.translate(
-                    offset: const Offset(0, 4),
-                    child: Builder(builder: (context) {
-                      final citations = _getReferencedCitations(chunk.support!);
-                      final bool isInaccessible = citations.isNotEmpty &&
-                          (citations.first.status == 'dead' ||
-                              citations.first.status == 'restricted');
+                  padding: const EdgeInsets.only(left: 2.0, top: 2.0),
+                  child: Builder(builder: (context) {
+                    final indices = chunk.support!.groundingChunkIndices;
+                    if (indices.isEmpty) return const SizedBox.shrink();
 
-                      return Icon(
-                        isInaccessible
-                            ? Icons.warning_amber_rounded
-                            : Icons.diamond,
-                        size: isInaccessible ? 10 : 8,
-                        color: isInaccessible ? Colors.white24 : kGold,
-                      );
-                    }),
-                  ),
+                    // Format as [1, 2] etc (using 1-based indexing for display)
+                    final formattedCitations =
+                        '[${indices.map((i) => i + 1).join(', ')}]';
+
+                    return GestureDetector(
+                      onTap: () {
+                        widget.onSupportSelected?.call(chunk.support);
+                      },
+                      child: Text(
+                        formattedCitations,
+                        style: baseStyle.copyWith(
+                          fontSize: kFontSize * 0.7,
+                          height: 1.0,
+                          color: decorationColor == Colors.transparent
+                              ? kGold.withValues(alpha: 0.7)
+                              : kGold,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    );
+                  }),
                 ),
               ),
             ];

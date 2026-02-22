@@ -30,6 +30,7 @@ class VerdictPane extends StatelessWidget {
     final bool isReal = result!.verdict == 'REAL';
     final Color accentColor =
         isReal ? const Color(0xFF4CAF50) : const Color(0xFFE53935);
+    final unusedSources = result!.reliabilityMetrics?.unusedSources ?? [];
 
     return Padding(
       padding: const EdgeInsets.all(24.0),
@@ -160,6 +161,57 @@ class VerdictPane extends StatelessWidget {
               ),
             ),
           ),
+          if (unusedSources.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("OTHER SOURCES SCANNED",
+                    style: GoogleFonts.outfit(
+                        color: Colors.white38,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.5)),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8.0,
+                  runSpacing: 8.0,
+                  children: unusedSources.map((source) {
+                    return Tooltip(
+                      message: source.title,
+                      textStyle: GoogleFonts.outfit(
+                          color: Colors.white, fontSize: 13, height: 1.4),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.9),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.white24, width: 0.5),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.5),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Chip(
+                        label: Text(
+                          source.domain,
+                          style: GoogleFonts.outfit(
+                              color: Colors.white54, fontSize: 12),
+                        ),
+                        backgroundColor: Colors.transparent,
+                        shape: StadiumBorder(
+                          side: BorderSide(
+                              color: Colors.grey.withValues(alpha: 0.3)),
+                        ),
+                        padding: EdgeInsets.zero,
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );

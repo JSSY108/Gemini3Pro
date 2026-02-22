@@ -19,16 +19,38 @@ def extract_domain(url: str) -> str:
         return "unknown"
     try:
         parsed_uri = urllib.parse.urlparse(url)
-        return parsed_uri.netloc
+        domain = parsed_uri.netloc
+        
+        # Handle Google Search Redirects
+        if domain in ["www.google.com", "google.com"] and "/url" in parsed_uri.path:
+            query_params = urllib.parse.parse_qs(parsed_uri.query)
+            if 'q' in query_params:
+                return extract_domain(query_params['q'][0])
+            elif 'url' in query_params:
+                return extract_domain(query_params['url'][0])
+                
+        return domain
     except Exception:
         return "unknown"
 
-def calculate_reliability(grounding_supports: list, grounding_chunks: list, is_multimodal_verified: bool) -> dict:
+def calculate_reliability(grounding_supports: list, grounding_chunks: list, grounding_citations: list, is_multimodal_verified: bool) -> dict:
     """
     Implements the V3 Strongest Link Math Engine.
     """
     segment_audits = []
-    unique_domains = set()
+    used_domains = set()
+    used_chunk_indices = set()
+
+    # Pre-compute URI to Source Index mapping from Citations
+    uri_to_source_index = {}
+    snippet_map = {}
+    for idx, citation in enumerate(grounding_citations):
+        # Handle dict or Pydantic object
+        uri = citation.get('url', '') if isinstance(citation, dict) else getattr(citation, 'url', '')
+        snippet = citation.get('snippet', 'Content unavailable.') if isinstance(citation, dict) else getattr(citation, 'snippet', 'Content unavailable.')
+        if uri:
+            uri_to_source_index[uri] = idx
+            snippet_map[uri] = snippet
 
     # Define a helper for robust field extraction (snake_case vs camelCase)
     def github_get(obj, *fields):
@@ -60,6 +82,7 @@ def calculate_reliability(grounding_supports: list, grounding_chunks: list, is_m
         indices = github_get(support, 'grounding_chunk_indices', 'groundingChunkIndices') or []
         conf_scores = github_get(support, 'confidence_scores', 'confidenceScores') or []
         
+        evaluated_sources = []
         best_score = 0.0
         best_domain = "unknown"
 
@@ -72,28 +95,48 @@ def calculate_reliability(grounding_supports: list, grounding_chunks: list, is_m
             # Handle Vertex AI chunk object vs local dict representation
             if hasattr(chunk, 'web') and chunk.web:
                 raw_domain = getattr(chunk.web, 'domain', '') or getattr(chunk.web, 'title', 'unknown')
+                raw_uri = getattr(chunk.web, 'uri', '')
+                raw_title = getattr(chunk.web, 'title', 'No snippet available.')
             else:
                  raw_domain = chunk.get('domain', '') or chunk.get('title', 'unknown') if isinstance(chunk, dict) else 'unknown'
+                 raw_uri = chunk.get('uri', '') if isinstance(chunk, dict) else ''
+                 raw_title = chunk.get('title', 'No snippet available.') if isinstance(chunk, dict) else 'No snippet available.'
+            
+            source_index = uri_to_source_index.get(raw_uri, -1)
+            quote_text = snippet_map.get(raw_uri, raw_title)
+            
+            used_chunk_indices.add(chunk_idx)
             
             if raw_domain and raw_domain != "unknown":
-                unique_domains.add(raw_domain)
+                used_domains.add(raw_domain)
 
             auth = get_authority_multiplier(raw_domain)
-            
             conf = conf_scores[i] if i < len(conf_scores) else 0.0
-            
             chunk_score = conf * auth
             
-            print(f"[DEBUG_EVAL] Seg {seg_idx} | Chunk {chunk_idx} | Domain: {raw_domain} | Conf: {conf:.2f} | Auth: {auth:.2f} | Score: {chunk_score:.2f}")
+            evaluated_sources.append({
+                "id": chunk_idx, # backward compat
+                "chunk_index": chunk_idx,
+                "source_index": source_index,
+                "domain": raw_domain,
+                "score": chunk_score,
+                "quote_text": quote_text
+            })
+            
+            print(f"[DEBUG_EVAL] Seg {seg_idx} | Chunk {chunk_idx} | DocIdx {source_index} | Domain: {raw_domain} | Conf: {conf:.2f} | Auth: {auth:.2f} | Score: {chunk_score:.2f}")
             
             if chunk_score > best_score:
                 best_score = chunk_score
                 best_domain = raw_domain
 
+        # Sort sources by score descending
+        evaluated_sources.sort(key=lambda x: x['score'], reverse=True)
+
         segment_audits.append({
             "text": segment_text,
             "top_source_domain": best_domain,
-            "top_source_score": best_score
+            "top_source_score": best_score,
+            "sources": evaluated_sources
         })
 
     # Global Average Segment Score
@@ -102,8 +145,28 @@ def calculate_reliability(grounding_supports: list, grounding_chunks: list, is_m
     else:
         base_grounding = 0.0
 
+    # Collect unused sources
+    unused_sources = []
+    seen_unused_domains = set()
+    
+    for chunk_idx, chunk in enumerate(grounding_chunks):
+        if chunk_idx not in used_chunk_indices:
+            if hasattr(chunk, 'web') and chunk.web:
+                domain = getattr(chunk.web, 'domain', None) or extract_domain(getattr(chunk.web, 'uri', '')) or getattr(chunk.web, 'title', 'unknown')
+                title = getattr(chunk.web, 'title', 'unknown')
+            else:
+                domain = chunk.get('domain', None) or extract_domain(chunk.get('uri', '')) or chunk.get('title', 'unknown') if isinstance(chunk, dict) else 'unknown'
+                title = chunk.get('title', 'unknown') if isinstance(chunk, dict) else 'unknown'
+                
+            if domain and domain != "unknown" and domain not in used_domains and domain not in seen_unused_domains:
+                unused_sources.append({
+                    "domain": domain,
+                    "title": title
+                })
+                seen_unused_domains.add(domain)
+
     # Additive Bonuses
-    consistency_bonus = 0.05 if len(unique_domains) > 1 else 0.0
+    consistency_bonus = 0.05 if len(used_domains) > 1 else 0.0
     multimodal_bonus = 0.05 if is_multimodal_verified else 0.0
 
     final_score = min(1.0, base_grounding + consistency_bonus + multimodal_bonus)
@@ -138,5 +201,6 @@ def calculate_reliability(grounding_supports: list, grounding_chunks: list, is_m
         "multimodal_bonus": multimodal_bonus,
         "verdict_label": verdict_label,
         "explanation": explanation,
-        "segments": segment_audits
+        "segments": segment_audits,
+        "unused_sources": unused_sources
     }
