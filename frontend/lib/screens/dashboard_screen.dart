@@ -339,7 +339,7 @@ class _DashboardScreenState extends State<DashboardScreen>
           ),
           // Analysis Hub
           Expanded(
-            flex: 5,
+            flex: 6,
             child: Container(
               color: const Color(0xFF121212),
               child: Column(
@@ -412,7 +412,7 @@ class _DashboardScreenState extends State<DashboardScreen>
           ),
           // Verdict Pane
           Expanded(
-            flex: 3,
+            flex: 2,
             child: Container(
               decoration: BoxDecoration(
                 color: const Color(0xFF1E1E1E),
@@ -565,59 +565,7 @@ class _DashboardScreenState extends State<DashboardScreen>
           ),
         ],
 
-        // Key Findings Section (If available)
-        if (_result != null && _result!.keyFindings.isNotEmpty)
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 160),
-            sliver: SliverToBoxAdapter(
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.02),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: const Color(0xFFD4AF37).withValues(alpha: 0.2),
-                    width: 0.5,
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text("KEY FINDINGS",
-                        style: GoogleFonts.outfit(
-                          color: const Color(0xFFD4AF37),
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.5,
-                        )),
-                    const SizedBox(height: 12),
-                    ..._result!.keyFindings.map((finding) => Padding(
-                          padding: const EdgeInsets.only(bottom: 8.0),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Padding(
-                                padding: EdgeInsets.only(top: 4),
-                                child: Icon(Icons.check_circle_outline,
-                                    size: 14, color: Color(0xFFD4AF37)),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  finding,
-                                  style: GoogleFonts.outfit(
-                                      color: const Color(0xFFE0E0E0),
-                                      fontSize: 14),
-                                ),
-                              ),
-                            ],
-                          ),
-                        )),
-                  ],
-                ),
-              ),
-            ),
-          ),
+        // Removed Key Findings Section for Mobile
       ],
     );
   }

@@ -42,7 +42,8 @@ class SegmentAudit(BaseModel):
     sources: List[SourceAudit] = []
 
 class ReliabilityMetrics(BaseModel):
-    score: float                # Final clamped (0.0 - 1.0)
+    reliability_score: float    # Final clamped (0.0 - 1.0) (Formerly 'score')
+    ai_confidence: float        # LLM self-reported confidence
     base_grounding: float       # Global Average of SegmentAudit scores
     consistency_bonus: float    # +0.05 if unique_domains > 1, else 0.0
     multimodal_bonus: float     # +0.05 if file upload matches web, else 0.0
@@ -76,11 +77,10 @@ class Source(BaseModel):
     favicon_url: Optional[str] = None
 
 class AnalysisResponse(BaseModel):
-    verdict: str
-    confidence_score: float
-    analysis: str
+    verdict: str = "UNVERIFIABLE"
+    confidence_score: float = 0.0
+    analysis: str = "**1. The Core Claim(s):**\nThe data could not be parsed.\n\n**2. Evidence Breakdown:**\n* The AI returned malformed data or was blocked by safety filters."
     multimodal_cross_check: Optional[bool] = False
-    key_findings: List[str] = []
     source_metadata: Optional[Dict[str, Any]] = None
     grounding_citations: List[GroundingCitation] = []
     grounding_supports: List[GroundingSupport] = []

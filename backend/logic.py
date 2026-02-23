@@ -33,14 +33,15 @@ def extract_domain(url: str) -> str:
     except Exception:
         return "unknown"
 
-def calculate_reliability(grounding_supports: list, grounding_chunks: list, grounding_citations: list, is_multimodal_verified: bool) -> dict:
+def calculate_reliability(grounding_supports: list, grounding_chunks: list, grounding_citations: list, is_multimodal_verified: bool, ai_confidence: float = 0.0) -> dict:
     """
     Implements the V3 Strongest Link Math Engine.
     """
     # EARLY EXIT: If there are no sources used, return a safe zeroed payload
     if not grounding_supports:
         return {
-            "score": 0.0,
+            "reliability_score": 0.0,
+            "ai_confidence": ai_confidence,
             "base_grounding": 0.0,
             "consistency_bonus": 0.0,
             "multimodal_bonus": 0.0,
@@ -208,7 +209,8 @@ def calculate_reliability(grounding_supports: list, grounding_chunks: list, grou
     print(f"[FORENSIC_AUDIT] Final Reliability Score: {final_score:.2f} ({verdict_label})\n")
 
     return {
-        "score": final_score,
+        "reliability_score": final_score,
+        "ai_confidence": ai_confidence,
         "base_grounding": base_grounding,
         "consistency_bonus": consistency_bonus,
         "multimodal_bonus": multimodal_bonus,

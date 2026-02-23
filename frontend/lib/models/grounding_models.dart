@@ -157,7 +157,8 @@ class UnusedSourceAudit {
 }
 
 class ReliabilityMetrics {
-  final double score;
+  final double reliabilityScore;
+  final double aiConfidence;
   final double baseGrounding;
   final double consistencyBonus;
   final double multimodalBonus;
@@ -167,7 +168,8 @@ class ReliabilityMetrics {
   final List<UnusedSourceAudit> unusedSources;
 
   ReliabilityMetrics({
-    required this.score,
+    required this.reliabilityScore,
+    required this.aiConfidence,
     required this.baseGrounding,
     required this.consistencyBonus,
     required this.multimodalBonus,
@@ -179,12 +181,13 @@ class ReliabilityMetrics {
 
   factory ReliabilityMetrics.fromJson(Map<String, dynamic> json) {
     return ReliabilityMetrics(
-      score: (json['score'] as num).toDouble(),
-      baseGrounding: (json['base_grounding'] as num).toDouble(),
-      consistencyBonus: (json['consistency_bonus'] as num).toDouble(),
-      multimodalBonus: (json['multimodal_bonus'] as num).toDouble(),
-      verdictLabel: json['verdict_label'] as String,
-      explanation: json['explanation'] as String,
+      reliabilityScore: (json['reliability_score'] as num?)?.toDouble() ?? 0.0,
+      aiConfidence: (json['ai_confidence'] as num?)?.toDouble() ?? 0.0,
+      baseGrounding: (json['base_grounding'] as num?)?.toDouble() ?? 0.0,
+      consistencyBonus: (json['consistency_bonus'] as num?)?.toDouble() ?? 0.0,
+      multimodalBonus: (json['multimodal_bonus'] as num?)?.toDouble() ?? 0.0,
+      verdictLabel: json['verdict_label'] as String? ?? 'Unknown',
+      explanation: json['explanation'] as String? ?? '',
       segments: (json['segments'] as List<dynamic>?)
               ?.map((e) => SegmentAudit.fromJson(e as Map<String, dynamic>))
               .toList() ??
@@ -202,7 +205,6 @@ class AnalysisResponse {
   final String verdict;
   final double confidenceScore;
   final String analysis;
-  final List<String> keyFindings;
   final List<GroundingCitation> groundingCitations;
   final List<GroundingSupport> groundingSupports;
   final ReliabilityMetrics? reliabilityMetrics;
@@ -211,7 +213,6 @@ class AnalysisResponse {
     required this.verdict,
     required this.confidenceScore,
     required this.analysis,
-    required this.keyFindings,
     required this.groundingCitations,
     required this.groundingSupports,
     this.reliabilityMetrics,
@@ -222,7 +223,6 @@ class AnalysisResponse {
       verdict: json['verdict'] ?? 'UNVERIFIED',
       confidenceScore: (json['confidence_score'] ?? 0.0).toDouble(),
       analysis: json['analysis'] ?? '',
-      keyFindings: List<String>.from(json['key_findings'] ?? []),
       groundingCitations: (json['grounding_citations'] as List<dynamic>?)
               ?.map((e) => GroundingCitation.fromJson(e))
               .toList() ??

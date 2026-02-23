@@ -48,17 +48,7 @@ class ResultCard extends StatelessWidget {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            if (result!.keyFindings.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: Text(
-                  result!.keyFindings.first,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.white54, fontSize: 12),
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
+            // Removed keyFindings snippet
           ],
         );
 

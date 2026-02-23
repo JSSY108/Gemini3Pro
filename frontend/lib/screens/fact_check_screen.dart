@@ -194,32 +194,7 @@ class _FactCheckScreenState extends State<FactCheckScreen> {
           ),
           // ----------------------------------
 
-          const SizedBox(height: 20),
-          Text(
-            'Key Findings',
-            style: GoogleFonts.outfit(
-              color: Colors.white24,
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 12),
-          ..._result!.keyFindings.map((finding) => Padding(
-                padding: const EdgeInsets.only(bottom: 8.0),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('• ', style: TextStyle(color: accentColor)),
-                    Expanded(
-                      child: Text(
-                        finding,
-                        style: const TextStyle(
-                            color: Colors.white70, fontSize: 14),
-                      ),
-                    ),
-                  ],
-                ),
-              )),
+          // Removed Key Findings Section
         ],
       ),
     );

@@ -275,7 +275,18 @@ The "analysis" string MUST be formatted in Markdown and strictly use these four 
                             snippet=title # Fallback snippet if LLM fails
                         ))
         
-        response_text = response.text if response.candidates else ""
+        try:
+            raw_text = response.text
+            logging.info(f"[RAW LLM DUMP] Raw text from Gemini before parsing:\n{raw_text}")
+        except Exception as e:
+            logging.error(f"[RAW LLM DUMP] Failed to extract text from response. Reason: {e}")
+            logging.error(f"[RAW LLM DUMP] Response object: {response}")
+            
+        try:
+            response_text = response.text or ""
+        except Exception:
+            response_text = ""
+            
         finish_reason = response.candidates[0].finish_reason if response.candidates else "UNKNOWN"
         print(f"[DEBUG] Finish Reason: {finish_reason}")
         print("\n" + "="*50)
@@ -284,23 +295,33 @@ The "analysis" string MUST be formatted in Markdown and strictly use these four 
         
         # Robust parsing using regex to find the first '{' and last '}'
         import re
-        json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
-        if json_match:
-            clean_json = json_match.group(0)
-        else:
-            clean_json = response_text.strip().removeprefix("```json").removesuffix("```").strip()
-            
-        logger.info(f"Cleaned JSON: {clean_json}")
-        
         try:
-            if "matches verbatim with a known source" in response_text.lower() or "recitation" in response_text.lower() or finish_reason == types.FinishReason.RECITATION:
-                raise ValueError("Recitation filter triggered.")
+            json_match = re.search(r'\{.*\}', response_text, re.DOTALL) if response_text else None
+            if json_match:
+                clean_json = json_match.group(0)
+            else:
+                clean_json = response_text.strip().removeprefix("```json").removesuffix("```").strip() if response_text else "{}"
+                
+            logger.info(f"Cleaned JSON: {clean_json}")
+            # Check if it's a plain-text warning from the API rather than JSON
+            is_warning = ("matches verbatim" in response_text.lower() or "recitation" in response_text.lower()) and "{" not in response_text
+            
+            if is_warning:
+                raise ValueError("API returned a plain-text recitation warning.")
                 
             data = json.loads(clean_json)
+            
+            # Debug Dump: Model Output JSON
+            output_dump_path = os.path.join(base_dir, "model_output_dump.json")
+            with open(output_dump_path, "w") as f:
+                json.dump(data, f, indent=2)
+            print(f"[FORENSIC] Model output dumped to {output_dump_path}")
+
             is_multimodal_verified = data.get("multimodal_cross_check", False)
         except Exception as e:
             logger.error(f"[SYSTEM ERROR/FALLBACK] Error or filter blocked JSON: {e}")
-            logger.debug(f"JSON that failed: {clean_json}")
+            # If we have a RECITATION finish reason but NO JSON, we definitely fallback.
+            # If we HAVE JSON but a RECITATION flag, we already tried to parse it above.
             is_multimodal_verified = False
             # FALLBACK: If the LLM crashed, returned text, or got blocked by safety filters
             data = {
@@ -311,7 +332,6 @@ The "analysis" string MUST be formatted in Markdown and strictly use these four 
                 "source_metadata": {"types_analyzed": ["text"]},
                 "grounding_citations": [],
                 "media_literacy": {"logical_fallacies": [], "tone_analysis": "Neutral"},
-                "key_findings": ["The AI safety or recitation filters prevented a deep analysis."]
             }
             
         if not data.get("grounding_citations") and grounding_citations:
@@ -416,7 +436,8 @@ The "analysis" string MUST be formatted in Markdown and strictly use these four 
                 final_supports, 
                 grounding_chunks, 
                 data.get("grounding_citations", []),
-                is_multimodal_verified
+                is_multimodal_verified,
+                ai_confidence=float(data.get("confidence_score", 0.0))
             )
             data["reliability_metrics"] = reliability_metrics
             
@@ -437,22 +458,15 @@ The "analysis" string MUST be formatted in Markdown and strictly use these four 
             import traceback
             traceback.print_exc()
 
-        try:
-            from models import AnalysisResponse
-            # logger.info(f"Final Data Structure: {json.dumps(data, indent=2)}")
-            return AnalysisResponse(**data)
-        except Exception as e:
-            logger.error(f"Pydantic Validation Error: {e}")
-            logger.error(f"Data that failed validation: {data}")
-            return AnalysisResponse(
-                verdict=data.get("verdict", "UNVERIFIABLE"),
-                confidence_score=data.get("confidence_score", 0.0),
-                analysis="Analysis completed, but some source data was malformed or missing.",
-                key_findings=data.get("key_findings", []),
-                grounding_citations=data.get("grounding_citations", []),
-                grounding_supports=data.get("grounding_supports", []),
-                reliability_metrics=data.get("reliability_metrics")
-            )
+        return AnalysisResponse(
+            verdict=data.get("verdict", "UNVERIFIABLE"),
+            confidence_score=data.get("confidence_score", 0.0),
+            analysis=data.get("analysis", "**1. The Core Claim(s):**\nThe data could not be parsed.\n\n**2. Evidence Breakdown:**\n* The AI returned malformed data or was blocked by safety filters."),
+            multimodal_cross_check=data.get("multimodal_cross_check", False),
+            reliability_metrics=data.get("reliability_metrics"),
+            grounding_citations=data.get("grounding_citations", []),
+            grounding_supports=data.get("grounding_supports", [])
+        )
 
     except Exception as e:
         logger.error(f"Analysis Processing Error: {e}")
@@ -460,7 +474,6 @@ The "analysis" string MUST be formatted in Markdown and strictly use these four 
             verdict="UNVERIFIABLE",
             confidence_score=0.0,
             analysis=f"System Error: {str(e)}",
-            key_findings=[str(e)],
             grounding_citations=[]
         )
 

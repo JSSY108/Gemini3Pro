@@ -71,7 +71,7 @@ class _ReliabilityIndexBarState extends State<ReliabilityIndexBar> {
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       Text(
-                        "${(widget.metrics.score * 100).toInt()}%",
+                        "${(widget.metrics.reliabilityScore * 100).toInt()}%",
                         style: GoogleFonts.outfit(
                           color: const Color(0xFFD4AF37),
                           fontSize: 18,
@@ -117,6 +117,13 @@ class _ReliabilityIndexBarState extends State<ReliabilityIndexBar> {
                     Colors.white70, // Metallic/White
                     "Triggered (+0.05) because uploaded visual context aligns with the web evidence.",
                     isBonus: true,
+                  ),
+                  const SizedBox(height: 12),
+                  _buildBreakdownRow(
+                    "AI Reasoning Confidence",
+                    widget.metrics.aiConfidence,
+                    Colors.cyanAccent,
+                    "The AI model's self-reported internal confidence in the reasoning and extraction process.",
                   ),
                 ],
               ),

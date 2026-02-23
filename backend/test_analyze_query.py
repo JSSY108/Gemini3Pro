@@ -19,7 +19,7 @@ def test_analyze(query="Earth is flat."):
     print(f"--- Sending Query: '{query}' ---")
     try:
         # Use a longer timeout for grounding queries
-        response = httpx.post(url, data=data, timeout=60.0)
+        response = httpx.post(url, data=data, timeout=120.0)
         
         if response.status_code == 200:
             res = response.json()
@@ -30,7 +30,8 @@ def test_analyze(query="Earth is flat."):
             metrics = res.get("reliability_metrics")
             if metrics:
                 print("\n[RELIABILITY METRICS]")
-                print(f"  Score: {metrics.get('score')}")
+                print(f"  Reliability Score: {metrics.get('reliability_score')}")
+                print(f"  AI Confidence: {metrics.get('ai_confidence')}")
                 print(f"  Base Grounding: {metrics.get('base_grounding')}")
                 print(f"  Consistency Bonus: {metrics.get('consistency_bonus')}")
                 print(f"  Multimodal Bonus: {metrics.get('multimodal_bonus')}")

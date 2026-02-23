@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/grounding_models.dart';
 import 'confidence_gauge.dart';
+import 'forensic_reliability_bar.dart';
 
 class VerdictPane extends StatelessWidget {
   final AnalysisResponse? result;
@@ -39,7 +40,7 @@ class VerdictPane extends StatelessWidget {
         children: [
           // 1. Verdict Card (Flex 2)
           Expanded(
-            flex: 2,
+            flex: 3,
             child: Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -83,84 +84,36 @@ class VerdictPane extends StatelessWidget {
 
           const SizedBox(height: 16),
 
-          // 2. Trust Gauge (Flex 3)
+          // 2. Trust Gauge / Reliability Bar (Flex 3)
           Expanded(
-            flex: 3,
+            flex: 4,
             child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.02),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: Colors.white12),
               ),
               child: Center(
-                child: FittedBox(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: ConfidenceGauge(score: result!.confidenceScore),
-                  ),
-                ),
+                child: result!.reliabilityMetrics != null
+                    ? ForensicReliabilityBar(
+                        metrics: result!.reliabilityMetrics!,
+                        verdict: result!.verdict,
+                      )
+                    : FittedBox(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child:
+                              ConfidenceGauge(score: result!.confidenceScore),
+                        ),
+                      ),
               ),
             ),
           ),
 
           const SizedBox(height: 16),
 
-          // 3. Key Findings (Flex 5)
-          Expanded(
-            flex: 5,
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.02),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white12),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("KEY FINDINGS",
-                      style: GoogleFonts.outfit(
-                          color: Colors.white54,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.5)),
-                  const SizedBox(height: 12),
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: result!.keyFindings.length,
-                      padding: EdgeInsets.zero,
-                      itemBuilder: (context, index) {
-                        final finding = result!.keyFindings[index];
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 12.0),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Padding(
-                                padding: EdgeInsets.only(top: 6.0),
-                                child: Icon(Icons.circle,
-                                    size: 4, color: Color(0xFFD4AF37)),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  finding,
-                                  style: GoogleFonts.outfit(
-                                      color: Colors.white70,
-                                      fontSize: 14,
-                                      height: 1.4),
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+          // Removed Key Findings section
           if (unusedSources.isNotEmpty) ...[
             const SizedBox(height: 16),
             Column(
