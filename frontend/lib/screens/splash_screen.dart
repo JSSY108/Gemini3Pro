@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../main.dart'; // Import this to access your LandingWrapper
+import 'package:receive_sharing_intent/receive_sharing_intent.dart';
+import '../main.dart'; 
+import 'dashboard_screen.dart';
 
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
+  // 1. ADD: Accept the flag from main.dart
+  final bool launchedFromShare;
+  const SplashScreen({super.key, this.launchedFromShare = false});
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
@@ -21,25 +25,17 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     
     _controller = AnimationController(
       vsync: this,
-      // Increased total duration to 3.6 seconds to give us room for pauses
       duration: const Duration(milliseconds: 3600), 
     );
 
-    // 1. Logo fades in (Starts immediately, finishes at 0.6s)
     _logoFade = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _controller, curve: const Interval(0.0, 0.2, curve: Curves.easeIn)),
     );
 
-    // --- 0.6 second PAUSE where Flutter does nothing ---
-
-    // 2. Title fades in (Starts at 1.2s, finishes at 1.8s)
     _titleFade = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _controller, curve: const Interval(0.4, 0.6, curve: Curves.easeIn)),
     );
 
-    // --- 0.6 second PAUSE where Flutter does nothing ---
-
-    // 3. Slogan fades in (Starts at 2.4s, finishes at 3.0s)
     _sloganFade = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _controller, curve: const Interval(0.8, 1.0, curve: Curves.easeIn)),
     );
@@ -48,21 +44,43 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   }
 
   void _startSequence() async {
-    // Play the fade-in animations sequentially
-    await _controller.forward();
+    // 1. START the animation immediately! No waiting.
+    _controller.forward();
     
-    // Wait for 1 second so the user can read the full text
-    await Future.delayed(const Duration(seconds: 1));
+    // 2. Start the share check in the background (Don't use 'await' here yet)
+    // We want the result, but we don't want to block the screen.
+    Future<List<SharedMediaFile>> shareCheck = ReceiveSharingIntent.instance.getInitialMedia();
 
-    // Navigate to your LandingWrapper (Point B), triggering the Hero flight!
-    if (mounted) {
+    // 3. Wait for your logo animation to reach the end (3.6s)
+    // Plus that 1 second pause you wanted for reading.
+    await Future.delayed(const Duration(milliseconds: 4600));
+
+    // 4. NOW we check if that background task found anything.
+    // If it's still somehow stuck, we timeout after 100ms so the user isn't trapped.
+    List<SharedMediaFile> initialMedia = [];
+    try {
+      initialMedia = await shareCheck.timeout(const Duration(milliseconds: 100));
+    } catch (_) {
+      // If it fails or times out, we just assume no share.
+    }
+
+    if (!mounted) return;
+
+    // 5. DECIDE: Where do we go?
+    if (initialMedia.isNotEmpty) {
+      // Shared content found! Jump to Dashboard.
+      Navigator.of(context).pushReplacement(
+        createSlideRoute(const DashboardScreen()),
+      );
+    } else {
+      // No share found. Proceed to the Landing/Intro as usual.
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(
-          transitionDuration: const Duration(milliseconds: 1800), // Speed of the upward flight
+          transitionDuration: const Duration(milliseconds: 1800),
           pageBuilder: (context, animation, secondaryAnimation) {
             return FadeTransition(
               opacity: animation,
-              child: const LandingWrapper(), // <--- THIS is the crucial fix
+              child: const LandingWrapper(),
             );
           },
         ),
@@ -70,6 +88,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     }
   }
 
+  // ... (dispose and build methods stay exactly the same) ...
   @override
   void dispose() {
     _controller.dispose();
@@ -84,13 +103,12 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // HERO 1: The Logo
             Hero(
               tag: 'veriscan_logo',
               child: FadeTransition(
                 opacity: _logoFade,
                 child: Container(
-                  width: 120, // Big size for center screen
+                  width: 120,
                   height: 120,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
@@ -105,10 +123,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                 ),
               ),
             ),
-            
             const SizedBox(height: 24),
-
-            // HERO 2: The Title
             Hero(
               tag: 'veriscan_title',
               child: Material(
@@ -119,7 +134,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                     "VERISCAN: FORENSIC TRUTH ENGINE",
                     textAlign: TextAlign.center,
                     style: GoogleFonts.outfit(
-                      fontSize: 28, // Big size for center screen
+                      fontSize: 28,
                       fontWeight: FontWeight.w900,
                       color: Colors.white,
                       letterSpacing: 0.5,
@@ -128,10 +143,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                 ),
               ),
             ),
-
             const SizedBox(height: 8),
-
-            // HERO 3: The Slogan
             Hero(
               tag: 'veriscan_slogan',
               child: Material(
