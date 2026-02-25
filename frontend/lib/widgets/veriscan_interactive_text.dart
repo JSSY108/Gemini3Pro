@@ -1,8 +1,7 @@
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../models/grounding_models.dart';
-import '../utils/grounding_parser.dart';
-import 'evidence_card.dart';
 
 class VeriscanInteractiveText extends StatefulWidget {
   final String analysisText;
@@ -10,7 +9,7 @@ class VeriscanInteractiveText extends StatefulWidget {
   final List<GroundingCitation> groundingCitations;
   final List<SourceAttachment> attachments;
   final GroundingSupport? activeSupport;
-  final Function(GroundingSupport?)? onSupportSelected;
+  final Function(GroundingSupport?) onSupportSelected;
 
   const VeriscanInteractiveText({
     super.key,
@@ -18,8 +17,8 @@ class VeriscanInteractiveText extends StatefulWidget {
     required this.groundingSupports,
     required this.groundingCitations,
     required this.attachments,
-    this.activeSupport,
-    this.onSupportSelected,
+    required this.activeSupport,
+    required this.onSupportSelected,
   });
 
   @override
@@ -28,168 +27,190 @@ class VeriscanInteractiveText extends StatefulWidget {
 }
 
 class _VeriscanInteractiveTextState extends State<VeriscanInteractiveText> {
-  static const double kFontSize = 15.0;
-  static const double kStrutHeight = 2.0;
-  static const Color kGold = Color(0xFFD4AF37);
-
-  GroundingSupport? _hoveredSupport;
+  final List<TapGestureRecognizer> _recognizers = [];
+  
+  // Tracks whether to show sources when the whole text is clicked
+  bool _showFallbackSources = false; 
 
   @override
-  Widget build(BuildContext context) {
-    if (widget.analysisText.isEmpty) return const SizedBox();
-
-    final chunks =
-        GroundingParser.parse(widget.analysisText, widget.groundingSupports);
-    final theme = Theme.of(context);
-
-    final baseStyle = theme.textTheme.bodyMedium?.copyWith(
-          fontSize: kFontSize,
-          height: 1.0,
-        ) ??
-        const TextStyle(fontSize: kFontSize, height: 1.0);
-
-    const strutStyle = StrutStyle(
-      fontSize: kFontSize,
-      height: kStrutHeight,
-      forceStrutHeight: true,
-      leading: 0.5,
-    );
-
-    // Identify if we need to split the text to insert a card
-    int activeChunkIndex = -1;
-    if (widget.activeSupport != null) {
-      activeChunkIndex = chunks.indexWhere((c) =>
-          c.support != null &&
-          c.support!.segment.startIndex ==
-              widget.activeSupport!.segment.startIndex);
+  void dispose() {
+    for (final r in _recognizers) {
+      r.dispose();
     }
-
-    // Always split or treat as single block to keep AnimatedSwitcher in tree for transition
-    final int splitIndex =
-        activeChunkIndex != -1 ? activeChunkIndex + 1 : chunks.length;
-    final beforeChunks = chunks.sublist(0, splitIndex);
-    final afterChunks = chunks.sublist(splitIndex);
-
-    return RepaintBoundary(
-      child: AnimatedSize(
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.fastOutSlowIn,
-        alignment: Alignment.topCenter,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _buildRichTextBlock(beforeChunks, baseStyle, strutStyle),
-            if (activeChunkIndex != -1)
-              Padding(
-                key: ValueKey(widget.activeSupport!.segment.startIndex),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Column(
-                  children: _getReferencedCitations(widget.activeSupport!)
-                      .map((citation) => EvidenceCard(
-                            title: citation.title,
-                            snippet: citation.snippet,
-                            url: citation.url,
-                            sourceFile: citation.sourceFile,
-                            attachments: widget.attachments,
-                            status: citation.status,
-                            isActive: true,
-                          ))
-                      .toList(),
-                ),
-              ),
-            if (afterChunks.isNotEmpty)
-              _buildRichTextBlock(afterChunks, baseStyle, strutStyle),
-          ],
-        ),
-      ),
-    );
+    super.dispose();
   }
 
-  Widget _buildRichTextBlock(
-      List<TextChunk> chunks, TextStyle baseStyle, StrutStyle strutStyle) {
-    return RichText(
-      strutStyle: strutStyle,
-      text: TextSpan(
-        style: baseStyle,
-        children: chunks.expand((chunk) {
-          if (chunk.type == ChunkType.plain) {
-            return [TextSpan(text: chunk.text)];
-          } else {
-            final bool isSelected = widget.activeSupport != null &&
-                chunk.support != null &&
-                chunk.support!.segment.startIndex ==
-                    widget.activeSupport!.segment.startIndex;
+  List<InlineSpan> _buildSpans() {
+    for (final r in _recognizers) {
+      r.dispose();
+    }
+    _recognizers.clear();
 
-            final isHovered = _hoveredSupport == chunk.support;
+    List<InlineSpan> spans = [];
+    String text = widget.analysisText;
+    int currentIndex = 0;
 
-            final bool shouldUnderline = isSelected || isHovered;
+    final defaultStyle = GoogleFonts.outfit(
+      color: const Color(0xFFE0E0E0),
+      fontSize: 16,
+      height: 1.8,
+    );
+    
+    final activeLinkStyle = defaultStyle.copyWith(
+      color: const Color(0xFFD4AF37),
+      decoration: TextDecoration.underline,
+      decorationColor: const Color(0xFFD4AF37),
+      backgroundColor: const Color(0xFFD4AF37).withOpacity(0.1),
+    );
 
-            final Color decorationColor = isSelected
-                ? kGold
-                : (isHovered
-                    ? kGold.withValues(alpha: 0.4)
-                    : Colors.transparent);
+    // Style for when the whole paragraph is clicked
+    final activeFallbackStyle = defaultStyle.copyWith(
+      decoration: TextDecoration.underline,
+      decorationColor: const Color(0xFFD4AF37),
+      decorationThickness: 1.5,
+    );
 
-            final double decorationThickness = isSelected ? 3.0 : 1.0;
-            final double lineHeight = isSelected ? 1.8 : 1.0;
+    // Only try to build specific blue links if Gemini provided exact coordinates
+    if (widget.groundingSupports.isNotEmpty) {
+      final sortedSupports = List<GroundingSupport>.from(widget.groundingSupports)
+        ..sort((a, b) => a.segment.startIndex.compareTo(b.segment.startIndex));
 
-            return [
-              TextSpan(
-                text: chunk.text,
-                style: baseStyle.copyWith(
-                  height: lineHeight,
-                  decoration: shouldUnderline
-                      ? TextDecoration.underline
-                      : TextDecoration.none,
-                  decorationColor: decorationColor,
-                  decorationThickness: decorationThickness,
-                  decorationStyle: TextDecorationStyle.solid,
+      for (var support in sortedSupports) {
+        int start = support.segment.startIndex.clamp(0, text.length);
+        int end = support.segment.endIndex.clamp(0, text.length);
+
+        if (start < currentIndex) start = currentIndex;
+        if (end <= start) continue; 
+
+        if (start > currentIndex) {
+          spans.add(TextSpan(text: text.substring(currentIndex, start), style: defaultStyle));
+        }
+
+        final isSelected = widget.activeSupport == support;
+        final recognizer = TapGestureRecognizer()
+          ..onTap = () => widget.onSupportSelected(isSelected ? null : support);
+        _recognizers.add(recognizer);
+
+        spans.add(TextSpan(
+          text: text.substring(start, end),
+          style: isSelected ? activeLinkStyle : defaultStyle.copyWith(
+            color: const Color(0xFF64B5F6),
+            decoration: TextDecoration.underline,
+            decorationColor: const Color(0xFF64B5F6).withOpacity(0.5),
+          ),
+          recognizer: recognizer,
+        ));
+
+        currentIndex = end;
+      }
+    } 
+
+    // Add any remaining text (or the entire text if no coordinates were provided)
+    if (currentIndex < text.length) {
+      // Determine if the fallback text should be underlined right now
+      TextStyle styleToUse = defaultStyle;
+      if (widget.groundingSupports.isEmpty && _showFallbackSources) {
+        styleToUse = activeFallbackStyle;
+      }
+
+      spans.add(TextSpan(text: text.substring(currentIndex), style: styleToUse));
+    }
+
+    return spans;
+  }
+
+  Widget _buildCitationDropBox() {
+    List<GroundingCitation> citationsToDisplay = [];
+
+    // Figure out which citations to show based on what was clicked
+    if (widget.activeSupport != null) {
+      final indices = widget.activeSupport!.groundingChunkIndices;
+      citationsToDisplay = indices
+          .where((i) => i < widget.groundingCitations.length)
+          .map((i) => widget.groundingCitations[i])
+          .toList();
+    } else if (widget.groundingSupports.isEmpty && _showFallbackSources) {
+      citationsToDisplay = widget.groundingCitations;
+    }
+
+    if (citationsToDisplay.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 24.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: citationsToDisplay.map((citation) {
+          final title = citation.title.isNotEmpty ? citation.title : "External Source";
+          
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E1E1E), 
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withOpacity(0.05)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD4AF37).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.link, color: Color(0xFFD4AF37), size: 16),
                 ),
-                mouseCursor: SystemMouseCursors.click,
-                recognizer: TapGestureRecognizer()
-                  ..onTap = () {
-                    if (chunk.support != null) {
-                      widget.onSupportSelected?.call(chunk.support);
-                    }
-                  },
-                onEnter: (_) => setState(() => _hoveredSupport = chunk.support),
-                onExit: (_) => setState(() => _hoveredSupport = null),
-              ),
-              WidgetSpan(
-                alignment: PlaceholderAlignment.top,
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 2.0),
-                  child: Transform.translate(
-                    offset: const Offset(0, 4),
-                    child: Builder(builder: (context) {
-                      final citations = _getReferencedCitations(chunk.support!);
-                      final bool isInaccessible = citations.isNotEmpty &&
-                          (citations.first.status == 'dead' ||
-                              citations.first.status == 'restricted');
-
-                      return Icon(
-                        isInaccessible
-                            ? Icons.warning_amber_rounded
-                            : Icons.diamond,
-                        size: isInaccessible ? 10 : 8,
-                        color: isInaccessible ? Colors.white24 : kGold,
-                      );
-                    }),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: GoogleFonts.outfit(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
-              ),
-            ];
-          }
+                Icon(Icons.open_in_new, color: const Color(0xFFD4AF37).withOpacity(0.5), size: 18),
+              ],
+            ),
+          );
         }).toList(),
       ),
     );
   }
 
-  List<GroundingCitation> _getReferencedCitations(GroundingSupport support) {
-    final indices = support.groundingChunkIndices;
-    return indices
-        .where((idx) => idx >= 0 && idx < widget.groundingCitations.length)
-        .map((idx) => widget.groundingCitations[idx])
-        .toList();
+  @override
+  Widget build(BuildContext context) {
+    Widget textContent = RichText(
+      text: TextSpan(children: _buildSpans()),
+    );
+
+    // If Vertex AI didn't provide specific blue links, make the ENTIRE text clickable
+    if (widget.groundingSupports.isEmpty && widget.groundingCitations.isNotEmpty) {
+      textContent = MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTap: () {
+            setState(() {
+              _showFallbackSources = !_showFallbackSources;
+            });
+          },
+          child: textContent,
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        textContent,
+        AnimatedSize(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOutQuart,
+          child: _buildCitationDropBox(),
+        ),
+      ],
+    );
   }
 }

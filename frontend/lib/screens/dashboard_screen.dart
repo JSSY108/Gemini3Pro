@@ -40,61 +40,29 @@ class _DashboardScreenState extends State<DashboardScreen>
   late StreamSubscription _intentDataStreamSubscription;
 
   @override
-  void initState() {
-    super.initState();
+    void initState() {
+      super.initState();
 
-    // 1. Listen to incoming shared media (files/text) WHILE THE APP IS OPEN
-    // receive_sharing_intent exposes media streams; text shares arrive as
-    // SharedMediaFile where `path` contains the text payload.
-    _intentDataStreamSubscription = ReceiveSharingIntent.instance
-        .getMediaStream()
-        .listen((List<SharedMediaFile> value) {
-      try {
-        if (value.isNotEmpty) {
-          final first = value.first;
-          final sharedText = first.path;
-          if (sharedText.isNotEmpty) {
-            _handleSharedText(sharedText);
-          }
-        }
-      } catch (e) {
-        debugPrint('Shared Intent processing error: $e');
-      }
-    }, onError: (err) {
-      debugPrint("Shared Intent Error: $err");
-    });
+      // 1. Listen to incoming shared media WHILE THE APP IS OPEN
+      _intentDataStreamSubscription = ReceiveSharingIntent.instance
+          .getMediaStream()
+          .listen((List<SharedMediaFile> value) {
+        if (value.isNotEmpty) _handleSharedMedia(value); // Pass the whole list
+      }, onError: (err) => debugPrint("Shared Intent Error: $err"));
 
-    // 2. Get the initial shared media if the app was CLOSED (Cold Start)
-    ReceiveSharingIntent.instance.getInitialMedia().then((value) {
-      try {
-        if (value.isNotEmpty) {
-          final first = value.first;
-          final sharedText = first.path;
-          if (sharedText.isNotEmpty) {
-            _handleSharedText(sharedText);
-          }
-        }
-      } catch (e) {
-        debugPrint('Initial shared intent processing error: $e');
-      }
-    });
-  }
+      // 2. Get the initial shared media if the app was CLOSED (Cold Start)
+      ReceiveSharingIntent.instance.getInitialMedia().then((value) {
+        if (value.isNotEmpty) _handleSharedMedia(value); // Pass the whole list
+      });
+    }
 
-  void _handleSharedText(String text) {
-    setState(() {
-      _inputController.text = text;
-    });
-    // Optional: Automatically trigger analysis when shared
-    _handleAnalysis(); 
-  }
-
-  @override
-  void dispose() {
-    _intentDataStreamSubscription.cancel(); // Critical to prevent memory leaks
-    _inputController.dispose();
-    _sidebarScrollController.dispose();
-    super.dispose();
-  }
+    @override
+    void dispose() {
+      _intentDataStreamSubscription.cancel(); // Prevent memory leaks
+      _inputController.dispose();
+      _sidebarScrollController.dispose();
+      super.dispose();
+    }
 
   // Attachments State
   final List<SourceAttachment> _pendingAttachments = [];
@@ -107,6 +75,45 @@ class _DashboardScreenState extends State<DashboardScreen>
   // ===========================================================================
   //  LOGIC
   // ===========================================================================
+
+  void _handleSharedMedia(List<SharedMediaFile> mediaList) {
+    bool hasData = false;
+
+    for (int i = 0; i < mediaList.length; i++) {
+      final media = mediaList[i];
+
+      // CASE A: Shared Text or URLs
+      if (media.type == SharedMediaType.text || media.type == SharedMediaType.url) {
+        setState(() {
+          final currentText = _inputController.text;
+          _inputController.text = currentText.isEmpty 
+              ? media.path 
+              : "$currentText\n${media.path}";
+        });
+        hasData = true;
+      } 
+      // CASE B: Shared Images or Files
+      else {
+        final attachment = SourceAttachment(
+          id: "${DateTime.now().millisecondsSinceEpoch}_$i", 
+          title: media.path.split('/').last,
+          // FIX 1: Changed 'path' to 'url' to match your model
+          url: media.path, 
+          // FIX 2: Used .image and .pdf (since .file doesn't exist in your Enum)
+          type: media.type == SharedMediaType.image 
+              ? AttachmentType.image 
+              : AttachmentType.pdf, 
+        );
+        _handleAddAttachment(attachment);
+        hasData = true;
+      }
+    }
+
+    // Automatically trigger analysis
+    if (hasData) {
+      _handleAnalysis();
+    }
+  }
 
   void _handleAddAttachment(SourceAttachment attachment) {
     setState(() {

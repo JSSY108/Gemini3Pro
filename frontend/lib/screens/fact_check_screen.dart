@@ -16,6 +16,9 @@ class _FactCheckScreenState extends State<FactCheckScreen> {
   final FactCheckService _service = FactCheckService();
   AnalysisResponse? _result;
   bool _isLoading = false;
+  
+  // ADDED: State to track which hyperlink is currently clicked
+  GroundingSupport? _activeSupport;
 
   Color _getStatusColor(String verdict) {
     switch (verdict.toUpperCase()) {
@@ -33,6 +36,7 @@ class _FactCheckScreenState extends State<FactCheckScreen> {
     setState(() {
       _isLoading = true;
       _result = null;
+      _activeSupport = null; // Reset clicks on new search
     });
 
     try {
@@ -52,6 +56,13 @@ class _FactCheckScreenState extends State<FactCheckScreen> {
         });
       }
     }
+  }
+
+  // ADDED: Method to handle when a user clicks a blue hyperlink
+  void _handleSupportSelected(GroundingSupport? support) {
+    setState(() {
+      _activeSupport = _activeSupport == support ? null : support;
+    });
   }
 
   @override
@@ -144,7 +155,7 @@ class _FactCheckScreenState extends State<FactCheckScreen> {
         color: Colors.white.withOpacity(0.03),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: accentColor.withOpacity(0.3), width: 1),
-        boxShadow: _result!.verdict == 'REAL' // Only glow if Real? Or glow for all?
+        boxShadow: _result!.verdict == 'REAL' 
             ? [
                 BoxShadow(
                   color: accentColor.withOpacity(0.1),
@@ -162,7 +173,6 @@ class _FactCheckScreenState extends State<FactCheckScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                // ✅ FIX: Show actual verdict
                 _result!.verdict.toUpperCase(),
                 style: GoogleFonts.outfit(
                   color: accentColor,
@@ -179,7 +189,6 @@ class _FactCheckScreenState extends State<FactCheckScreen> {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  // Handle 0% confidence for Unverified nicely
                   _result!.verdict == 'UNVERIFIED' 
                       ? 'Op-Ed / N/A' 
                       : '${(_result!.confidenceScore * 100).toInt()}% Confidence',
@@ -202,12 +211,14 @@ class _FactCheckScreenState extends State<FactCheckScreen> {
           ),
           const SizedBox(height: 8),
 
-          // --- Interactive Grounding Text ---
+          // --- FIXED: Interactive Grounding Text ---
           VeriscanInteractiveText(
             analysisText: _result!.analysis,
             groundingSupports: _result!.groundingSupports,
             groundingCitations: _result!.groundingCitations,
             attachments: const [],
+            activeSupport: _activeSupport, // Passed down state
+            onSupportSelected: _handleSupportSelected, // Passed down callback
           ),
           // ----------------------------------
 
@@ -224,7 +235,6 @@ class _FactCheckScreenState extends State<FactCheckScreen> {
           ),
           const SizedBox(height: 12),
           
-          // Map the list of findings to widgets
           ..._result!.keyFindings.map((finding) => Padding(
                 padding: const EdgeInsets.only(bottom: 8.0),
                 child: Row(
