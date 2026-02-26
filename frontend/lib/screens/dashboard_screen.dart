@@ -15,6 +15,9 @@ import '../widgets/juicy_button.dart';
 import 'dart:async';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'community_screen.dart';
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
+import '../widgets/community_vote_box.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -76,7 +79,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   //  LOGIC
   // ===========================================================================
 
-  void _handleSharedMedia(List<SharedMediaFile> mediaList) {
+  Future<void> _handleSharedMedia(List<SharedMediaFile> mediaList) async {
     bool hasData = false;
 
     for (int i = 0; i < mediaList.length; i++) {
@@ -94,16 +97,28 @@ class _DashboardScreenState extends State<DashboardScreen>
       } 
       // CASE B: Shared Images or Files
       else {
+        // 1. Read the actual physical file from the Android Share cache
+        final file = File(media.path);
+        final bytes = await file.readAsBytes(); // Get the raw image data
+
+        // 2. Package it perfectly for your FactCheckService
+        final platformFile = PlatformFile(
+          name: media.path.split('/').last,
+          size: bytes.length,
+          bytes: bytes,
+          path: media.path,
+        );
+
+        // 3. Attach the REAL file, not just the URL string
         final attachment = SourceAttachment(
           id: "${DateTime.now().millisecondsSinceEpoch}_$i", 
-          title: media.path.split('/').last,
-          // FIX 1: Changed 'path' to 'url' to match your model
-          url: media.path, 
-          // FIX 2: Used .image and .pdf (since .file doesn't exist in your Enum)
+          title: platformFile.name,
           type: media.type == SharedMediaType.image 
               ? AttachmentType.image 
-              : AttachmentType.pdf, 
+              : AttachmentType.pdf,
+          file: platformFile, // <--- THIS IS THE MAGIC FIX
         );
+        
         _handleAddAttachment(attachment);
         hasData = true;
       }
@@ -701,7 +716,8 @@ class _DashboardScreenState extends State<DashboardScreen>
         // Key Findings Section (If available)
         if (_result != null && _result!.keyFindings.isNotEmpty)
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 160),
+            // Reduced bottom padding here so the gap isn't huge
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24), 
             sliver: SliverToBoxAdapter(
               child: Container(
                 padding: const EdgeInsets.all(16),
@@ -751,6 +767,21 @@ class _DashboardScreenState extends State<DashboardScreen>
               ),
             ),
           ),
+
+        // ==========================================
+        // 👇 THE NEW COMMUNITY VOTE BOX IS HERE 👇
+        // ==========================================
+        if (_result != null)
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 160),
+            sliver: SliverToBoxAdapter(
+              child: const CommunityVoteBox(), // Make sure this matches your widget's required parameters if any
+            ),
+          ),
+        // ==========================================
+        // 👆 UP TO HERE 👆
+        // ==========================================
+
       ],
     );
   }

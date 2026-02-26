@@ -7,7 +7,7 @@ class ApiService {
   // For Android emulator: use http://10.0.2.2:8000
   // For iOS simulator: use http://localhost:8000
   // For physical device: use your computer's IP address
-  static const String baseUrl = 'http://localhost:8000';
+  static const String baseUrl = 'http://192.168.0.13:8000';
 
   Future<NewsAnalysisResponse> analyzeNews(String newsText) async {
     try {

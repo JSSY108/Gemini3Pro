@@ -7,9 +7,13 @@ import 'package:file_picker/file_picker.dart';
 import '../models/grounding_models.dart';
 
 class FactCheckService {
-  final String baseUrl = kReleaseMode
-      ? 'https://analyze-r4zi2m3nfa-uc.a.run.app'
-      : 'http://127.0.0.1:8000';
+  // Allow temporary override via --dart-define=BACKEND_URL
+  static const _envOverride = String.fromEnvironment('BACKEND_URL', defaultValue: '');
+  final String baseUrl = _envOverride.isNotEmpty
+      ? (_envOverride.endsWith('/analyze') ? _envOverride.replaceAll(RegExp(r'\/analyze\/?'), '') : _envOverride)
+      : (kReleaseMode
+          ? 'https://analyze-r4zi2m3nfa-uc.a.run.app'
+          : 'http://127.0.0.1:8000');
 
   Future<AnalysisResponse> analyzeNews({
     String? text,
