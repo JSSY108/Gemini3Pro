@@ -13,6 +13,7 @@ class EvidenceCard extends StatefulWidget {
   final String? sourceFile;
   final List<SourceAttachment>? attachments;
   final String status;
+  final int sourceId;
   final bool isActive;
   final VoidCallback? onDelete;
 
@@ -24,6 +25,7 @@ class EvidenceCard extends StatefulWidget {
     this.sourceFile,
     this.attachments,
     this.status = 'live',
+    this.sourceId = 0,
     this.isActive = false,
     this.onDelete,
   });
@@ -88,7 +90,9 @@ class _EvidenceCardState extends State<EvidenceCard> {
             Text(
               "Forensic Diagnostic",
               style: GoogleFonts.outfit(
-                  color: const Color(0xFFD4AF37), fontWeight: FontWeight.bold),
+                color: const Color(0xFFD4AF37),
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ],
         ),
@@ -99,10 +103,13 @@ class _EvidenceCardState extends State<EvidenceCard> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text("DISMISS",
-                style: GoogleFonts.outfit(
-                    color: const Color(0xFFD4AF37),
-                    fontWeight: FontWeight.bold)),
+            child: Text(
+              "DISMISS",
+              style: GoogleFonts.outfit(
+                color: const Color(0xFFD4AF37),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -188,8 +195,9 @@ class _EvidenceCardState extends State<EvidenceCard> {
                   Text(
                     file.name,
                     style: GoogleFonts.outfit(
-                        color: const Color(0xFFD4AF37),
-                        fontWeight: FontWeight.bold),
+                      color: const Color(0xFFD4AF37),
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   IconButton(
                     icon: const Icon(Icons.close, color: Colors.white54),
@@ -200,8 +208,9 @@ class _EvidenceCardState extends State<EvidenceCard> {
             ),
             Expanded(
               child: ClipRRect(
-                borderRadius:
-                    const BorderRadius.vertical(bottom: Radius.circular(16)),
+                borderRadius: const BorderRadius.vertical(
+                  bottom: Radius.circular(16),
+                ),
                 child: HtmlElementView(viewType: viewId),
               ),
             ),
@@ -232,10 +241,7 @@ class _EvidenceCardState extends State<EvidenceCard> {
             Flexible(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: Image.memory(
-                  file.bytes!,
-                  fit: BoxFit.contain,
-                ),
+                child: Image.memory(file.bytes!, fit: BoxFit.contain),
               ),
             ),
             const SizedBox(height: 12),
@@ -258,7 +264,9 @@ class _EvidenceCardState extends State<EvidenceCard> {
         title: Text(
           "Forensic Note",
           style: GoogleFonts.outfit(
-              color: const Color(0xFFD4AF37), fontWeight: FontWeight.bold),
+            color: const Color(0xFFD4AF37),
+            fontWeight: FontWeight.bold,
+          ),
         ),
         content: Text(
           "This is an analyzed attachment. To view the original, please refer to your local file: ${widget.sourceFile ?? widget.title}",
@@ -267,8 +275,10 @@ class _EvidenceCardState extends State<EvidenceCard> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text("OK",
-                style: GoogleFonts.outfit(color: const Color(0xFFD4AF37))),
+            child: Text(
+              "OK",
+              style: GoogleFonts.outfit(color: const Color(0xFFD4AF37)),
+            ),
           ),
         ],
       ),
@@ -317,13 +327,43 @@ class _EvidenceCardState extends State<EvidenceCard> {
                         children: [
                           Container(
                             padding: const EdgeInsets.all(6),
+                            width: 28,
+                            height: 28,
+                            alignment: Alignment.center,
                             decoration: BoxDecoration(
-                              color: const Color(0xFFD4AF37)
-                                  .withValues(alpha: 0.1),
+                              color: widget.sourceId > 0
+                                  ? (widget.isActive
+                                        ? const Color(0xFFD4AF37)
+                                        : const Color(
+                                            0xFFD4AF37,
+                                          ).withValues(alpha: 0.1))
+                                  : const Color(
+                                      0xFFD4AF37,
+                                    ).withValues(alpha: 0.1),
                               shape: BoxShape.circle,
+                              border: Border.all(
+                                color: widget.sourceId > 0
+                                    ? const Color(0xFFD4AF37)
+                                    : Colors.transparent,
+                                width: 1,
+                              ),
                             ),
-                            child: const Icon(Icons.auto_awesome,
-                                color: Color(0xFFD4AF37), size: 14),
+                            child: widget.sourceId > 0
+                                ? Text(
+                                    widget.sourceId.toString(),
+                                    style: GoogleFonts.outfit(
+                                      color: widget.isActive
+                                          ? Colors.black
+                                          : const Color(0xFFD4AF37),
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.auto_awesome,
+                                    color: Color(0xFFD4AF37),
+                                    size: 14,
+                                  ),
                           ),
                           const SizedBox(width: 10),
                           Expanded(
@@ -341,8 +381,11 @@ class _EvidenceCardState extends State<EvidenceCard> {
                           ),
                           if (widget.onDelete != null)
                             IconButton(
-                              icon: const Icon(Icons.delete_outline,
-                                  color: Color(0xFFD4AF37), size: 18),
+                              icon: const Icon(
+                                Icons.delete_outline,
+                                color: Color(0xFFD4AF37),
+                                size: 18,
+                              ),
                               onPressed: widget.onDelete,
                               padding: EdgeInsets.zero,
                               constraints: const BoxConstraints(),
@@ -364,11 +407,12 @@ class _EvidenceCardState extends State<EvidenceCard> {
                                 IconButton(
                                   tooltip: "View Attachment or Link",
                                   icon: Icon(
-                                      _isUploadedFile
-                                          ? Icons.visibility_outlined
-                                          : Icons.open_in_new,
-                                      color: Colors.white54,
-                                      size: 14),
+                                    _isUploadedFile
+                                        ? Icons.visibility_outlined
+                                        : Icons.open_in_new,
+                                    color: Colors.white54,
+                                    size: 14,
+                                  ),
                                   onPressed: _handleViewAction,
                                   padding: EdgeInsets.zero,
                                   constraints: const BoxConstraints(),
@@ -440,8 +484,9 @@ class _EvidenceCardState extends State<EvidenceCard> {
                                       ),
                                       AnimatedRotation(
                                         turns: _isExpanded ? 0.5 : 0.0,
-                                        duration:
-                                            const Duration(milliseconds: 200),
+                                        duration: const Duration(
+                                          milliseconds: 200,
+                                        ),
                                         child: const Icon(
                                           Icons.expand_more,
                                           color: Color(0xFFD4AF37),

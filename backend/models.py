@@ -7,6 +7,7 @@ class SourceMetadata(BaseModel):
     page_title: Optional[str] = None
 
 class GroundingCitation(BaseModel):
+    id: int = 0  # 1-indexed source ID
     title: str = ""
     url: Optional[str] = ""
     snippet: str = ""
@@ -14,7 +15,7 @@ class GroundingCitation(BaseModel):
     status: str = "live"
 
 class ScannedSource(BaseModel):
-    index: int
+    id: int # 1-indexed source ID
     title: str
     url: str
     is_cited: bool

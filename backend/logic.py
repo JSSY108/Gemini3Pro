@@ -129,7 +129,7 @@ def calculate_reliability(grounding_supports: list, grounding_chunks: list, grou
             chunk_score = conf * auth
             
             evaluated_sources.append({
-                "id": chunk_idx, # backward compat
+                "id": chunk_idx + 1, # 1-indexed source ID
                 "chunk_index": chunk_idx,
                 "source_index": source_index,
                 "domain": raw_domain,

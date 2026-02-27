@@ -46,7 +46,8 @@ class _VeriscanInteractiveTextState extends State<VeriscanInteractiveText> {
     );
     final theme = Theme.of(context);
 
-    final baseStyle = theme.textTheme.bodyMedium?.copyWith(
+    final baseStyle =
+        theme.textTheme.bodyMedium?.copyWith(
           fontSize: kFontSize,
           height: 1.0,
         ) ??
@@ -71,8 +72,9 @@ class _VeriscanInteractiveTextState extends State<VeriscanInteractiveText> {
     }
 
     // Always split or treat as single block to keep AnimatedSwitcher in tree for transition
-    final int splitIndex =
-        activeChunkIndex != -1 ? activeChunkIndex + 1 : chunks.length;
+    final int splitIndex = activeChunkIndex != -1
+        ? activeChunkIndex + 1
+        : chunks.length;
     final beforeChunks = chunks.sublist(0, splitIndex);
     final afterChunks = chunks.sublist(splitIndex);
 
@@ -115,7 +117,8 @@ class _VeriscanInteractiveTextState extends State<VeriscanInteractiveText> {
     bool isBold = false;
 
     for (final chunk in chunks) {
-      final bool isSelected = widget.activeSupport != null &&
+      final bool isSelected =
+          widget.activeSupport != null &&
           chunk.support != null &&
           chunk.support!.segment.startIndex ==
               widget.activeSupport!.segment.startIndex;
@@ -231,8 +234,9 @@ class _VeriscanInteractiveTextState extends State<VeriscanInteractiveText> {
       text: text,
       style: style.copyWith(
         height: lineHeight,
-        decoration:
-            shouldUnderline ? TextDecoration.underline : TextDecoration.none,
+        decoration: shouldUnderline
+            ? TextDecoration.underline
+            : TextDecoration.none,
         decorationColor: decorationColor,
         decorationThickness: decorationThickness,
         decorationStyle: TextDecorationStyle.solid,
@@ -256,12 +260,11 @@ class _VeriscanInteractiveTextState extends State<VeriscanInteractiveText> {
     for (final index in indices) {
       // 1. Resolve the ScannedSource by index
       final source = widget.scannedSources.firstWhere(
-        (s) => s.index == index,
-        orElse: () =>
-            ScannedSource(index: -1, title: '', url: '', isCited: false),
+        (s) => s.id - 1 == index,
+        orElse: () => ScannedSource(id: -1, title: '', url: '', isCited: false),
       );
 
-      if (source.index == -1 || source.url.isEmpty) continue;
+      if (source.id == -1 || source.url.isEmpty) continue;
 
       // 2. Search groundingCitations for an entry with the same URL
       // We normalize simple matching or just direct URL match as per backend logic

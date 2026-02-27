@@ -181,10 +181,12 @@ class _SourceSidebarContainerState extends State<SourceSidebarContainer> {
 
   Widget _buildTieredEvidenceList() {
     // 1. Identify "Verified" (Cited) vs "Context" (Scanned but not cited)
-    final List<ScannedSource> citedSources =
-        widget.scannedSources.where((s) => s.isCited).toList();
-    final List<ScannedSource> contextSources =
-        widget.scannedSources.where((s) => !s.isCited).toList();
+    final List<ScannedSource> citedSources = widget.scannedSources
+        .where((s) => s.isCited)
+        .toList();
+    final List<ScannedSource> contextSources = widget.scannedSources
+        .where((s) => !s.isCited)
+        .toList();
 
     return CustomScrollView(
       key: const ValueKey("evidence"),
@@ -197,8 +199,11 @@ class _SourceSidebarContainerState extends State<SourceSidebarContainer> {
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
               child: Row(
                 children: [
-                  const Icon(Icons.verified,
-                      color: Color(0xFFD4AF37), size: 14),
+                  const Icon(
+                    Icons.verified,
+                    color: Color(0xFFD4AF37),
+                    size: 14,
+                  ),
                   const SizedBox(width: 8),
                   Text(
                     "VERIFIED EVIDENCE",
@@ -216,7 +221,7 @@ class _SourceSidebarContainerState extends State<SourceSidebarContainer> {
           SliverList(
             delegate: SliverChildBuilderDelegate((context, index) {
               final source = citedSources[index];
-              final isActive = widget.activeIndices.contains(source.index);
+              final isActive = widget.activeIndices.contains(source.id - 1);
 
               // Enrich with citation info if available
               final citation = widget.citations.firstWhere(
@@ -225,14 +230,16 @@ class _SourceSidebarContainerState extends State<SourceSidebarContainer> {
                     GroundingCitation(title: '', url: '', snippet: ''),
               );
 
-              final String keyStr = 'cited_${source.index}';
+              final String keyStr = 'cited_${source.id - 1}';
               _sourceKeys[keyStr] =
                   _sourceKeys[keyStr] ?? GlobalKey(debugLabel: keyStr);
 
               return Padding(
                 key: ValueKey('sidebar_cited_${source.url}'),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 4,
+                ),
                 child: AnimatedContainer(
                   key: _sourceKeys[keyStr],
                   duration: const Duration(milliseconds: 300),
@@ -250,8 +257,9 @@ class _SourceSidebarContainerState extends State<SourceSidebarContainer> {
                     boxShadow: isActive
                         ? [
                             BoxShadow(
-                              color: const Color(0xFFD4AF37)
-                                  .withValues(alpha: 0.3),
+                              color: const Color(
+                                0xFFD4AF37,
+                              ).withValues(alpha: 0.3),
                               blurRadius: 15,
                               spreadRadius: 2,
                             ),
@@ -259,13 +267,15 @@ class _SourceSidebarContainerState extends State<SourceSidebarContainer> {
                         : [],
                   ),
                   child: SourceTile(
-                    title:
-                        source.title.isNotEmpty ? source.title : citation.title,
+                    title: source.title.isNotEmpty
+                        ? source.title
+                        : citation.title,
                     url: source.url.isNotEmpty ? source.url : citation.url,
                     attachments: widget.uploadedAttachments,
                     status: citation.status,
+                    sourceId: source.id,
                     isActive: isActive,
-                    onTap: () => widget.onCitationSelected(source.index),
+                    onTap: () => widget.onCitationSelected(source.id - 1),
                   ),
                 ),
               );
@@ -298,16 +308,18 @@ class _SourceSidebarContainerState extends State<SourceSidebarContainer> {
           SliverList(
             delegate: SliverChildBuilderDelegate((context, index) {
               final source = contextSources[index];
-              final isActive = widget.activeIndices.contains(source.index);
+              final isActive = widget.activeIndices.contains(source.id - 1);
 
-              final String keyStr = 'scanned_${source.index}';
+              final String keyStr = 'scanned_${source.id - 1}';
               _sourceKeys[keyStr] =
                   _sourceKeys[keyStr] ?? GlobalKey(debugLabel: keyStr);
 
               return Padding(
                 key: ValueKey('sidebar_scanned_${source.url}'),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 4,
+                ),
                 child: AnimatedContainer(
                   key: _sourceKeys[keyStr],
                   duration: const Duration(milliseconds: 300),
@@ -325,8 +337,9 @@ class _SourceSidebarContainerState extends State<SourceSidebarContainer> {
                     boxShadow: isActive
                         ? [
                             BoxShadow(
-                              color: const Color(0xFFD4AF37)
-                                  .withValues(alpha: 0.2),
+                              color: const Color(
+                                0xFFD4AF37,
+                              ).withValues(alpha: 0.2),
                               blurRadius: 10,
                               spreadRadius: 1,
                             ),
@@ -338,8 +351,9 @@ class _SourceSidebarContainerState extends State<SourceSidebarContainer> {
                     url: source.url,
                     attachments: widget.uploadedAttachments,
                     status: 'live',
+                    sourceId: source.id,
                     isActive: isActive,
-                    onTap: () => widget.onCitationSelected(source.index),
+                    onTap: () => widget.onCitationSelected(source.id - 1),
                   ),
                 ),
               );

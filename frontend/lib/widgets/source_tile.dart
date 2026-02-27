@@ -12,6 +12,7 @@ class SourceTile extends StatelessWidget {
   final List<SourceAttachment>? attachments;
   final String status;
   final int count;
+  final int sourceId;
   final bool isActive;
   final VoidCallback? onTap;
   final VoidCallback? onDelete;
@@ -23,6 +24,7 @@ class SourceTile extends StatelessWidget {
     this.attachments,
     this.status = 'live',
     this.count = 1,
+    this.sourceId = 0,
     this.isActive = false,
     this.onTap,
     this.onDelete,
@@ -80,7 +82,9 @@ class SourceTile extends StatelessWidget {
             Text(
               "Forensic Diagnostic",
               style: GoogleFonts.outfit(
-                  color: const Color(0xFFD4AF37), fontWeight: FontWeight.bold),
+                color: const Color(0xFFD4AF37),
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ],
         ),
@@ -91,10 +95,13 @@ class SourceTile extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text("DISMISS",
-                style: GoogleFonts.outfit(
-                    color: const Color(0xFFD4AF37),
-                    fontWeight: FontWeight.bold)),
+            child: Text(
+              "DISMISS",
+              style: GoogleFonts.outfit(
+                color: const Color(0xFFD4AF37),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -180,8 +187,9 @@ class SourceTile extends StatelessWidget {
                   Text(
                     file.name,
                     style: GoogleFonts.outfit(
-                        color: const Color(0xFFD4AF37),
-                        fontWeight: FontWeight.bold),
+                      color: const Color(0xFFD4AF37),
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   IconButton(
                     icon: const Icon(Icons.close, color: Colors.white54),
@@ -192,8 +200,9 @@ class SourceTile extends StatelessWidget {
             ),
             Expanded(
               child: ClipRRect(
-                borderRadius:
-                    const BorderRadius.vertical(bottom: Radius.circular(16)),
+                borderRadius: const BorderRadius.vertical(
+                  bottom: Radius.circular(16),
+                ),
                 child: HtmlElementView(viewType: viewId),
               ),
             ),
@@ -224,10 +233,7 @@ class SourceTile extends StatelessWidget {
             Flexible(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: Image.memory(
-                  file.bytes!,
-                  fit: BoxFit.contain,
-                ),
+                child: Image.memory(file.bytes!, fit: BoxFit.contain),
               ),
             ),
             const SizedBox(height: 12),
@@ -250,7 +256,9 @@ class SourceTile extends StatelessWidget {
         title: Text(
           "Forensic Note",
           style: GoogleFonts.outfit(
-              color: const Color(0xFFD4AF37), fontWeight: FontWeight.bold),
+            color: const Color(0xFFD4AF37),
+            fontWeight: FontWeight.bold,
+          ),
         ),
         content: Text(
           "This is an analyzed attachment. To view the original, please refer to your local file: $title",
@@ -259,8 +267,10 @@ class SourceTile extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text("OK",
-                style: GoogleFonts.outfit(color: const Color(0xFFD4AF37))),
+            child: Text(
+              "OK",
+              style: GoogleFonts.outfit(color: const Color(0xFFD4AF37)),
+            ),
           ),
         ],
       ),
@@ -293,28 +303,59 @@ class SourceTile extends StatelessWidget {
                 onTap: onTap ?? () => _handleViewAction(context),
                 borderRadius: BorderRadius.circular(12),
                 child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Favicon Placeholder
+                      // Source ID Badge
                       Container(
                         padding: const EdgeInsets.all(6),
+                        width: 28,
+                        height: 28,
+                        alignment: Alignment.center,
                         decoration: BoxDecoration(
-                          color: isInaccessible
-                              ? Colors.white.withValues(alpha: 0.05)
-                              : const Color(0xFFD4AF37).withValues(alpha: 0.15),
+                          color: sourceId > 0
+                              ? (isActive
+                                    ? const Color(0xFFD4AF37)
+                                    : const Color(
+                                        0xFFD4AF37,
+                                      ).withValues(alpha: 0.15))
+                              : (isInaccessible
+                                    ? Colors.white.withValues(alpha: 0.05)
+                                    : const Color(
+                                        0xFFD4AF37,
+                                      ).withValues(alpha: 0.15)),
                           shape: BoxShape.circle,
+                          border: Border.all(
+                            color: sourceId > 0
+                                ? const Color(0xFFD4AF37)
+                                : Colors.transparent,
+                            width: 1,
+                          ),
                         ),
-                        child: Icon(
-                            isInaccessible
-                                ? Icons.warning_amber_rounded
-                                : Icons.link,
-                            color: isInaccessible
-                                ? Colors.white24
-                                : const Color(0xFFD4AF37),
-                            size: 14),
+                        child: sourceId > 0
+                            ? Text(
+                                sourceId.toString(),
+                                style: GoogleFonts.outfit(
+                                  color: isActive
+                                      ? Colors.black
+                                      : const Color(0xFFD4AF37),
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              )
+                            : Icon(
+                                isInaccessible
+                                    ? Icons.warning_amber_rounded
+                                    : Icons.link,
+                                color: isInaccessible
+                                    ? Colors.white24
+                                    : const Color(0xFFD4AF37),
+                                size: 14,
+                              ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -337,8 +378,11 @@ class SourceTile extends StatelessWidget {
                       const SizedBox(width: 8),
                       if (onDelete != null)
                         IconButton(
-                          icon: const Icon(Icons.delete_outline,
-                              color: Color(0xFFD4AF37), size: 16),
+                          icon: const Icon(
+                            Icons.delete_outline,
+                            color: Color(0xFFD4AF37),
+                            size: 16,
+                          ),
                           onPressed: onDelete,
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
@@ -347,15 +391,16 @@ class SourceTile extends StatelessWidget {
                         IconButton(
                           tooltip: _actionLabel,
                           icon: Icon(
-                              _isUploadedFile
-                                  ? Icons.visibility_outlined
-                                  : (isInaccessible
+                            _isUploadedFile
+                                ? Icons.visibility_outlined
+                                : (isInaccessible
                                       ? Icons.report_problem_outlined
                                       : Icons.open_in_new),
-                              color: (_isUploadedFile || !isInaccessible)
-                                  ? const Color(0xFFD4AF37)
-                                  : Colors.white24,
-                              size: 14),
+                            color: (_isUploadedFile || !isInaccessible)
+                                ? const Color(0xFFD4AF37)
+                                : Colors.white24,
+                            size: 14,
+                          ),
                           onPressed: () => _handleViewAction(context),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),

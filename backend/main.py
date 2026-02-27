@@ -307,16 +307,17 @@ The "analysis" string MUST be formatted in Markdown and strictly use these four 
                 f.write('{"error": "NO GROUNDING METADATA FOUND"}')
             print("NO GROUNDING METADATA FOUND IN RESPONSE")
         
-        grounding_citations = []
+        grounding_citations_fallback = []
         if response.candidates and response.candidates[0].grounding_metadata:
             chunks = getattr(response.candidates[0].grounding_metadata, 'grounding_chunks', [])
             if chunks:
-                for chunk_obj in chunks:
+                for i, chunk_obj in enumerate(chunks):
                     web_node = getattr(chunk_obj, 'web', None)
                     if web_node:
                         title = getattr(web_node, 'title', getattr(web_node, 'domain', "Unknown Source"))
                         uri = getattr(web_node, 'uri', "No source link available")
-                        grounding_citations.append(GroundingCitation(
+                        grounding_citations_fallback.append(GroundingCitation(
+                            id=i + 1,
                             title=title,
                             url=uri,
                             snippet=title # Fallback snippet if LLM fails
@@ -374,14 +375,24 @@ The "analysis" string MUST be formatted in Markdown and strictly use these four 
                 "media_literacy": {"logical_fallacies": [], "tone_analysis": "Neutral"},
             }
             
-        if not data.get("grounding_citations") and grounding_citations:
-             data["grounding_citations"] = [g.model_dump() for g in grounding_citations]
+        if not data.get("grounding_citations") and grounding_citations_fallback:
+             data["grounding_citations"] = [g.model_dump() for g in grounding_citations_fallback]
         
-        # Sanitization & Filename Mapping & URL Diagnostic
+        # Prepare a URI to ID map from grounding chips
+        uri_to_id = {}
+        if response.candidates and response.candidates[0].grounding_metadata:
+            chunks = getattr(response.candidates[0].grounding_metadata, 'grounding_chunks', [])
+            for i, chunk_obj in enumerate(chunks):
+                web_node = getattr(chunk_obj, 'web', None)
+                if web_node:
+                    uri = getattr(web_node, 'uri', "")
+                    if uri:
+                        uri_to_id[normalize_url(uri)] = i + 1
+
+        # Final Sanitization: Attach correct IDs to citations
         sanitized_citations = []
         for gc in data.get("grounding_citations", []):
             if isinstance(gc, dict):
-                # Detect filename in citation
                 matched_file = None
                 for fname in file_names:
                     if fname in (gc.get("title") or "") or fname in (gc.get("snippet") or ""):
@@ -394,20 +405,19 @@ The "analysis" string MUST be formatted in Markdown and strictly use these four 
                 if not gc.get("title"):
                     gc["title"] = matched_file or "Untitled Source"
                 
-                # Clean up snippet
+                # Assign ID based on URL match with master chunks
+                norm_url = normalize_url(gc.get("url", ""))
+                gc["id"] = uri_to_id.get(norm_url, 0) # 0 if not found in master chunks
+                
                 if gc.get("snippet"):
                     gc["snippet"] = sanitize_grounding_text(gc["snippet"])
                 
-                # URL Diagnostic Logic
                 url_str = gc.get("url", "").lower()
                 snippet_str = gc.get("snippet", "").lower()
-                
                 status = "live"
-                # Check for Social Media (Restricted)
                 social_domains = ["instagram.com", "facebook.com", "twitter.com", "x.com", "tiktok.com", "reddit.com"]
                 if any(domain in url_str for domain in social_domains):
                     status = "restricted"
-                # Check for Dead Link / Inaccessible
                 elif not gc.get("snippet") or "failed to fetch" in snippet_str or "could not be reached" in snippet_str:
                     status = "dead"
                 
@@ -429,15 +439,16 @@ The "analysis" string MUST be formatted in Markdown and strictly use these four 
                 if web_node:
                     title = getattr(web_node, 'title', "Untitled Source")
                     uri = getattr(web_node, 'uri', "")
-                    if not uri or normalize_url(uri) in seen_urls:
+                    norm_uri = normalize_url(uri)
+                    if not uri or norm_uri in seen_urls:
                         continue
                     
-                    seen_urls.add(normalize_url(uri))
+                    seen_urls.add(norm_uri)
                     scanned_sources.append(ScannedSource(
-                        index=i + 1,
+                        id=i + 1, # Unified Rule: ID = chunk_index + 1
                         title=title,
                         url=uri,
-                        is_cited=normalize_url(uri) in cited_urls
+                        is_cited=norm_uri in cited_urls
                     ).model_dump())
         
         data["scanned_sources"] = scanned_sources
@@ -504,7 +515,7 @@ The "analysis" string MUST be formatted in Markdown and strictly use these four 
                             "endIndex": segment_obj.get("end_index") or 0,
                             "text": final_seg_text
                         },
-                        "groundingChunkIndices": [(idx + 1) for idx in (sup_dict.get("grounding_chunk_indices") or [])],
+                        "groundingChunkIndices": sup_dict.get("grounding_chunk_indices") or [],
                         "confidenceScores": sup_dict.get("confidence_scores") or []
                     }
                     api_supports.append(standardized)

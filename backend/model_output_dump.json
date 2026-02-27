@@ -1,7 +1,7 @@
 {
-  "verdict": "MIXTURE",
+  "verdict": "FALSE",
   "confidence_score": 1.0,
-  "analysis": "**1. The Core Claim(s):**\nThe statement asserts that Barack Obama is Black and the current President of the United States.\n\n**2. Evidence Breakdown:**\n*   Barack Obama is identified as the first African American president of the United States.\n*   Barack Obama served as the 44th President of the United States from 2009 to 2017.\n*   Donald Trump is the 47th and current president of the United States as of January 20, 2025.\n\n**3. Context & Nuance:**\nWhile it is true that Barack Obama is considered Black or African American, he is not the current president. Donald Trump is currently serving as president. The claim mixes a true statement with a false one.\n\n**4. Red Flags & Discrepancies:**\nNo major discrepancies found in the verified sources.",
+  "analysis": "**1. The Core Claim(s):**\nThe claim states that Barack Obama is the current president of the United States of America.\n\n**2. Evidence Breakdown:**\n*   According to multiple sources, Donald Trump is the 47th and current president of the United States.\n*   Donald Trump assumed office on January 20, 2025.\n*   Barack Obama was the president before Donald Trump.\n\n**3. Context & Nuance:**\nBarack Obama's presidency ended before 2025. The current president is Donald Trump as of February 2026.\n\n**4. Red Flags & Discrepancies:**\nNo major discrepancies found in the verified sources.",
   "multimodal_cross_check": false,
   "source_metadata": {
     "types_analyzed": [
@@ -10,24 +10,19 @@
   },
   "grounding_citations": [
     {
-      "title": "Barack Obama | Biography, Parents, Education, Presidency, Books, & Facts | Britannica",
-      "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQF1AokR1RLW04HLQ9TcWmBW_DI0Tob5h2N9FjqTstkAZy8p1gZgB1Fg2BspX3RslEfbWkVhWKc5KOL30Qlr_Xstp2Iutp_H8YfY-7E-ZurOMlIoVPfSxRaGirR5xlg2hNGW5ONWKrTiwent600=",
-      "snippet": "Barack Obama (born August 4, 1961, Honolulu, Hawaii, US) is the 44th president of the United States (2009\u201317) and the first African American to hold the office."
+      "title": "President of the United States - Wikipedia",
+      "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFR_oMWWxyPNWrvUg1GanZ5zHXJAWiblxSHJsuEvLo8cEYOyWCM1gE5pLM9NKEoGzr4JNI0NtNI-qZcH0yxhaVisl7ZAToueOFILU8JCUvDYxwjEwovBncpJmLiLM4YUq7VzyiU1BOOgFvfox4O_lnqlizCSCaSRA==",
+      "snippet": "In addition, nine vice presidents have become president by virtue of a president's intra-term death or resignation. ... In all, 45 individuals have served, or are serving, 47 presidencies as of the current 60th four-year term. Donald Trump is the 47th and current president since January 20, 2025.\n..."
     },
     {
-      "title": "Racism During Barack Obama Presidency - The Washington Post",
-      "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFRG08WTzDcqKgUY7rtWlsIkB_IHVAVJUQywHNxIbXpHj0H7C1UlptGFSp1_Ca9lQ1vQydqR7pFUcWbODozrwJnfOsUJ1KTTaZ91DrnPyHK58lviLF4YY1O3P5bqiX06_Dk8b1ADjgCciSB0wPu75jxW-OMDGYBQ5asaPcHJlyzqu28fl6fpJ_-HeArAMEWyvz3K5CjkEQ=",
-      "snippet": "Experience Barack Obama's historic time in office: as the first black president, as commander in chief, as a domestic and foreign policymaker, and as a husband and father."
+      "title": "Presidents, vice presidents, and first ladies - USAGov",
+      "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEXZ7vM_W9UfgyRySKF95lw7V1qVzETFa8I-tgSJMz5HTI0DfDf5dAjwUFyEh1Ak8rffYN8YjfHP5S7ObN5PyV4lV7Sgipc0h8wcKI3NtAhAMXClI37JIv_2A==",
+      "snippet": "(2025-09-17) The 47th and current president of the United States is Donald John Trump. He was sworn into office on January 20, 2025.\n..."
     },
     {
-      "title": "Barack Obama - Wikipedia",
-      "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQE6-Gm0HN_k53etHiTPBioMsRL_0Fa3uX3vWEd1zh2-IaFmBSi4oKKGKG4SwM3ef33Wf6awdKlBeGLRuZe6QLJivbrqsDOKerisw8z6AP7b7peNVbx1AV0KInh0PvW952MQdU9XcQ==",
-      "snippet": "A member of the Democratic Party, he was the first African American president. Obama previously served as a U.S. senator representing Illinois from 2005 to 2008 and as an Illinois state senator from 1997 to 2004. Barack\u00a0..."
-    },
-    {
-      "title": "Second presidency of Donald Trump - Wikipedia",
-      "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGS7pFkxZnTk7D8vcURE8-LAtp06ZnmYG3x4D1RbOiwrXH9frs7vRLeDH5NAAAySPJg8O46XMamNyF3lqmkrFR2qMYut60EHgm0g4amhZwSQYNy901Ae2cYnrWU5PYWu6KteBgeb72ISSzPcUr3kZ6StnaQephH6F82MQ==",
-      "snippet": "Donald Trump's second and current tenure as the president of the United States began upon his inauguration as the 47th president on January 20, 2025."
+      "title": "Donald Trump - Wikipedia",
+      "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGPcIcFSFbbWPiD8H3851bC6UtV3CA9iNVs8VWwJBVwZFTdN3BbBdrmUre2X1GV8wAQ9U3voupRGnm3gfA47viQZ7zC9hDLMeqj4HrR0uwdlqL4uhwJX6a4DbR8dXF2PwgG3zfUfw==",
+      "snippet": "Donald John Trump (born June 14, 1946) is an American politician, media personality, and businessman who is the 47th president of the United States. A member of the Republican Party, he served as the 45th president from 2017 to 2021. ... Queens, New York City, U.S. ... Donald Jr."
     }
   ],
   "media_literacy": {

@@ -28,7 +28,7 @@ class EvidenceTray extends StatelessWidget {
       // The Tray must only render "Scanned" chips whose index exists
       // in the current segment's groundingChunkIndices array.
       if (activeChunkIndices.isNotEmpty) {
-        return activeChunkIndices.contains(s.index);
+        return activeChunkIndices.contains(s.id - 1);
       }
       return false; // Show nothing if no segment active (or show all? User said "only render... whose index exists")
     }).toList();
@@ -70,6 +70,7 @@ class EvidenceTray extends StatelessWidget {
                           sourceFile: citation.sourceFile,
                           attachments: attachments,
                           status: citation.status,
+                          sourceId: citation.id,
                           isActive: true,
                         ),
                       ),
@@ -174,8 +175,8 @@ class EvidenceTray extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.link, color: Colors.white24, size: 12),
-              const SizedBox(width: 6),
+              _buildIdBadge(source.id),
+              const SizedBox(width: 8),
               Flexible(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 180),
@@ -192,6 +193,27 @@ class EvidenceTray extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildIdBadge(int id) {
+    return Container(
+      width: 20,
+      height: 20,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white24, width: 1),
+      ),
+      child: Text(
+        id.toString(),
+        style: GoogleFonts.outfit(
+          color: Colors.white60,
+          fontSize: 9,
+          fontWeight: FontWeight.bold,
         ),
       ),
     );

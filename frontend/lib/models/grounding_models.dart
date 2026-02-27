@@ -43,13 +43,13 @@ class GroundingSupport {
 }
 
 class ScannedSource {
-  final int index;
+  final int id;
   final String title;
   final String url;
   final bool isCited;
 
   ScannedSource({
-    required this.index,
+    required this.id,
     required this.title,
     required this.url,
     required this.isCited,
@@ -57,7 +57,7 @@ class ScannedSource {
 
   factory ScannedSource.fromJson(Map<String, dynamic> json) {
     return ScannedSource(
-      index: json['index'] as int? ?? -1,
+      id: (json['id'] ?? json['index']) as int? ?? -1,
       title: json['title'] ?? '',
       url: json['url'] ?? '',
       isCited: json['is_cited'] ?? false,
@@ -66,6 +66,7 @@ class ScannedSource {
 }
 
 class GroundingCitation {
+  final int id;
   final String title;
   final String url;
   final String snippet;
@@ -73,6 +74,7 @@ class GroundingCitation {
   final String status;
 
   GroundingCitation({
+    this.id = 0,
     required this.title,
     required this.url,
     required this.snippet,
@@ -82,6 +84,7 @@ class GroundingCitation {
 
   factory GroundingCitation.fromJson(Map<String, dynamic> json) {
     return GroundingCitation(
+      id: json['id'] as int? ?? 0,
       title: json['title'] ?? '',
       url: json['url'] ?? '',
       snippet: json['snippet'] ?? '',
