@@ -3,7 +3,7 @@ import json
 import sys
 
 def test_analyze(query="Earth is flat."):
-    url = "http://127.0.0.1:8080/analyze"
+    url = "http://127.0.0.1:8000/analyze"
     payload = {
         "request_id": "test-query",
         "text_claim": query,

@@ -43,29 +43,29 @@ class _DashboardScreenState extends State<DashboardScreen>
   late StreamSubscription _intentDataStreamSubscription;
 
   @override
-    void initState() {
-      super.initState();
+  void initState() {
+    super.initState();
 
-      // 1. Listen to incoming shared media WHILE THE APP IS OPEN
-      _intentDataStreamSubscription = ReceiveSharingIntent.instance
-          .getMediaStream()
-          .listen((List<SharedMediaFile> value) {
-        if (value.isNotEmpty) _handleSharedMedia(value); // Pass the whole list
-      }, onError: (err) => debugPrint("Shared Intent Error: $err"));
+    // 1. Listen to incoming shared media WHILE THE APP IS OPEN
+    _intentDataStreamSubscription = ReceiveSharingIntent.instance
+        .getMediaStream()
+        .listen((List<SharedMediaFile> value) {
+      if (value.isNotEmpty) _handleSharedMedia(value); // Pass the whole list
+    }, onError: (err) => debugPrint("Shared Intent Error: $err"));
 
-      // 2. Get the initial shared media if the app was CLOSED (Cold Start)
-      ReceiveSharingIntent.instance.getInitialMedia().then((value) {
-        if (value.isNotEmpty) _handleSharedMedia(value); // Pass the whole list
-      });
-    }
+    // 2. Get the initial shared media if the app was CLOSED (Cold Start)
+    ReceiveSharingIntent.instance.getInitialMedia().then((value) {
+      if (value.isNotEmpty) _handleSharedMedia(value); // Pass the whole list
+    });
+  }
 
-    @override
-    void dispose() {
-      _intentDataStreamSubscription.cancel(); // Prevent memory leaks
-      _inputController.dispose();
-      _sidebarScrollController.dispose();
-      super.dispose();
-    }
+  @override
+  void dispose() {
+    _intentDataStreamSubscription.cancel(); // Prevent memory leaks
+    _inputController.dispose();
+    _sidebarScrollController.dispose();
+    super.dispose();
+  }
 
   // Attachments State
   final List<SourceAttachment> _pendingAttachments = [];
@@ -86,15 +86,15 @@ class _DashboardScreenState extends State<DashboardScreen>
       final media = mediaList[i];
 
       // CASE A: Shared Text or URLs
-      if (media.type == SharedMediaType.text || media.type == SharedMediaType.url) {
+      if (media.type == SharedMediaType.text ||
+          media.type == SharedMediaType.url) {
         setState(() {
           final currentText = _inputController.text;
-          _inputController.text = currentText.isEmpty 
-              ? media.path 
-              : "$currentText\n${media.path}";
+          _inputController.text =
+              currentText.isEmpty ? media.path : "$currentText\n${media.path}";
         });
         hasData = true;
-      } 
+      }
       // CASE B: Shared Images or Files
       else {
         // 1. Read the actual physical file from the Android Share cache
@@ -111,14 +111,14 @@ class _DashboardScreenState extends State<DashboardScreen>
 
         // 3. Attach the REAL file, not just the URL string
         final attachment = SourceAttachment(
-          id: "${DateTime.now().millisecondsSinceEpoch}_$i", 
+          id: "${DateTime.now().millisecondsSinceEpoch}_$i",
           title: platformFile.name,
-          type: media.type == SharedMediaType.image 
-              ? AttachmentType.image 
+          type: media.type == SharedMediaType.image
+              ? AttachmentType.image
               : AttachmentType.pdf,
           file: platformFile, // <--- THIS IS THE MAGIC FIX
         );
-        
+
         _handleAddAttachment(attachment);
         hasData = true;
       }
@@ -188,27 +188,27 @@ class _DashboardScreenState extends State<DashboardScreen>
       }
     } catch (e) {
       debugPrint('ANALYSIS ERROR: $e');
-      
+
       // Auto-retry once if it's the first attempt and it's a timeout/cold-start error
       if (!isRetry && mounted) {
         // Only retry for timeout errors or cold start indicators
         final errorString = e.toString().toLowerCase();
-        final isRetryableError = e is TimeoutException || 
-                                  errorString.contains('timeout') ||
-                                  errorString.contains('warm') ||
-                                  errorString.contains('cold start');
-        
+        final isRetryableError = e is TimeoutException ||
+            errorString.contains('timeout') ||
+            errorString.contains('warm') ||
+            errorString.contains('cold start');
+
         if (isRetryableError) {
           debugPrint('Retrying after cold start...');
           await Future.delayed(const Duration(seconds: 2));
-          
+
           // Check mounted again after delay
           if (mounted) {
             return _handleAnalysis(isRetry: true);
           }
         }
       }
-      
+
       if (mounted) {
         setState(() {
           _hasError = true;
@@ -286,7 +286,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                 height: 50,
                 child: JuicyButton(
                   onTap: _handleAnalysis,
-                  child: Container( // Changed ElevatedButton to a Container to hold the style
+                  child: Container(
+                    // Changed ElevatedButton to a Container to hold the style
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: const Color(0xFFD4AF37),
@@ -322,8 +323,7 @@ class _DashboardScreenState extends State<DashboardScreen>
 
     if (targetObject == null) return;
     final RenderBox targetBox = targetObject as RenderBox;
-    final Offset targetOffset =
-        targetBox.localToGlobal(Offset.zero) +
+    final Offset targetOffset = targetBox.localToGlobal(Offset.zero) +
         (isMobile ? const Offset(12, 12) : const Offset(150, 40));
 
     for (final attachment in attachments) {
@@ -402,7 +402,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             child: LayoutBuilder(
               builder: (context, constraints) {
                 if (constraints.maxWidth > 900) {
-                  return _buildDesktopLayout();
+                  return _buildDesktopLayout(constraints);
                 } else {
                   return _buildMobileLayout();
                 }
@@ -445,7 +445,8 @@ class _DashboardScreenState extends State<DashboardScreen>
             child: Column(
               children: [
                 const SizedBox(height: 30),
-                const Icon(Icons.shield_outlined, color: Color(0xFFD4AF37), size: 40),
+                const Icon(Icons.shield_outlined,
+                    color: Color(0xFFD4AF37), size: 40),
                 const SizedBox(height: 40),
                 const _SidebarIcons(icon: Icons.dashboard, isActive: true),
                 const _SidebarIcons(icon: Icons.history, isActive: false),
@@ -458,7 +459,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                       ),
                     );
                   },
-                  child: const _SidebarIcons(icon: Icons.groups, isActive: false),
+                  child:
+                      const _SidebarIcons(icon: Icons.groups, isActive: false),
                 ),
                 const _SidebarIcons(icon: Icons.settings, isActive: false),
               ],
@@ -521,24 +523,24 @@ class _DashboardScreenState extends State<DashboardScreen>
                               child: _hasError
                                   ? _buildErrorRetryCard()
                                   : (_result == null
-                                        ? _buildForensicHubGrid()
-                                        : SingleChildScrollView(
-                                            child: VeriscanInteractiveText(
-                                              analysisText: _result!.analysis,
-                                              groundingSupports:
-                                                  _result!.groundingSupports,
-                                              groundingCitations:
-                                                  _result!.groundingCitations,
-                                              scannedSources:
-                                                  _result!.scannedSources,
-                                              attachments: _migratedAttachments,
-                                              activeSupport: _activeSupport,
-                                              reliabilityMetrics:
-                                                  _result?.reliabilityMetrics,
-                                              onSupportSelected:
-                                                  _handleSupportSelected,
-                                            ),
-                                          )),
+                                      ? _buildForensicHubGrid()
+                                      : SingleChildScrollView(
+                                          child: VeriscanInteractiveText(
+                                            analysisText: _result!.analysis,
+                                            groundingSupports:
+                                                _result!.groundingSupports,
+                                            groundingCitations:
+                                                _result!.groundingCitations,
+                                            scannedSources:
+                                                _result!.scannedSources,
+                                            attachments: _migratedAttachments,
+                                            activeSupport: _activeSupport,
+                                            reliabilityMetrics:
+                                                _result?.reliabilityMetrics,
+                                            onSupportSelected:
+                                                _handleSupportSelected,
+                                          ),
+                                        )),
                             ),
                           ],
                         ),
@@ -790,8 +792,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               const SizedBox(height: 12),
               Row(
                 children: [
-                  _buildCapabilityItem(
-                      Icons.find_in_page_outlined, "Sources"),
+                  _buildCapabilityItem(Icons.find_in_page_outlined, "Sources"),
                   const SizedBox(width: 12),
                   _buildCapabilityItem(Icons.history_edu, "Archives"),
                 ],
@@ -882,8 +883,7 @@ class _FlyingAttachment extends StatelessWidget {
           child: Material(
             color: Colors.transparent,
             child: Opacity(
-              opacity:
-                  1.0 -
+              opacity: 1.0 -
                   (offset.dx - startOffset.dx).abs() /
                       (endOffset.dx - startOffset.dx)
                           .abs()

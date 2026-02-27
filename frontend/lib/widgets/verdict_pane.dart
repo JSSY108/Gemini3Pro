@@ -38,112 +38,113 @@ class VerdictPane extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.all(24.0),
-      // Removed LayoutBuilder to allow the SingleChildScrollView to naturally 
+      // Removed LayoutBuilder to allow the SingleChildScrollView to naturally
       // size the content. This permanently fixes the "overflowing pixels" error.
       child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // ==========================================
-          // 1. Verdict Card
-          VerdictCard(verdict: result!.verdict),
+            // 1. Verdict Card
+            VerdictCard(verdict: result!.verdict),
 
             const SizedBox(height: 24),
 
-          // 2. AI Certainty Card
-          ConfidenceCard(score: result!.confidenceScore),
+            // 2. AI Certainty Card
+            ConfidenceCard(score: result!.confidenceScore),
 
-          const SizedBox(height: 16),
-
-          // 3. Forensic Details (only if metrics exist)
-          if (result!.reliabilityMetrics != null)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.02),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white12),
-              ),
-              child: ForensicReliabilityBar(
-                metrics: result!.reliabilityMetrics!,
-                verdict: result!.verdict,
-              ),
-            ),
-
-          const SizedBox(height: 16),
-
-          // Removed Key Findings section
-          if (unusedSources.isNotEmpty) ...[
             const SizedBox(height: 16),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "OTHER SOURCES SCANNED",
-                  style: GoogleFonts.outfit(
-                    color: Colors.white38,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8.0,
-                  runSpacing: 8.0,
-                  children: unusedSources.map((source) {
-                    return Tooltip(
-                      message: source.title,
-                      textStyle: GoogleFonts.outfit(
-                        color: Colors.white,
-                        fontSize: 13,
-                        height: 1.4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.9),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.white24, width: 0.5),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.5),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Chip(
-                        label: Text(
-                          source.domain,
-                          style: GoogleFonts.outfit(
-                            color: Colors.white54,
-                            fontSize: 12,
-                          ),
-                        ),
-                        backgroundColor: Colors.transparent,
-                        shape: StadiumBorder(
-                          side: BorderSide(
-                            color: Colors.grey.withValues(alpha: 0.3),
-                          ),
-                        ),
-                        padding: EdgeInsets.zero,
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ],
-            ),
-          ],
-          const SizedBox(height: 24),
-          // ==========================================
-          // 3. COMMUNITY VOTE BOX
-          // ==========================================
-          CommunityVoteBox(
-            claimText: result?.analysis,
-            aiVerdict: result?.verdict,
-          ),
-          const SizedBox(height: 40),
-        ],
 
+            // 3. Forensic Details (only if metrics exist)
+            if (result!.reliabilityMetrics != null)
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.02),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white12),
+                ),
+                child: ForensicReliabilityBar(
+                  metrics: result!.reliabilityMetrics!,
+                  verdict: result!.verdict,
+                ),
+              ),
+
+            const SizedBox(height: 16),
+
+            // Removed Key Findings section
+            if (unusedSources.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "OTHER SOURCES SCANNED",
+                    style: GoogleFonts.outfit(
+                      color: Colors.white38,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8.0,
+                    runSpacing: 8.0,
+                    children: unusedSources.map((source) {
+                      return Tooltip(
+                        message: source.title,
+                        textStyle: GoogleFonts.outfit(
+                          color: Colors.white,
+                          fontSize: 13,
+                          height: 1.4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.9),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.white24, width: 0.5),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.5),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Chip(
+                          label: Text(
+                            source.domain,
+                            style: GoogleFonts.outfit(
+                              color: Colors.white54,
+                              fontSize: 12,
+                            ),
+                          ),
+                          backgroundColor: Colors.transparent,
+                          shape: StadiumBorder(
+                            side: BorderSide(
+                              color: Colors.grey.withValues(alpha: 0.3),
+                            ),
+                          ),
+                          padding: EdgeInsets.zero,
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            ],
+            const SizedBox(height: 24),
+            // ==========================================
+            // 3. COMMUNITY VOTE BOX
+            // ==========================================
+            CommunityVoteBox(
+              claimText: result?.analysis,
+              aiVerdict: result?.verdict,
+            ),
+            const SizedBox(height: 40),
+          ],
+        ),
       ),
     );
   }

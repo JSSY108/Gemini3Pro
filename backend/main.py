@@ -288,12 +288,37 @@ The "analysis" string MUST be formatted in Markdown and strictly use these four 
             tools=[{"google_search": {}}]
         )
         
-        # Execute the call using genai_client
-        response = genai_client.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=gemini_parts,
-            config=config
-        )
+        import asyncio
+        max_attempts = 3
+        response = None
+        
+        for attempt in range(1, max_attempts + 1):
+            try:
+                # Execute the call using genai_client
+                response = genai_client.models.generate_content(
+                    model="gemini-2.0-flash",
+                    contents=gemini_parts,
+                    config=config
+                )
+                break
+            except Exception as e:
+                error_str = str(e)
+                if "429" in error_str or "ResourceExhausted" in error_str or "Quota" in error_str:
+                    logger.warning(f"Rate limit hit (429). Retrying... (Attempt {attempt}/{max_attempts})")
+                    if attempt == 1:
+                        await asyncio.sleep(2)
+                    elif attempt == 2:
+                        await asyncio.sleep(4)
+                    else:
+                        logger.error("Rate limit exhausted after 3 attempts.")
+                        return AnalysisResponse(
+                            verdict="RATE_LIMIT_ERROR",
+                            confidence_score=0.0,
+                            analysis="**1. System Status:**\nThe fact-checking system is currently experiencing high load. Please wait a moment before submitting another claim.",
+                            grounding_citations=[]
+                        )
+                else:
+                    raise e
 
         # DEBUG: Print raw response to console for deep inspection
         print("\n[DEBUG] RAW RESPONSE METADATA:")
@@ -319,7 +344,7 @@ The "analysis" string MUST be formatted in Markdown and strictly use these four 
         
         grounding_citations_fallback = []
         if response.candidates and response.candidates[0].grounding_metadata:
-            chunks = getattr(response.candidates[0].grounding_metadata, 'grounding_chunks', [])
+            chunks = getattr(response.candidates[0].grounding_metadata, 'grounding_chunks', []) or []
             if chunks:
                 for i, chunk_obj in enumerate(chunks):
                     web_node = getattr(chunk_obj, 'web', None)
@@ -391,7 +416,7 @@ The "analysis" string MUST be formatted in Markdown and strictly use these four 
         # Prepare a URI to ID map from grounding chips
         uri_to_id = {}
         if response.candidates and response.candidates[0].grounding_metadata:
-            chunks = getattr(response.candidates[0].grounding_metadata, 'grounding_chunks', [])
+            chunks = getattr(response.candidates[0].grounding_metadata, 'grounding_chunks', []) or []
             for i, chunk_obj in enumerate(chunks):
                 web_node = getattr(chunk_obj, 'web', None)
                 if web_node:
@@ -440,7 +465,7 @@ The "analysis" string MUST be formatted in Markdown and strictly use these four 
         # --- Populate Scanned Sources ---
         scanned_sources = []
         if response.candidates and response.candidates[0].grounding_metadata:
-            chunks = getattr(response.candidates[0].grounding_metadata, 'grounding_chunks', [])
+            chunks = getattr(response.candidates[0].grounding_metadata, 'grounding_chunks', []) or []
             cited_urls = {normalize_url(gc.get("url")) for gc in sanitized_citations if gc.get("url")}
             
             seen_urls = set()
