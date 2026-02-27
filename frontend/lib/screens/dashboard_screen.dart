@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/grounding_models.dart';
@@ -8,6 +9,15 @@ import '../widgets/verdict_pane.dart';
 import '../widgets/veriscan_interactive_text.dart';
 import '../widgets/mobile/mobile_sticky_header.dart';
 import '../widgets/mobile/mobile_source_library.dart';
+import '../widgets/veriscan_drawer.dart';
+import '../widgets/global_menu_button.dart';
+import '../widgets/juicy_button.dart';
+import 'dart:async';
+import 'package:receive_sharing_intent/receive_sharing_intent.dart';
+import 'community_screen.dart';
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
+import '../widgets/community_vote_box.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -30,6 +40,33 @@ class _DashboardScreenState extends State<DashboardScreen>
   bool _isSidebarExpanded = true;
   int _mobileSelectedIndex = 0;
 
+  late StreamSubscription _intentDataStreamSubscription;
+
+  @override
+    void initState() {
+      super.initState();
+
+      // 1. Listen to incoming shared media WHILE THE APP IS OPEN
+      _intentDataStreamSubscription = ReceiveSharingIntent.instance
+          .getMediaStream()
+          .listen((List<SharedMediaFile> value) {
+        if (value.isNotEmpty) _handleSharedMedia(value); // Pass the whole list
+      }, onError: (err) => debugPrint("Shared Intent Error: $err"));
+
+      // 2. Get the initial shared media if the app was CLOSED (Cold Start)
+      ReceiveSharingIntent.instance.getInitialMedia().then((value) {
+        if (value.isNotEmpty) _handleSharedMedia(value); // Pass the whole list
+      });
+    }
+
+    @override
+    void dispose() {
+      _intentDataStreamSubscription.cancel(); // Prevent memory leaks
+      _inputController.dispose();
+      _sidebarScrollController.dispose();
+      super.dispose();
+    }
+
   // Attachments State
   final List<SourceAttachment> _pendingAttachments = [];
   final List<SourceAttachment> _migratedAttachments = [];
@@ -41,6 +78,57 @@ class _DashboardScreenState extends State<DashboardScreen>
   // ===========================================================================
   //  LOGIC
   // ===========================================================================
+
+  Future<void> _handleSharedMedia(List<SharedMediaFile> mediaList) async {
+    bool hasData = false;
+
+    for (int i = 0; i < mediaList.length; i++) {
+      final media = mediaList[i];
+
+      // CASE A: Shared Text or URLs
+      if (media.type == SharedMediaType.text || media.type == SharedMediaType.url) {
+        setState(() {
+          final currentText = _inputController.text;
+          _inputController.text = currentText.isEmpty 
+              ? media.path 
+              : "$currentText\n${media.path}";
+        });
+        hasData = true;
+      } 
+      // CASE B: Shared Images or Files
+      else {
+        // 1. Read the actual physical file from the Android Share cache
+        final file = File(media.path);
+        final bytes = await file.readAsBytes(); // Get the raw image data
+
+        // 2. Package it perfectly for your FactCheckService
+        final platformFile = PlatformFile(
+          name: media.path.split('/').last,
+          size: bytes.length,
+          bytes: bytes,
+          path: media.path,
+        );
+
+        // 3. Attach the REAL file, not just the URL string
+        final attachment = SourceAttachment(
+          id: "${DateTime.now().millisecondsSinceEpoch}_$i", 
+          title: platformFile.name,
+          type: media.type == SharedMediaType.image 
+              ? AttachmentType.image 
+              : AttachmentType.pdf,
+          file: platformFile, // <--- THIS IS THE MAGIC FIX
+        );
+        
+        _handleAddAttachment(attachment);
+        hasData = true;
+      }
+    }
+
+    // Automatically trigger analysis
+    if (hasData) {
+      _handleAnalysis();
+    }
+  }
 
   void _handleAddAttachment(SourceAttachment attachment) {
     setState(() {
@@ -61,7 +149,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     });
   }
 
-  Future<void> _handleAnalysis() async {
+  Future<void> _handleAnalysis({bool isRetry = false}) async {
     final text = _inputController.text.trim();
     if (text.isEmpty &&
         _pendingAttachments.isEmpty &&
@@ -100,6 +188,27 @@ class _DashboardScreenState extends State<DashboardScreen>
       }
     } catch (e) {
       debugPrint('ANALYSIS ERROR: $e');
+      
+      // Auto-retry once if it's the first attempt and it's a timeout/cold-start error
+      if (!isRetry && mounted) {
+        // Only retry for timeout errors or cold start indicators
+        final errorString = e.toString().toLowerCase();
+        final isRetryableError = e is TimeoutException || 
+                                  errorString.contains('timeout') ||
+                                  errorString.contains('warm') ||
+                                  errorString.contains('cold start');
+        
+        if (isRetryableError) {
+          debugPrint('Retrying after cold start...');
+          await Future.delayed(const Duration(seconds: 2));
+          
+          // Check mounted again after delay
+          if (mounted) {
+            return _handleAnalysis(isRetry: true);
+          }
+        }
+      }
+      
       if (mounted) {
         setState(() {
           _hasError = true;
@@ -175,25 +284,25 @@ class _DashboardScreenState extends State<DashboardScreen>
               SizedBox(
                 width: double.infinity,
                 height: 50,
-                child: ElevatedButton(
-                  onPressed: _handleAnalysis,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFD4AF37),
-                    foregroundColor: Colors.black,
-                    shape: RoundedRectangleBorder(
+                child: JuicyButton(
+                  onTap: _handleAnalysis,
+                  child: Container( // Changed ElevatedButton to a Container to hold the style
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD4AF37),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    elevation: 0,
-                  ),
-                  child: Text(
-                    "RE-VERIFY CLAIM",
-                    style: GoogleFonts.outfit(
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.0,
+                    child: Text(
+                      "RE-VERIFY CLAIM",
+                      style: GoogleFonts.outfit(
+                        color: Colors.black, // Make sure text stays black
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.0,
+                      ),
                     ),
                   ),
                 ),
-              ),
+              )
             ],
           ),
         ),
@@ -276,19 +385,44 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   // ===========================================================================
-  //  UI BRANCHING
+  //  UI BRANCHING (UPDATED FOR GLOBAL MENU BUTTON)
   // ===========================================================================
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (constraints.maxWidth > 900) {
-          return _buildDesktopLayout(constraints);
-        } else {
-          return _buildMobileLayout();
-        }
-      },
+    // 1. Wrap in Scaffold to host the Drawer
+    return Scaffold(
+      backgroundColor: const Color(0xFF121212),
+      drawer: const VeriscanDrawer(), // The Drawer lives here now
+      body: Stack(
+        children: [
+          // 2. Main Content (Padded so button doesn't cover top-left content)
+          Padding(
+            padding: const EdgeInsets.only(top: 60.0),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                if (constraints.maxWidth > 900) {
+                  return _buildDesktopLayout();
+                } else {
+                  return _buildMobileLayout();
+                }
+              },
+            ),
+          ),
+
+          // 3. The Global Button (Floats on top of everything)
+          Positioned(
+            top: 0,
+            left: 0,
+            child: Builder(
+              // Builder needed to find the Scaffold above
+              builder: (innerContext) => GlobalMenuButton(
+                onTap: () => Scaffold.of(innerContext).openDrawer(),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -299,6 +433,8 @@ class _DashboardScreenState extends State<DashboardScreen>
 
     return Scaffold(
       backgroundColor: const Color(0xFF121212),
+      // NO AppBar here (handled by parent Stack)
+      // NO Drawer here (handled by parent Scaffold)
       body: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -306,14 +442,25 @@ class _DashboardScreenState extends State<DashboardScreen>
           Container(
             width: 72,
             color: Colors.black,
-            child: const Column(
+            child: Column(
               children: [
-                SizedBox(height: 30),
-                Icon(Icons.shield_outlined, color: Color(0xFFD4AF37), size: 36),
-                SizedBox(height: 40),
-                _SidebarIcons(icon: Icons.dashboard, isActive: true),
-                _SidebarIcons(icon: Icons.history, isActive: false),
-                _SidebarIcons(icon: Icons.settings, isActive: false),
+                const SizedBox(height: 30),
+                const Icon(Icons.shield_outlined, color: Color(0xFFD4AF37), size: 40),
+                const SizedBox(height: 40),
+                const _SidebarIcons(icon: Icons.dashboard, isActive: true),
+                const _SidebarIcons(icon: Icons.history, isActive: false),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const CommunityScreen(),
+                      ),
+                    );
+                  },
+                  child: const _SidebarIcons(icon: Icons.groups, isActive: false),
+                ),
+                const _SidebarIcons(icon: Icons.settings, isActive: false),
               ],
             ),
           ),
@@ -444,7 +591,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  // --- MOBILE LAYOUT (Tabbed) ---
+  // --- MOBILE LAYOUT (Unchanged logic, just structure) ---
   Widget _buildMobileLayout() {
     return Scaffold(
       backgroundColor: Colors.black,
@@ -643,7 +790,8 @@ class _DashboardScreenState extends State<DashboardScreen>
               const SizedBox(height: 12),
               Row(
                 children: [
-                  _buildCapabilityItem(Icons.find_in_page_outlined, "Sources"),
+                  _buildCapabilityItem(
+                      Icons.find_in_page_outlined, "Sources"),
                   const SizedBox(width: 12),
                   _buildCapabilityItem(Icons.history_edu, "Archives"),
                 ],

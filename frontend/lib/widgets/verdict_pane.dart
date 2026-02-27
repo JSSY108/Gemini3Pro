@@ -5,6 +5,7 @@ import 'confidence_gauge.dart';
 import 'forensic_reliability_bar.dart';
 import 'confidence_card.dart';
 import 'verdict_card.dart';
+import 'community_vote_box.dart';
 
 class VerdictPane extends StatelessWidget {
   final AnalysisResponse? result;
@@ -37,13 +38,17 @@ class VerdictPane extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.all(24.0),
-      child: ListView(
-        shrinkWrap: true,
-        children: [
+      // Removed LayoutBuilder to allow the SingleChildScrollView to naturally 
+      // size the content. This permanently fixes the "overflowing pixels" error.
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // ==========================================
           // 1. Verdict Card
           VerdictCard(verdict: result!.verdict),
 
-          const SizedBox(height: 16),
+            const SizedBox(height: 24),
 
           // 2. AI Certainty Card
           ConfidenceCard(score: result!.confidenceScore),
@@ -128,7 +133,17 @@ class VerdictPane extends StatelessWidget {
               ],
             ),
           ],
+          const SizedBox(height: 24),
+          // ==========================================
+          // 3. COMMUNITY VOTE BOX
+          // ==========================================
+          CommunityVoteBox(
+            claimText: result?.analysis,
+            aiVerdict: result?.verdict,
+          ),
+          const SizedBox(height: 40),
         ],
+
       ),
     );
   }

@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:universal_html/html.dart' as html;
-import '../utils/web_helper.dart' as web_helper;
 import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:html_unescape/html_unescape.dart';
+import '../utils/file_viewer_helper.dart';
 import '../models/grounding_models.dart';
 import 'source_reliability_badge.dart';
 
@@ -154,71 +153,9 @@ class SourceTile extends StatelessWidget {
 
     if (mimeType.startsWith('image/')) {
       _showImageDialog(context, file);
-    } else if (mimeType == 'application/pdf') {
-      _showPdfDialog(context, file);
     } else {
-      final blob = html.Blob([file.bytes!], mimeType);
-      final url = html.Url.createObjectUrlFromBlob(blob);
-      html.window.open(url, '_blank');
+      openPlatformFile(context, file);
     }
-  }
-
-  void _showPdfDialog(BuildContext context, PlatformFile file) {
-    final blob = html.Blob([file.bytes!], 'application/pdf');
-    final url = html.Url.createObjectUrlFromBlob(blob);
-
-    // Register the factory for this specific PDF URL
-    final viewId = 'pdf-tile-view-${file.name.hashCode}';
-    web_helper.registerViewFactory(viewId, (int viewId) {
-      return html.IFrameElement()
-        ..src = url
-        ..style.border = 'none'
-        ..style.width = '100%'
-        ..style.height = '100%';
-    });
-
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        backgroundColor: const Color(0xFF1E1E1E),
-        insetPadding: const EdgeInsets.all(40),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: const BoxDecoration(
-                border: Border(bottom: BorderSide(color: Colors.white10)),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    file.name,
-                    style: GoogleFonts.outfit(
-                      color: const Color(0xFFD4AF37),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white54),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  bottom: Radius.circular(16),
-                ),
-                child: HtmlElementView(viewType: viewId),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   void _showImageDialog(BuildContext context, PlatformFile file) {
@@ -362,8 +299,8 @@ class SourceTile extends StatelessWidget {
                             _isUploadedFile
                                 ? Icons.visibility_outlined
                                 : (isInaccessible
-                                      ? Icons.report_problem_outlined
-                                      : Icons.open_in_new),
+                                    ? Icons.report_problem_outlined
+                                    : Icons.open_in_new),
                             color: (_isUploadedFile || !isInaccessible)
                                 ? const Color(0xFFD4AF37)
                                 : Colors.white24,

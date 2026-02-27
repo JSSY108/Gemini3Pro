@@ -17,7 +17,9 @@ import firebase_admin
 
 # Import models
 from models import AnalysisRequest, AnalysisResponse, GroundingCitation, GroundingSupport
-# from grounding_service import GroundingService
+
+# Import community routes
+from community_routes import router as community_router
 
 # --- Initialization ---
 load_dotenv()
@@ -30,6 +32,9 @@ if not firebase_admin._apps:
 app = FastAPI(title="VeriScan Core Engine")
 genai_client = None
 _grounding_service = None
+
+# Register community routes
+app.include_router(community_router)
 
 def get_grounding_service():
     global _grounding_service
@@ -58,9 +63,7 @@ def init_vertex():
     CREDENTIALS_PATH = os.path.join(base_dir, "service-account.json")
     
     try:
-        # Check for environment variable fallback first
         env_creds = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
-        
         if env_creds and os.path.exists(env_creds):
             genai_client = genai.Client(vertexai=True, project=PROJECT_ID, location=LOCATION)
             VERTEX_AI_READY = True
@@ -79,10 +82,6 @@ def init_vertex():
     except Exception as e:
         logger.error(f"FATAL: Vertex AI (google-genai) Initialization Failed: {e}")
         VERTEX_AI_READY = False
-        # We don't raise here to allow the server to start, 
-        # but subsequent analysis calls will catch VERTEX_AI_READY=False.
-
-# --- Utilities ---
 
 def normalize_for_search(text: str) -> str:
     """Normalizes text for robust anchor matching (degree symbols, spaces, etc)."""
@@ -219,6 +218,7 @@ async def process_multimodal_gemini(gemini_parts: List[Any], request_id: str, fi
     file_names = file_names or []
 
     try:
+        # --- YOUR OPTIMIZED OPINION-PROOF PROMPT ---
         system_instruction = """
 You are the VeriScan Lead Forensic Auditor, an expert fact-checking AI designed for the KitaHack 2026 platform. Your job is to analyze claims objectively, rely ONLY on the provided evidence, and output a highly structured factual breakdown.
 
@@ -620,7 +620,23 @@ The "analysis" string MUST be formatted in Markdown and strictly use these four 
         )
 
     except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
         logger.error(f"Analysis Processing Error: {e}")
+        logger.error(f"Stack trace: {error_trace}")
+        
+        # Provide friendly error message based on error type
+        error_msg = str(e)
+        if "credentials" in error_msg.lower() or "authentication" in error_msg.lower():
+            friendly_msg = "Google Cloud authentication is not configured. Please set up Application Default Credentials or provide a service account key."
+            finding = "Missing Google Cloud credentials"
+        elif "permission" in error_msg.lower() or "access" in error_msg.lower():
+            friendly_msg = "Permission denied: Your Google Cloud account doesn't have access to Vertex AI. Please check IAM permissions."
+            finding = "Insufficient permissions for Vertex AI"
+        else:
+            friendly_msg = f"An unexpected error occurred during analysis: {error_msg}"
+            finding = error_msg
+        
         return AnalysisResponse(
             verdict="UNVERIFIABLE",
             confidence_score=0.0,
@@ -647,7 +663,8 @@ async def analyze_endpoint(
         try:
             meta_data = json.loads(metadata)
         except json.JSONDecodeError:
-            raise HTTPException(status_code=400, detail="Invalid JSON in metadata field.")
+            # Fallback for simple form data (legacy support for Android)
+            meta_data = {"text_claim": metadata}
         
         request_id = meta_data.get("request_id", "unknown")
         text_claim = meta_data.get("text_claim")
@@ -660,7 +677,7 @@ async def analyze_endpoint(
         if text_claim:
             prompt_content += f"TEXT CLAIM: {text_claim}\n"
         
-        # 3. Process URLs
+        # Process URLs (using helper from Main)
         if provided_url:
             content = await fetch_url_content(provided_url)
             prompt_content += f"URL CONTENT (from {provided_url}):\n{content}\n"
@@ -680,9 +697,6 @@ async def analyze_endpoint(
                     raise HTTPException(status_code=413, detail=f"File {file.filename} exceeds 10MB limit.")
                 
                 total_size += file_size
-                if total_size > 20 * 1024 * 1024:
-                    raise HTTPException(status_code=413, detail="Total payload size exceeds 20MB limit.")
-                
                 file_names.append(file.filename)
                 mime_type = file.content_type or "application/octet-stream"
                 part_args = {"data": file_bytes, "mime_type": mime_type}
@@ -700,6 +714,8 @@ async def analyze_endpoint(
              raise HTTPException(status_code=413, detail="Total payload size exceeds 20MB limit.")
 
         gemini_parts.insert(0, prompt_content)
+        
+        # Call the core logic function
         return await process_multimodal_gemini(gemini_parts, request_id, file_names)
         
     except ValueError as e:
@@ -707,8 +723,8 @@ async def analyze_endpoint(
     except RuntimeError as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# --- Firebase Cloud Function Wrapper ---
-
+# --- Firebase Cloud Function Wrapper (From Main Branch) ---
+# This allows deployment to Google Cloud Functions
 @https_fn.on_request(
     region=LOCATION,
     memory=512,
@@ -731,7 +747,6 @@ def analyze(req: https_fn.Request) -> https_fn.Response:
     import traceback
     
     try:
-        # 1. Parse metadata from Form
         metadata_str = req.form.get("metadata")
         if not metadata_str:
              return https_fn.Response(json.dumps({"error": "Missing metadata field"}), status=400, mimetype='application/json')
@@ -741,7 +756,6 @@ def analyze(req: https_fn.Request) -> https_fn.Response:
         text_claim = meta_data.get("text_claim", "")
         provided_urls = meta_data.get("urls", [])
         
-        # 2. Extract files from Request
         gemini_parts = []
         prompt_content = f"Analyze the following parts (Text, Images, Documents, URLs):\n\nTEXT CLAIM: {text_claim}\n"
         
@@ -786,13 +800,6 @@ def analyze(req: https_fn.Request) -> https_fn.Response:
     except Exception as e:
         error_msg = f"ERROR: {str(e)}\n{traceback.format_exc()}"
         logger.error(f"Function Execution Error: {error_msg}")
-        # Explicit error if credentials are the cause
-        if "service-account.json" in str(e) or "Credentials" in str(e):
-             return https_fn.Response(json.dumps({
-                 "error": "Credentials file not found or invalid on production server.",
-                 "debug_trace": error_msg
-             }), status=500, mimetype='application/json', headers={'Access-Control-Allow-Origin': '*'})
-             
         return https_fn.Response(json.dumps({
             "error": "Internal Server Error during forensic analysis.",
             "debug_trace": error_msg
@@ -800,4 +807,4 @@ def analyze(req: https_fn.Request) -> https_fn.Response:
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8080)
+    uvicorn.run(app, host="0.0.0.0", port=8000)

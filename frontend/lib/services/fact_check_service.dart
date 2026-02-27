@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
@@ -6,9 +7,13 @@ import 'package:file_picker/file_picker.dart';
 import '../models/grounding_models.dart';
 
 class FactCheckService {
-  final String baseUrl = kReleaseMode
-      ? 'https://analyze-r4zi2m3nfa-uc.a.run.app'
-      : 'http://127.0.0.1:8080';
+  // Allow temporary override via --dart-define=BACKEND_URL
+  static const _envOverride = String.fromEnvironment('BACKEND_URL', defaultValue: '');
+  final String baseUrl = _envOverride.isNotEmpty
+      ? (_envOverride.endsWith('/analyze') ? _envOverride.replaceAll(RegExp(r'\/analyze\/?'), '') : _envOverride)
+      : (kReleaseMode
+          ? 'https://analyze-r4zi2m3nfa-uc.a.run.app'
+          : 'http://127.0.0.1:8000');
 
   Future<AnalysisResponse> analyzeNews({
     String? text,
@@ -58,9 +63,13 @@ class FactCheckService {
       debugPrint(
           'SERVICE DEBUG: Sending multimodal request with ${request.files.length} files and ${urls.length} URLs');
 
+      // Send with extended timeout for cold starts
       final streamedResponse = await request.send().timeout(
-            const Duration(seconds: 60),
-          );
+        const Duration(seconds: 120),
+        onTimeout: () {
+          throw TimeoutException('Backend is warming up. Retrying automatically...');
+        },
+      );
       final response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 200) {
