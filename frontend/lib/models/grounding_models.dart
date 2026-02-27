@@ -32,10 +32,35 @@ class GroundingSupport {
   factory GroundingSupport.fromJson(Map<String, dynamic> json) {
     return GroundingSupport(
       segment: Segment.fromJson(json['segment']),
-      groundingChunkIndices:
-          List<int>.from(json['groundingChunkIndices'] ?? []),
+      groundingChunkIndices: List<int>.from(
+        json['groundingChunkIndices'] ?? [],
+      ),
       confidenceScores: List<double>.from(
-          (json['confidenceScores'] ?? []).map((x) => x.toDouble())),
+        (json['confidenceScores'] ?? []).map((x) => x.toDouble()),
+      ),
+    );
+  }
+}
+
+class ScannedSource {
+  final int index;
+  final String title;
+  final String url;
+  final bool isCited;
+
+  ScannedSource({
+    required this.index,
+    required this.title,
+    required this.url,
+    required this.isCited,
+  });
+
+  factory ScannedSource.fromJson(Map<String, dynamic> json) {
+    return ScannedSource(
+      index: json['index'] as int? ?? -1,
+      title: json['title'] ?? '',
+      url: json['url'] ?? '',
+      isCited: json['is_cited'] ?? false,
     );
   }
 }
@@ -131,7 +156,8 @@ class SegmentAudit {
       text: json['text'] as String,
       topSourceDomain: json['top_source_domain'] as String,
       topSourceScore: (json['top_source_score'] as num).toDouble(),
-      sources: (json['sources'] as List<dynamic>?)
+      sources:
+          (json['sources'] as List<dynamic>?)
               ?.map((e) => SourceAudit.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
@@ -143,10 +169,7 @@ class UnusedSourceAudit {
   final String domain;
   final String title;
 
-  UnusedSourceAudit({
-    required this.domain,
-    required this.title,
-  });
+  UnusedSourceAudit({required this.domain, required this.title});
 
   factory UnusedSourceAudit.fromJson(Map<String, dynamic> json) {
     return UnusedSourceAudit(
@@ -188,13 +211,16 @@ class ReliabilityMetrics {
       multimodalBonus: (json['multimodal_bonus'] as num?)?.toDouble() ?? 0.0,
       verdictLabel: json['verdict_label'] as String? ?? 'Unknown',
       explanation: json['explanation'] as String? ?? '',
-      segments: (json['segments'] as List<dynamic>?)
+      segments:
+          (json['segments'] as List<dynamic>?)
               ?.map((e) => SegmentAudit.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
-      unusedSources: (json['unused_sources'] as List<dynamic>?)
+      unusedSources:
+          (json['unused_sources'] as List<dynamic>?)
               ?.map(
-                  (e) => UnusedSourceAudit.fromJson(e as Map<String, dynamic>))
+                (e) => UnusedSourceAudit.fromJson(e as Map<String, dynamic>),
+              )
               .toList() ??
           [],
     );
@@ -206,6 +232,7 @@ class AnalysisResponse {
   final double confidenceScore;
   final String analysis;
   final List<GroundingCitation> groundingCitations;
+  final List<ScannedSource> scannedSources;
   final List<GroundingSupport> groundingSupports;
   final ReliabilityMetrics? reliabilityMetrics;
 
@@ -214,6 +241,7 @@ class AnalysisResponse {
     required this.confidenceScore,
     required this.analysis,
     required this.groundingCitations,
+    this.scannedSources = const [],
     required this.groundingSupports,
     this.reliabilityMetrics,
   });
@@ -223,11 +251,18 @@ class AnalysisResponse {
       verdict: json['verdict'] ?? 'UNVERIFIED',
       confidenceScore: (json['confidence_score'] ?? 0.0).toDouble(),
       analysis: json['analysis'] ?? '',
-      groundingCitations: (json['grounding_citations'] as List<dynamic>?)
+      groundingCitations:
+          (json['grounding_citations'] as List<dynamic>?)
               ?.map((e) => GroundingCitation.fromJson(e))
               .toList() ??
           [],
-      groundingSupports: (json['grounding_supports'] as List<dynamic>?)
+      scannedSources:
+          (json['scanned_sources'] as List<dynamic>?)
+              ?.map((e) => ScannedSource.fromJson(e))
+              .toList() ??
+          [],
+      groundingSupports:
+          (json['grounding_supports'] as List<dynamic>?)
               ?.map((e) => GroundingSupport.fromJson(e))
               .toList() ??
           [],

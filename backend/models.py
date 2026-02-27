@@ -13,6 +13,12 @@ class GroundingCitation(BaseModel):
     source_file: Optional[str] = None
     status: str = "live"
 
+class ScannedSource(BaseModel):
+    index: int
+    title: str
+    url: str
+    is_cited: bool
+
 class MediaLiteracy(BaseModel):
     logical_fallacies: List[str]
     tone_analysis: str
@@ -83,6 +89,7 @@ class AnalysisResponse(BaseModel):
     multimodal_cross_check: Optional[bool] = False
     source_metadata: Optional[Dict[str, Any]] = None
     grounding_citations: List[GroundingCitation] = []
+    scanned_sources: List[ScannedSource] = []
     grounding_supports: List[GroundingSupport] = []
     media_literacy: Optional[MediaLiteracy] = None
     reliability_metrics: Optional[ReliabilityMetrics] = None

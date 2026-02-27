@@ -84,6 +84,38 @@ def init_vertex():
 
 # --- Utilities ---
 
+def repair_and_parse_json(raw_text: str) -> dict:
+    """Aggressively cleans and parses LLM-generated JSON."""
+    if not raw_text:
+        raise ValueError("Empty response text")
+
+    # Extract just the JSON object (first { to last })
+    json_match = re.search(r'\{.*\}', raw_text, re.DOTALL)
+    if not json_match:
+        raise ValueError("No JSON object found in text")
+
+    cleaned = json_match.group(0)
+
+    # Attempt to fix trailing commas before closing braces/brackets
+    cleaned = re.sub(r',\s*([\]}])', r'\1', cleaned)
+
+    # Fallback to targeted regex for escaping double quotes inside the "analysis" text specifically.
+    # LLMs frequently hallucinate unescaped double quotes when writing long analysis paragraphs.
+    try:
+        return json.loads(cleaned, strict=False)
+    except json.JSONDecodeError:
+        # If the first standard parse fails, let's aggressively escape just the analysis block
+        # Match "analysis": " (everything here) " , "multimodal_cross_check"
+        match = re.search(r'("analysis"\s*:\s*")(.*?)("\s*,\s*"multimodal_cross_check")', cleaned, re.DOTALL)
+        if match:
+            analysis_text = match.group(2)
+            # Escape inner quotes
+            escaped_text = analysis_text.replace('"', '\\"')
+            # Reconstruct string
+            cleaned = cleaned[:match.start(2)] + escaped_text + cleaned[match.end(2):]
+            
+        return json.loads(cleaned, strict=False)
+
 def sanitize_grounding_text(text: str) -> str:
     """Strips JSON structural fragments from cited segments using aggressive multiline logic."""
     if not text:
@@ -152,6 +184,20 @@ async def fetch_url_content(url: str) -> str:
         logger.error(f"Error fetching URL {url}: {e}")
         return f"[Error fetching content from {url}]"
 
+def normalize_url(url: str) -> str:
+    """Normalizes a URL for comparison by removing protocol, www, and trailing slashes."""
+    if not url:
+        return ""
+    # Strip protocol
+    url = re.sub(r'^https?://', '', url.lower())
+    # Strip www.
+    url = re.sub(r'^www\.', '', url)
+    # Strip trailing slash
+    url = url.rstrip('/')
+    # Strip query params/fragments for aggressive matching if needed, 
+    # but for now let's keep it simple
+    return url
+
 async def process_multimodal_gemini(gemini_parts: List[Any], request_id: str, file_names: List[str] = None) -> AnalysisResponse:
     """Core logic to execute Gemini analysis."""
     if not VERTEX_AI_READY:
@@ -186,7 +232,7 @@ You will be provided with a user's input and, optionally, a combination of uploa
 7. TONE: Maintain an objective, journalistic, and highly analytical tone. Avoid emotional language.
 
 ### REQUIRED OUTPUT FORMAT:
-You MUST return your final response strictly as a valid JSON object matching the exact structure below. Do NOT wrap the JSON in markdown code blocks (like ```json). Ensure all internal string line breaks are properly escaped (e.g., \\n) and all internal double quotes are escaped (e.g., \").
+You MUST return your final response strictly as a valid JSON object matching the exact structure below. Do NOT wrap the JSON in markdown code blocks (like ```json). Ensure all internal double quotes are escaped (e.g., \") as per standard JSON rules.
 
 {
   "verdict": "TRUE | MOSTLY_TRUE | MIXTURE | MISLEADING | MOSTLY_FALSE | FALSE | UNVERIFIABLE | NOT_A_CLAIM",
@@ -222,12 +268,13 @@ The "analysis" string MUST be formatted in Markdown and strictly use these four 
 **4. Red Flags & Discrepancies:**
 [Use this section ONLY if there is conflicting information (e.g., an uploaded PDF contradicts the web, or two different news sites report different things). If there are no conflicts, write: "No major discrepancies found in the verified sources."]
 """
-        from models import GroundingCitation, GroundingSupport, AnalysisResponse
+        from models import GroundingCitation, GroundingSupport, AnalysisResponse, ScannedSource
         
         # Configure the tool and system instructions using the new SDK syntax
         config = types.GenerateContentConfig(
             system_instruction=system_instruction,
             temperature=0.0,
+            max_output_tokens=8192,
             tools=[{"google_search": {}}]
         )
         
@@ -292,24 +339,9 @@ The "analysis" string MUST be formatted in Markdown and strictly use these four 
         print("\n" + "="*50)
         print(f"[DEBUG] Raw Model Text:\n{response_text}")
         print("="*50 + "\n")
-        
-        # Robust parsing using regex to find the first '{' and last '}'
-        import re
         try:
-            json_match = re.search(r'\{.*\}', response_text, re.DOTALL) if response_text else None
-            if json_match:
-                clean_json = json_match.group(0)
-            else:
-                clean_json = response_text.strip().removeprefix("```json").removesuffix("```").strip() if response_text else "{}"
-                
-            logger.info(f"Cleaned JSON: {clean_json}")
-            # Check if it's a plain-text warning from the API rather than JSON
-            is_warning = ("matches verbatim" in response_text.lower() or "recitation" in response_text.lower()) and "{" not in response_text
-            
-            if is_warning:
-                raise ValueError("API returned a plain-text recitation warning.")
-                
-            data = json.loads(clean_json)
+            # Use our aggressive cleaner
+            data = repair_and_parse_json(response_text)
             
             # Debug Dump: Model Output JSON
             output_dump_path = os.path.join(base_dir, "model_output_dump.json")
@@ -318,10 +350,18 @@ The "analysis" string MUST be formatted in Markdown and strictly use these four 
             print(f"[FORENSIC] Model output dumped to {output_dump_path}")
 
             is_multimodal_verified = data.get("multimodal_cross_check", False)
+            
         except Exception as e:
-            logger.error(f"[SYSTEM ERROR/FALLBACK] Error or filter blocked JSON: {e}")
-            # If we have a RECITATION finish reason but NO JSON, we definitely fallback.
-            # If we HAVE JSON but a RECITATION flag, we already tried to parse it above.
+            logger.error(f"[JSON PARSE ERROR] {e}")
+            
+            # FORENSIC DUMP: Save the exact string that broke the parser
+            dump_path = os.path.join(base_dir, "failed_json_dump.txt")
+            with open(dump_path, "w", encoding="utf-8") as f:
+                f.write(f"ERROR: {str(e)}\n")
+                f.write("="*50 + "\n")
+                f.write(response_text or "NONE")
+            print(f"[FORENSIC] Broken JSON dumped to {dump_path}")
+            
             is_multimodal_verified = False
             # FALLBACK: If the LLM crashed, returned text, or got blocked by safety filters
             data = {
@@ -377,6 +417,31 @@ The "analysis" string MUST be formatted in Markdown and strictly use these four 
                 sanitized_citations.append(gc)
         data["grounding_citations"] = sanitized_citations
 
+        # --- Populate Scanned Sources ---
+        scanned_sources = []
+        if response.candidates and response.candidates[0].grounding_metadata:
+            chunks = getattr(response.candidates[0].grounding_metadata, 'grounding_chunks', [])
+            cited_urls = {normalize_url(gc.get("url")) for gc in sanitized_citations if gc.get("url")}
+            
+            seen_urls = set()
+            for i, chunk_obj in enumerate(chunks):
+                web_node = getattr(chunk_obj, 'web', None)
+                if web_node:
+                    title = getattr(web_node, 'title', "Untitled Source")
+                    uri = getattr(web_node, 'uri', "")
+                    if not uri or normalize_url(uri) in seen_urls:
+                        continue
+                    
+                    seen_urls.add(normalize_url(uri))
+                    scanned_sources.append(ScannedSource(
+                        index=i + 1,
+                        title=title,
+                        url=uri,
+                        is_cited=normalize_url(uri) in cited_urls
+                    ).model_dump())
+        
+        data["scanned_sources"] = scanned_sources
+
         service_sources = []
         final_citations = data.get("grounding_citations", [])
         for gc in final_citations:
@@ -410,13 +475,36 @@ The "analysis" string MUST be formatted in Markdown and strictly use these four 
                 # Convert Pydantic models to camelCase dicts for AnalysisResponse consistency
                 for sup in raw_api_supports:
                     sup_dict = sup.model_dump()
+                    segment_obj = sup_dict.get("segment") or {}
+                    raw_seg_text = segment_obj.get("text", "")
+                    
+                    # 1. Robust Unescaping
+                    try:
+                        # Ensures \\n becomes \n and other escaped chars are handled
+                        unescaped_text = raw_seg_text.encode('utf-8').decode('unicode_escape')
+                    except Exception:
+                        unescaped_text = raw_seg_text.replace('\\n', '\n').replace('\\"', '"')
+
+                    # 2. Segment Trimming (Markdown Headers & Bullet Points)
+                    # Regex to find leading **Section Header:** or * Bullet points
+                    # and capture the remaining text.
+                    trim_match = re.match(r'^(\s*(?:\*\*[^*]+\*\*:\s*|\*+\s*))(.*)', unescaped_text, re.DOTALL)
+                    
+                    final_seg_text = unescaped_text
+                    start_offset = 0
+                    
+                    if trim_match:
+                        prefix = trim_match.group(1)
+                        final_seg_text = trim_match.group(2)
+                        start_offset = len(prefix)
+                    
                     standardized = {
                         "segment": {
-                            "startIndex": sup_dict["segment"].get("start_index") or 0,
-                            "endIndex": sup_dict["segment"].get("end_index") or 0,
-                            "text": sanitize_grounding_text(sup_dict["segment"].get("text", ""))
+                            "startIndex": (segment_obj.get("start_index") or 0) + start_offset,
+                            "endIndex": segment_obj.get("end_index") or 0,
+                            "text": final_seg_text
                         },
-                        "groundingChunkIndices": sup_dict.get("grounding_chunk_indices") or [],
+                        "groundingChunkIndices": [(idx + 1) for idx in (sup_dict.get("grounding_chunk_indices") or [])],
                         "confidenceScores": sup_dict.get("confidence_scores") or []
                     }
                     api_supports.append(standardized)
@@ -458,13 +546,23 @@ The "analysis" string MUST be formatted in Markdown and strictly use these four 
             import traceback
             traceback.print_exc()
 
+        raw_analysis = data.get("analysis", "") or "**1. The Core Claim(s):**\nThe data could not be parsed.\n\n**2. Evidence Breakdown:**\n* The AI returned malformed data or was blocked by safety filters."
+        
+        # The model sometimes returns literal '\n' and '\"' strings instead of actual characters
+        # due to its internal interpretation of JSON safety. We unescape them here.
+        if isinstance(raw_analysis, str):
+            sanitized_analysis = raw_analysis.replace('\\n', '\n').replace('\\"', '"')
+        else:
+            sanitized_analysis = str(raw_analysis)
+
         return AnalysisResponse(
             verdict=data.get("verdict", "UNVERIFIABLE"),
             confidence_score=data.get("confidence_score", 0.0),
-            analysis=data.get("analysis", "**1. The Core Claim(s):**\nThe data could not be parsed.\n\n**2. Evidence Breakdown:**\n* The AI returned malformed data or was blocked by safety filters."),
+            analysis=sanitized_analysis,
             multimodal_cross_check=data.get("multimodal_cross_check", False),
             reliability_metrics=data.get("reliability_metrics"),
             grounding_citations=data.get("grounding_citations", []),
+            scanned_sources=data.get("scanned_sources", []),
             grounding_supports=data.get("grounding_supports", [])
         )
 

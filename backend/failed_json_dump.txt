@@ -1,0 +1,35 @@
+ERROR: Invalid \escape: line 15 column 253 (char 1743)
+==================================================
+{
+  "verdict": "MOSTLY_TRUE",
+  "confidence_score": 0.95,
+  "analysis": "**1. The Core Claim(s):**\nThe claim states that water boils at 100 degrees Celsius.\n\n**2. Evidence Breakdown:**\n*   Water boils at 100 degrees Celsius (212 degrees Fahrenheit) at sea level under standard atmospheric pressure.\n*   The boiling point of water changes with altitude and pressure. At higher altitudes, where atmospheric pressure is lower, water boils at a lower temperature.\n*   Impurities in the water can also affect its boiling point.\n\n**3. Context & Nuance:**\nThe statement is generally true under standard conditions (sea level, standard atmospheric pressure). However, it's important to note that the boiling point of water is not a fixed value and can vary depending on environmental factors such as altitude and pressure. The claim is mostly true because it doesn't specify the conditions under which water boils at 100 degrees Celsius.\n\n**4. Red Flags & Discrepancies:**\nNo major discrepancies found in the verified sources.",
+  "multimodal_cross_check": false,
+  "source_metadata": {
+    "types_analyzed": [
+      "text"
+    ]
+  },
+  "grounding_citations": [
+    {
+      "title": "Boiling points | Science | Research Starters - EBSCO",
+      "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEmxfeaLUT3yVSrdKKV-aoC-0TCcD28fjXD0b3i5RX4PxH-k0f0P9RGJjHC9H_--CIhZWEarFJjEK_5KHeWosQe_IqyVnsN4-ulXeuFvU2RZ5soTeXgPCSfbm9w_iJMDdJLWAFXHuxZy7tBVcXOSQxv-VGKv1xOjmY=",
+      "snippet": "At sea level, water boils at 212 degrees Fahrenheit(212°F) or 100 degrees Celsius (100°C). Water's boiling point changes as altitude is increased or decreased. For example, at 1,000 feet below sea level, water boils at 213.9°F (101.1°\xa0..."
+    },
+    {
+      "title": "At 100°C and Rising: The Science Behind Water Boiling Point Explained",
+      "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQF2EKf2WzfMQO7SIDek2mq34UOqN9HtXlMU35nlT-cQxT4z53isVgzmt8IFeVf3agMW2S6wdlaLqr0ehhaQd_sraka_aA3Vzm4oZ4pHBlD6ISMK1dKx6rbbc9Y_GKRTaXsQ_iuZb85dHZWxe7htmI97oes48zA2OJx6vj8WI81qQOkF_xwopvi0rOB3os_-h3ccCr6ALpZDvmSkJyo=",
+      "snippet": "(2026-02-17) Water reaching its boiling point of 100°C at standard atmospheric pressure is a well-known phenomenon—yet the deeper mechanics behind this transformation reveal fascinating insights into molecular behavior, energy dynamics, and everyday impact."
+    },
+    {
+      "title": "Understanding Water's Boiling Point: A Simple Exploration - Oreate AI Blog",
+      "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFAZ2TSB5MBqJVOrGYgDre4vNTuUPgH9VjN6Y7zqiJrBgG9-6hcEwakd4DVsu-vdEUd4Aa-mgObo1goqnhBZDREslsrAmZe32x6hsaTua63s1AeZuc_bWHdBnf5641iw6hrn5gSxm3vTQ6ZpWQ6Gl2sarL7U2AdkVxtGJmrsW_To4tZj8LVMW8SjpZEl_seVHJC3XI0zhUltd6ORG7zibbUdW4aEgy1YC0t4r-Gp4rwFw==",
+      "snippet": "(2026-01-20) At standard atmospheric pressure—what we experience every day at sea level—water boils at 100 degrees Celsius (212 degrees Fahrenheit). This temperature marks the transition from liquid to gas, where water molecules gain enough energy to break free from their bonds and escape into the air as steam. But why does this number matter?"
+    }
+  ],
+  "media_literacy": {
+    "logical_fallacies": [],
+    "tone_analysis": "Objective"
+  }
+}
+```

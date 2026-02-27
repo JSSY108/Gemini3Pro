@@ -7,6 +7,7 @@ class SourceSidebarContainer extends StatefulWidget {
   final bool isExpanded;
   final VoidCallback onToggle;
   final List<GroundingCitation> citations;
+  final List<ScannedSource> scannedSources;
   final List<SourceAttachment> uploadedAttachments;
   final List<int> activeIndices;
   final Function(int) onCitationSelected;
@@ -18,6 +19,7 @@ class SourceSidebarContainer extends StatefulWidget {
     required this.isExpanded,
     required this.onToggle,
     required this.citations,
+    required this.scannedSources,
     required this.uploadedAttachments,
     this.activeIndices = const [],
     required this.onCitationSelected,
@@ -31,6 +33,34 @@ class SourceSidebarContainer extends StatefulWidget {
 
 class _SourceSidebarContainerState extends State<SourceSidebarContainer> {
   bool _showEvidence = true;
+  final Map<String, GlobalKey> _sourceKeys = {};
+
+  @override
+  void didUpdateWidget(SourceSidebarContainer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.activeIndices.isNotEmpty &&
+        widget.activeIndices != oldWidget.activeIndices) {
+      _scrollToActiveSource();
+    }
+  }
+
+  void _scrollToActiveSource() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      for (final index in widget.activeIndices) {
+        // We use 'cited_' prefix for the auto-scroll target in the top section
+        final key = _sourceKeys['cited_$index'];
+        if (key?.currentContext != null) {
+          Scrollable.ensureVisible(
+            key!.currentContext!,
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.easeInOut,
+            alignment: 0.5,
+          );
+          break; // Scroll to the first active one
+        }
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -44,8 +74,9 @@ class _SourceSidebarContainerState extends State<SourceSidebarContainer> {
           // Header / Toggle
           Container(
             height: 60,
-            padding:
-                EdgeInsets.symmetric(horizontal: widget.isExpanded ? 16 : 0),
+            padding: EdgeInsets.symmetric(
+              horizontal: widget.isExpanded ? 16 : 0,
+            ),
             decoration: BoxDecoration(
               border: Border(
                 bottom: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
@@ -55,17 +86,13 @@ class _SourceSidebarContainerState extends State<SourceSidebarContainer> {
               scrollDirection: Axis.horizontal,
               physics: const NeverScrollableScrollPhysics(),
               child: SizedBox(
-                width: widget.isExpanded
-                    ? 318
-                    : 60, // Match width to prevent icon clipping
+                width: widget.isExpanded ? 318 : 60,
                 child: Row(
                   mainAxisAlignment: widget.isExpanded
                       ? MainAxisAlignment.spaceBetween
                       : MainAxisAlignment.center,
                   children: [
-                    if (widget.isExpanded) ...[
-                      _buildTabSwitcher(),
-                    ],
+                    if (widget.isExpanded) ...[_buildTabSwitcher()],
                     IconButton(
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
@@ -89,7 +116,7 @@ class _SourceSidebarContainerState extends State<SourceSidebarContainer> {
                 ? AnimatedSwitcher(
                     duration: const Duration(milliseconds: 300),
                     child: _showEvidence
-                        ? _buildEvidenceList()
+                        ? _buildTieredEvidenceList()
                         : _buildUploadedList(),
                   )
                 : Column(
@@ -152,45 +179,175 @@ class _SourceSidebarContainerState extends State<SourceSidebarContainer> {
     );
   }
 
-  Widget _buildEvidenceList() {
-    final Map<String, int> sourceCounts = {};
-    final List<GroundingCitation> uniqueCitations = [];
-    final Map<String, int> firstOccurrenceIndex = {};
+  Widget _buildTieredEvidenceList() {
+    // 1. Identify "Verified" (Cited) vs "Context" (Scanned but not cited)
+    final List<ScannedSource> citedSources =
+        widget.scannedSources.where((s) => s.isCited).toList();
+    final List<ScannedSource> contextSources =
+        widget.scannedSources.where((s) => !s.isCited).toList();
 
-    for (int i = 0; i < widget.citations.length; i++) {
-      final citation = widget.citations[i];
-      final key = "${citation.title}|${citation.url}";
-      if (!sourceCounts.containsKey(key)) {
-        sourceCounts[key] = 1;
-        uniqueCitations.add(citation);
-        firstOccurrenceIndex[key] = i;
-      } else {
-        sourceCounts[key] = sourceCounts[key]! + 1;
-      }
-    }
-
-    return ListView.builder(
+    return CustomScrollView(
       key: const ValueKey("evidence"),
       controller: widget.scrollController,
-      padding: const EdgeInsets.all(16),
-      itemCount: uniqueCitations.length,
-      itemBuilder: (context, index) {
-        final citation = uniqueCitations[index];
-        final key = "${citation.title}|${citation.url}";
-        final count = sourceCounts[key] ?? 1;
-        final originalIndex = firstOccurrenceIndex[key] ?? 0;
-        final isActive = widget.activeIndices.contains(originalIndex);
+      slivers: [
+        // --- SECTION 1: VERIFIED EVIDENCE ---
+        if (citedSources.isNotEmpty) ...[
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Row(
+                children: [
+                  const Icon(Icons.verified,
+                      color: Color(0xFFD4AF37), size: 14),
+                  const SizedBox(width: 8),
+                  Text(
+                    "VERIFIED EVIDENCE",
+                    style: GoogleFonts.outfit(
+                      color: const Color(0xFFD4AF37),
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          SliverList(
+            delegate: SliverChildBuilderDelegate((context, index) {
+              final source = citedSources[index];
+              final isActive = widget.activeIndices.contains(source.index);
 
-        return SourceTile(
-          title: citation.title,
-          url: citation.url,
-          attachments: widget.uploadedAttachments,
-          status: citation.status,
-          count: count,
-          isActive: isActive,
-          onTap: () => widget.onCitationSelected(originalIndex),
-        );
-      },
+              // Enrich with citation info if available
+              final citation = widget.citations.firstWhere(
+                (c) => c.url == source.url,
+                orElse: () =>
+                    GroundingCitation(title: '', url: '', snippet: ''),
+              );
+
+              final String keyStr = 'cited_${source.index}';
+              _sourceKeys[keyStr] =
+                  _sourceKeys[keyStr] ?? GlobalKey(debugLabel: keyStr);
+
+              return Padding(
+                key: ValueKey('sidebar_cited_${source.url}'),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                child: AnimatedContainer(
+                  key: _sourceKeys[keyStr],
+                  duration: const Duration(milliseconds: 300),
+                  decoration: BoxDecoration(
+                    color: isActive
+                        ? const Color(0xFFD4AF37).withValues(alpha: 0.1)
+                        : Colors.transparent,
+                    border: Border.all(
+                      color: isActive
+                          ? const Color(0xFFD4AF37)
+                          : const Color(0xFFD4AF37).withValues(alpha: 0.3),
+                      width: isActive ? 2.0 : 1.5,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: isActive
+                        ? [
+                            BoxShadow(
+                              color: const Color(0xFFD4AF37)
+                                  .withValues(alpha: 0.3),
+                              blurRadius: 15,
+                              spreadRadius: 2,
+                            ),
+                          ]
+                        : [],
+                  ),
+                  child: SourceTile(
+                    title:
+                        source.title.isNotEmpty ? source.title : citation.title,
+                    url: source.url.isNotEmpty ? source.url : citation.url,
+                    attachments: widget.uploadedAttachments,
+                    status: citation.status,
+                    isActive: isActive,
+                    onTap: () => widget.onCitationSelected(source.index),
+                  ),
+                ),
+              );
+            }, childCount: citedSources.length),
+          ),
+        ],
+
+        // --- SECTION 2: SEARCH CONTEXT (SCANNED) ---
+        if (contextSources.isNotEmpty) ...[
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+              child: Row(
+                children: [
+                  const Icon(Icons.search, color: Colors.white38, size: 14),
+                  const SizedBox(width: 8),
+                  Text(
+                    "SEARCH CONTEXT (SCANNED)",
+                    style: GoogleFonts.outfit(
+                      color: Colors.white38,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          SliverList(
+            delegate: SliverChildBuilderDelegate((context, index) {
+              final source = contextSources[index];
+              final isActive = widget.activeIndices.contains(source.index);
+
+              final String keyStr = 'scanned_${source.index}';
+              _sourceKeys[keyStr] =
+                  _sourceKeys[keyStr] ?? GlobalKey(debugLabel: keyStr);
+
+              return Padding(
+                key: ValueKey('sidebar_scanned_${source.url}'),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                child: AnimatedContainer(
+                  key: _sourceKeys[keyStr],
+                  duration: const Duration(milliseconds: 300),
+                  decoration: BoxDecoration(
+                    color: isActive
+                        ? const Color(0xFFD4AF37).withValues(alpha: 0.05)
+                        : Colors.transparent,
+                    border: Border.all(
+                      color: isActive
+                          ? const Color(0xFFD4AF37)
+                          : Colors.white.withValues(alpha: 0.1),
+                      width: isActive ? 2.0 : 1.0,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: isActive
+                        ? [
+                            BoxShadow(
+                              color: const Color(0xFFD4AF37)
+                                  .withValues(alpha: 0.2),
+                              blurRadius: 10,
+                              spreadRadius: 1,
+                            ),
+                          ]
+                        : [],
+                  ),
+                  child: SourceTile(
+                    title: source.title,
+                    url: source.url,
+                    attachments: widget.uploadedAttachments,
+                    status: 'live',
+                    isActive: isActive,
+                    onTap: () => widget.onCitationSelected(source.index),
+                  ),
+                ),
+              );
+            }, childCount: contextSources.length),
+          ),
+        ],
+        const SliverPadding(padding: EdgeInsets.only(bottom: 100)),
+      ],
     );
   }
 

@@ -213,7 +213,8 @@ class _DashboardScreenState extends State<DashboardScreen>
 
     if (targetObject == null) return;
     final RenderBox targetBox = targetObject as RenderBox;
-    final Offset targetOffset = targetBox.localToGlobal(Offset.zero) +
+    final Offset targetOffset =
+        targetBox.localToGlobal(Offset.zero) +
         (isMobile ? const Offset(12, 12) : const Offset(150, 40));
 
     for (final attachment in attachments) {
@@ -227,14 +228,16 @@ class _DashboardScreenState extends State<DashboardScreen>
       final Offset startOffset = chipBox.localToGlobal(Offset.zero);
       final Size blockSize = chipBox.size;
 
-      final entry = OverlayEntry(builder: (context) {
-        return _FlyingAttachment(
-          startOffset: startOffset,
-          endOffset: targetOffset,
-          size: blockSize,
-          attachment: attachment,
-        );
-      });
+      final entry = OverlayEntry(
+        builder: (context) {
+          return _FlyingAttachment(
+            startOffset: startOffset,
+            endOffset: targetOffset,
+            size: blockSize,
+            attachment: attachment,
+          );
+        },
+      );
       entries.add(entry);
       Overlay.of(context).insert(entry);
     }
@@ -257,17 +260,6 @@ class _DashboardScreenState extends State<DashboardScreen>
         if (!_isSidebarExpanded) _isSidebarExpanded = true;
       }
     });
-
-    if (_result != null &&
-        _activeCitationIndices.isNotEmpty &&
-        _sidebarScrollController.hasClients) {
-      final firstIndex = _activeCitationIndices.first;
-      _sidebarScrollController.animateTo(
-        firstIndex * 110.0,
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeInOut,
-      );
-    }
   }
 
   void _handleCitationSelected(int index) {
@@ -292,7 +284,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     return LayoutBuilder(
       builder: (context, constraints) {
         if (constraints.maxWidth > 900) {
-          return _buildDesktopLayout();
+          return _buildDesktopLayout(constraints);
         } else {
           return _buildMobileLayout();
         }
@@ -301,7 +293,10 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   // --- DESKTOP LAYOUT (3-Pane) ---
-  Widget _buildDesktopLayout() {
+  Widget _buildDesktopLayout(BoxConstraints constraints) {
+    final bool showSidebar = constraints.maxWidth > 1100;
+    final bool showVerdictPane = constraints.maxWidth > 1000;
+
     return Scaffold(
       backgroundColor: const Color(0xFF121212),
       body: Row(
@@ -309,12 +304,12 @@ class _DashboardScreenState extends State<DashboardScreen>
         children: [
           // Nav Rail
           Container(
-            width: 80,
+            width: 72,
             color: Colors.black,
             child: const Column(
               children: [
                 SizedBox(height: 30),
-                Icon(Icons.shield_outlined, color: Color(0xFFD4AF37), size: 40),
+                Icon(Icons.shield_outlined, color: Color(0xFFD4AF37), size: 36),
                 SizedBox(height: 40),
                 _SidebarIcons(icon: Icons.dashboard, isActive: true),
                 _SidebarIcons(icon: Icons.history, isActive: false),
@@ -322,21 +317,23 @@ class _DashboardScreenState extends State<DashboardScreen>
               ],
             ),
           ),
-          // Sidebar
-          Flexible(
-            flex: 0,
-            child: SourceSidebarContainer(
-              key: _sidebarKey,
-              isExpanded: _isSidebarExpanded,
-              onToggle: _toggleSidebar,
-              citations: _result?.groundingCitations ?? [],
-              uploadedAttachments: _migratedAttachments,
-              activeIndices: _activeCitationIndices,
-              onCitationSelected: _handleCitationSelected,
-              onDeleteAttachment: _handleDeleteMigratedAttachment,
-              scrollController: _sidebarScrollController,
+          // Sidebar (Responsive)
+          if (showSidebar || _isSidebarExpanded)
+            Flexible(
+              flex: 0,
+              child: SourceSidebarContainer(
+                key: _sidebarKey,
+                isExpanded: _isSidebarExpanded,
+                onToggle: _toggleSidebar,
+                citations: _result?.groundingCitations ?? [],
+                scannedSources: _result?.scannedSources ?? [],
+                uploadedAttachments: _migratedAttachments,
+                activeIndices: _activeCitationIndices,
+                onCitationSelected: _handleCitationSelected,
+                onDeleteAttachment: _handleDeleteMigratedAttachment,
+                scrollController: _sidebarScrollController,
+              ),
             ),
-          ),
           // Analysis Hub
           Expanded(
             flex: 6,
@@ -361,32 +358,36 @@ class _DashboardScreenState extends State<DashboardScreen>
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text("FORENSIC ANALYSIS",
-                                style: GoogleFonts.outfit(
-                                  color: const Color(0xFFD4AF37),
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 2.0,
-                                )),
+                            Text(
+                              "FORENSIC ANALYSIS",
+                              style: GoogleFonts.outfit(
+                                color: const Color(0xFFD4AF37),
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 2.0,
+                              ),
+                            ),
                             const SizedBox(height: 16),
                             Expanded(
                               child: _hasError
                                   ? _buildErrorRetryCard()
                                   : (_result == null
-                                      ? _buildForensicHubGrid()
-                                      : SingleChildScrollView(
-                                          child: VeriscanInteractiveText(
-                                            analysisText: _result!.analysis,
-                                            groundingSupports:
-                                                _result!.groundingSupports,
-                                            groundingCitations:
-                                                _result!.groundingCitations,
-                                            attachments: _migratedAttachments,
-                                            activeSupport: _activeSupport,
-                                            onSupportSelected:
-                                                _handleSupportSelected,
-                                          ),
-                                        )),
+                                        ? _buildForensicHubGrid()
+                                        : SingleChildScrollView(
+                                            child: VeriscanInteractiveText(
+                                              analysisText: _result!.analysis,
+                                              groundingSupports:
+                                                  _result!.groundingSupports,
+                                              groundingCitations:
+                                                  _result!.groundingCitations,
+                                              scannedSources:
+                                                  _result!.scannedSources,
+                                              attachments: _migratedAttachments,
+                                              activeSupport: _activeSupport,
+                                              onSupportSelected:
+                                                  _handleSupportSelected,
+                                            ),
+                                          )),
                             ),
                           ],
                         ),
@@ -394,35 +395,44 @@ class _DashboardScreenState extends State<DashboardScreen>
                     ),
                   ),
                   // Action Bar
-                  Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: GlassActionBar(
-                      controller: _inputController,
-                      onAnalyze: _handleAnalysis,
-                      attachments: _pendingAttachments,
-                      chipKeys: _chipKeys,
-                      onAddAttachment: _handleAddAttachment,
-                      onRemoveAttachment: _handleRemoveAttachment,
-                      isLoading: _isLoading,
+                  Center(
+                    child: Container(
+                      constraints: const BoxConstraints(maxWidth: 1000),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 32,
+                        vertical: 20,
+                      ),
+                      child: GlassActionBar(
+                        controller: _inputController,
+                        onAnalyze: _handleAnalysis,
+                        attachments: _pendingAttachments,
+                        chipKeys: _chipKeys,
+                        onAddAttachment: _handleAddAttachment,
+                        onRemoveAttachment: _handleRemoveAttachment,
+                        isLoading: _isLoading,
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
           ),
-          // Verdict Pane
-          Expanded(
-            flex: 2,
-            child: Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E1E1E),
-                border: Border(
-                  left: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+          // Verdict Pane (Responsive)
+          if (showVerdictPane)
+            Expanded(
+              flex: 2,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E1E1E),
+                  border: Border(
+                    left: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.05),
+                    ),
+                  ),
                 ),
+                child: VerdictPane(result: _result),
               ),
-              child: VerdictPane(result: _result),
             ),
-          ),
         ],
       ),
     );
@@ -438,10 +448,7 @@ class _DashboardScreenState extends State<DashboardScreen>
           Expanded(
             child: IndexedStack(
               index: _mobileSelectedIndex,
-              children: [
-                _buildMobileReportView(),
-                _buildMobileSourcesView(),
-              ],
+              children: [_buildMobileReportView(), _buildMobileSourcesView()],
             ),
           ),
 
@@ -462,7 +469,8 @@ class _DashboardScreenState extends State<DashboardScreen>
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           border: Border(
-              top: BorderSide(color: Colors.white.withValues(alpha: 0.05))),
+            top: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+          ),
         ),
         child: BottomNavigationBar(
           onTap: (index) => setState(() => _mobileSelectedIndex = index),
@@ -470,8 +478,10 @@ class _DashboardScreenState extends State<DashboardScreen>
           selectedItemColor: const Color(0xFFD4AF37),
           unselectedItemColor: Colors.white24,
           currentIndex: _mobileSelectedIndex,
-          selectedLabelStyle:
-              GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.bold),
+          selectedLabelStyle: GoogleFonts.outfit(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+          ),
           unselectedLabelStyle: GoogleFonts.outfit(fontSize: 12),
           items: [
             const BottomNavigationBarItem(
@@ -541,18 +551,21 @@ class _DashboardScreenState extends State<DashboardScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text("FORENSIC ANALYSIS",
-                          style: GoogleFonts.outfit(
-                            color: const Color(0xFFD4AF37),
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.5,
-                          )),
+                      Text(
+                        "FORENSIC ANALYSIS",
+                        style: GoogleFonts.outfit(
+                          color: const Color(0xFFD4AF37),
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.5,
+                        ),
+                      ),
                       const SizedBox(height: 16),
                       VeriscanInteractiveText(
                         analysisText: _result!.analysis,
                         groundingSupports: _result!.groundingSupports,
                         groundingCitations: _result!.groundingCitations,
+                        scannedSources: _result!.scannedSources,
                         attachments: _migratedAttachments,
                         activeSupport: _activeSupport,
                         onSupportSelected: _handleSupportSelected,
@@ -585,8 +598,11 @@ class _DashboardScreenState extends State<DashboardScreen>
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.biotech_outlined,
-              size: 48, color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
+          Icon(
+            Icons.biotech_outlined,
+            size: 48,
+            color: const Color(0xFFD4AF37).withValues(alpha: 0.3),
+          ),
           const SizedBox(height: 16),
           Text(
             "Awaiting Forensic Ingestion...",
@@ -712,7 +728,8 @@ class _FlyingAttachment extends StatelessWidget {
           child: Material(
             color: Colors.transparent,
             child: Opacity(
-              opacity: 1.0 -
+              opacity:
+                  1.0 -
                   (offset.dx - startOffset.dx).abs() /
                       (endOffset.dx - startOffset.dx)
                           .abs()
@@ -722,8 +739,10 @@ class _FlyingAttachment extends StatelessWidget {
               child: Container(
                 width: size.width,
                 height: size.height,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFD4AF37).withValues(alpha: 0.8),
                   borderRadius: BorderRadius.circular(20),
@@ -731,14 +750,17 @@ class _FlyingAttachment extends StatelessWidget {
                     BoxShadow(
                       color: const Color(0xFFD4AF37).withValues(alpha: 0.4),
                       blurRadius: 10,
-                    )
+                    ),
                   ],
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.auto_awesome,
-                        color: Colors.black, size: 16),
+                    const Icon(
+                      Icons.auto_awesome,
+                      color: Colors.black,
+                      size: 16,
+                    ),
                     const SizedBox(width: 8),
                     Flexible(
                       child: Text(

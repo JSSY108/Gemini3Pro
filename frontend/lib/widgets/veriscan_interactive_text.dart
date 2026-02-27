@@ -2,12 +2,13 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import '../models/grounding_models.dart';
 import '../utils/grounding_parser.dart';
-import 'evidence_card.dart';
+import 'evidence_tray.dart';
 
 class VeriscanInteractiveText extends StatefulWidget {
   final String analysisText;
   final List<GroundingSupport> groundingSupports;
   final List<GroundingCitation> groundingCitations;
+  final List<ScannedSource> scannedSources;
   final List<SourceAttachment> attachments;
   final GroundingSupport? activeSupport;
   final Function(GroundingSupport?)? onSupportSelected;
@@ -17,6 +18,7 @@ class VeriscanInteractiveText extends StatefulWidget {
     required this.analysisText,
     required this.groundingSupports,
     required this.groundingCitations,
+    required this.scannedSources,
     required this.attachments,
     this.activeSupport,
     this.onSupportSelected,
@@ -38,8 +40,10 @@ class _VeriscanInteractiveTextState extends State<VeriscanInteractiveText> {
   Widget build(BuildContext context) {
     if (widget.analysisText.isEmpty) return const SizedBox();
 
-    final chunks =
-        GroundingParser.parse(widget.analysisText, widget.groundingSupports);
+    final chunks = GroundingParser.parse(
+      widget.analysisText,
+      widget.groundingSupports,
+    );
     final theme = Theme.of(context);
 
     final baseStyle = theme.textTheme.bodyMedium?.copyWith(
@@ -58,10 +62,12 @@ class _VeriscanInteractiveTextState extends State<VeriscanInteractiveText> {
     // Identify if we need to split the text to insert a card
     int activeChunkIndex = -1;
     if (widget.activeSupport != null) {
-      activeChunkIndex = chunks.indexWhere((c) =>
-          c.support != null &&
-          c.support!.segment.startIndex ==
-              widget.activeSupport!.segment.startIndex);
+      activeChunkIndex = chunks.indexWhere(
+        (c) =>
+            c.support != null &&
+            c.support!.segment.startIndex ==
+                widget.activeSupport!.segment.startIndex,
+      );
     }
 
     // Always split or treat as single block to keep AnimatedSwitcher in tree for transition
@@ -83,18 +89,13 @@ class _VeriscanInteractiveTextState extends State<VeriscanInteractiveText> {
               Padding(
                 key: ValueKey(widget.activeSupport!.segment.startIndex),
                 padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Column(
-                  children: _getReferencedCitations(widget.activeSupport!)
-                      .map((citation) => EvidenceCard(
-                            title: citation.title,
-                            snippet: citation.snippet,
-                            url: citation.url,
-                            sourceFile: citation.sourceFile,
-                            attachments: widget.attachments,
-                            status: citation.status,
-                            isActive: true,
-                          ))
-                      .toList(),
+                child: EvidenceTray(
+                  citedSources: _getReferencedCitations(widget.activeSupport!),
+                  scannedSources: widget.scannedSources,
+                  activeChunkIndices:
+                      widget.activeSupport!.groundingChunkIndices,
+                  attachments: widget.attachments,
+                  onClose: () => widget.onSupportSelected?.call(null),
                 ),
               ),
             if (afterChunks.isNotEmpty)
@@ -106,98 +107,174 @@ class _VeriscanInteractiveTextState extends State<VeriscanInteractiveText> {
   }
 
   Widget _buildRichTextBlock(
-      List<TextChunk> chunks, TextStyle baseStyle, StrutStyle strutStyle) {
+    List<TextChunk> chunks,
+    TextStyle baseStyle,
+    StrutStyle strutStyle,
+  ) {
+    final List<InlineSpan> spans = [];
+    bool isBold = false;
+
+    for (final chunk in chunks) {
+      final bool isSelected = widget.activeSupport != null &&
+          chunk.support != null &&
+          chunk.support!.segment.startIndex ==
+              widget.activeSupport!.segment.startIndex;
+
+      final isHovered = _hoveredSupport == chunk.support;
+      final bool shouldUnderline = isSelected || isHovered;
+
+      final Color decorationColor = isSelected
+          ? kGold
+          : (isHovered ? kGold.withValues(alpha: 0.4) : Colors.transparent);
+
+      final double decorationThickness = isSelected ? 3.0 : 1.0;
+      final double lineHeight = isSelected ? 1.8 : 1.0;
+
+      final String text = chunk.text;
+      final boldRegex = RegExp(r'\*\*');
+      int currentIndex = 0;
+
+      for (final match in boldRegex.allMatches(text)) {
+        if (match.start > currentIndex) {
+          spans.add(
+            _createTextSpan(
+              text.substring(currentIndex, match.start),
+              baseStyle.copyWith(
+                fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+              ),
+              chunk.type,
+              shouldUnderline,
+              decorationColor,
+              decorationThickness,
+              lineHeight,
+              chunk.support,
+            ),
+          );
+        }
+        // Toggle bold state when we hit **
+        isBold = !isBold;
+        currentIndex = match.end;
+      }
+
+      if (currentIndex < text.length) {
+        spans.add(
+          _createTextSpan(
+            text.substring(currentIndex),
+            baseStyle.copyWith(
+              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+            ),
+            chunk.type,
+            shouldUnderline,
+            decorationColor,
+            decorationThickness,
+            lineHeight,
+            chunk.support,
+          ),
+        );
+      }
+
+      // Add citations icon at the end of support chunks
+      if (chunk.type == ChunkType.support && chunk.support != null) {
+        final indices = chunk.support!.groundingChunkIndices;
+        if (indices.isNotEmpty) {
+          final formattedCitations =
+              '[${indices.map((i) => i + 1).join(', ')}]';
+          spans.add(
+            WidgetSpan(
+              alignment: PlaceholderAlignment.top,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 2.0, top: 2.0),
+                child: GestureDetector(
+                  onTap: () {
+                    widget.onSupportSelected?.call(chunk.support);
+                  },
+                  child: Text(
+                    formattedCitations,
+                    style: baseStyle.copyWith(
+                      fontSize: kFontSize * 0.7,
+                      height: 1.0,
+                      color: decorationColor == Colors.transparent
+                          ? kGold.withValues(alpha: 0.7)
+                          : kGold,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
+      }
+    }
+
     return RichText(
       strutStyle: strutStyle,
-      text: TextSpan(
-        style: baseStyle,
-        children: chunks.expand((chunk) {
-          if (chunk.type == ChunkType.plain) {
-            return [TextSpan(text: chunk.text)];
-          } else {
-            final bool isSelected = widget.activeSupport != null &&
-                chunk.support != null &&
-                chunk.support!.segment.startIndex ==
-                    widget.activeSupport!.segment.startIndex;
+      text: TextSpan(style: baseStyle, children: spans),
+    );
+  }
 
-            final isHovered = _hoveredSupport == chunk.support;
+  TextSpan _createTextSpan(
+    String text,
+    TextStyle style,
+    ChunkType type,
+    bool shouldUnderline,
+    Color decorationColor,
+    double decorationThickness,
+    double lineHeight,
+    GroundingSupport? support,
+  ) {
+    if (type == ChunkType.plain) {
+      return TextSpan(text: text, style: style);
+    }
 
-            final bool shouldUnderline = isSelected || isHovered;
-
-            final Color decorationColor = isSelected
-                ? kGold
-                : (isHovered
-                    ? kGold.withValues(alpha: 0.4)
-                    : Colors.transparent);
-
-            final double decorationThickness = isSelected ? 3.0 : 1.0;
-            final double lineHeight = isSelected ? 1.8 : 1.0;
-
-            return [
-              TextSpan(
-                text: chunk.text,
-                style: baseStyle.copyWith(
-                  height: lineHeight,
-                  decoration: shouldUnderline
-                      ? TextDecoration.underline
-                      : TextDecoration.none,
-                  decorationColor: decorationColor,
-                  decorationThickness: decorationThickness,
-                  decorationStyle: TextDecorationStyle.solid,
-                ),
-                mouseCursor: SystemMouseCursors.click,
-                recognizer: TapGestureRecognizer()
-                  ..onTap = () {
-                    if (chunk.support != null) {
-                      widget.onSupportSelected?.call(chunk.support);
-                    }
-                  },
-                onEnter: (_) => setState(() => _hoveredSupport = chunk.support),
-                onExit: (_) => setState(() => _hoveredSupport = null),
-              ),
-              WidgetSpan(
-                alignment: PlaceholderAlignment.top,
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 2.0, top: 2.0),
-                  child: Builder(builder: (context) {
-                    final indices = chunk.support!.groundingChunkIndices;
-                    if (indices.isEmpty) return const SizedBox.shrink();
-
-                    // Format as [1, 2] etc (using 1-based indexing for display)
-                    final formattedCitations =
-                        '[${indices.map((i) => i + 1).join(', ')}]';
-
-                    return GestureDetector(
-                      onTap: () {
-                        widget.onSupportSelected?.call(chunk.support);
-                      },
-                      child: Text(
-                        formattedCitations,
-                        style: baseStyle.copyWith(
-                          fontSize: kFontSize * 0.7,
-                          height: 1.0,
-                          color: decorationColor == Colors.transparent
-                              ? kGold.withValues(alpha: 0.7)
-                              : kGold,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    );
-                  }),
-                ),
-              ),
-            ];
-          }
-        }).toList(),
+    return TextSpan(
+      text: text,
+      style: style.copyWith(
+        height: lineHeight,
+        decoration:
+            shouldUnderline ? TextDecoration.underline : TextDecoration.none,
+        decorationColor: decorationColor,
+        decorationThickness: decorationThickness,
+        decorationStyle: TextDecorationStyle.solid,
       ),
+      mouseCursor: SystemMouseCursors.click,
+      recognizer: TapGestureRecognizer()
+        ..onTap = () {
+          if (support != null) {
+            widget.onSupportSelected?.call(support);
+          }
+        },
+      onEnter: (_) => setState(() => _hoveredSupport = support),
+      onExit: (_) => setState(() => _hoveredSupport = null),
     );
   }
 
   List<GroundingCitation> _getReferencedCitations(GroundingSupport support) {
+    final List<GroundingCitation> matchedCitations = [];
     final indices = support.groundingChunkIndices;
-    return indices
-        .where((idx) => idx >= 0 && idx < widget.groundingCitations.length)
-        .map((idx) => widget.groundingCitations[idx])
-        .toList();
+
+    for (final index in indices) {
+      // 1. Resolve the ScannedSource by index
+      final source = widget.scannedSources.firstWhere(
+        (s) => s.index == index,
+        orElse: () =>
+            ScannedSource(index: -1, title: '', url: '', isCited: false),
+      );
+
+      if (source.index == -1 || source.url.isEmpty) continue;
+
+      // 2. Search groundingCitations for an entry with the same URL
+      // We normalize simple matching or just direct URL match as per backend logic
+      final citation = widget.groundingCitations.firstWhere(
+        (c) => c.url == source.url,
+        orElse: () => GroundingCitation(title: '', url: '', snippet: ''),
+      );
+
+      if (citation.url.isNotEmpty) {
+        matchedCitations.add(citation);
+      }
+    }
+
+    return matchedCitations;
   }
 }
