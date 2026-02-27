@@ -3,12 +3,15 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/grounding_models.dart';
 import 'evidence_card.dart';
+import 'source_reliability_badge.dart';
 
 class EvidenceTray extends StatelessWidget {
   final List<GroundingCitation> citedSources;
   final List<ScannedSource> scannedSources;
   final List<int> activeChunkIndices;
   final List<SourceAttachment> attachments;
+  final ReliabilityMetrics? reliabilityMetrics;
+  final GroundingSupport? activeSupport;
   final VoidCallback onClose;
 
   const EvidenceTray({
@@ -17,6 +20,8 @@ class EvidenceTray extends StatelessWidget {
     required this.scannedSources,
     required this.activeChunkIndices,
     required this.attachments,
+    this.reliabilityMetrics,
+    this.activeSupport,
     required this.onClose,
   });
 
@@ -59,9 +64,48 @@ class EvidenceTray extends StatelessWidget {
                 children: [
                   if (citedSources.isNotEmpty) ...[
                     _buildSectionTitle("VERIFIED EVIDENCE"),
-                    const SizedBox(height: 12),
-                    ...citedSources.map(
-                      (citation) => Padding(
+                    ...citedSources.map((citation) {
+                      double? computedScore;
+                      double? sourceConfidence;
+                      double? sourceAuthority;
+
+                      if (activeSupport != null &&
+                          reliabilityMetrics != null &&
+                          reliabilityMetrics!.segments.isNotEmpty) {
+                        try {
+                          final currentSegmentText =
+                              activeSupport!.segment.text;
+                          final segmentAudit = reliabilityMetrics!.segments
+                              .firstWhere((s) => s.text == currentSegmentText);
+
+                          final sourceAudit = segmentAudit.sources.firstWhere(
+                            (s) => s.id == citation.id,
+                          );
+
+                          // Find confidence score index
+                          final chunkIndexInSupport = activeSupport!
+                              .groundingChunkIndices
+                              .indexOf(citation.id - 1);
+
+                          if (chunkIndexInSupport != -1 &&
+                              chunkIndexInSupport <
+                                  activeSupport!.confidenceScores.length) {
+                            sourceConfidence = activeSupport!
+                                .confidenceScores[chunkIndexInSupport];
+                            sourceAuthority = sourceAudit.authority;
+
+                            if (sourceConfidence != null &&
+                                sourceAuthority != null) {
+                              computedScore =
+                                  sourceConfidence! * sourceAuthority!;
+                            }
+                          }
+                        } catch (e) {
+                          // Ignore if metrics missing
+                        }
+                      }
+
+                      return Padding(
                         padding: const EdgeInsets.only(bottom: 12),
                         child: EvidenceCard(
                           title: citation.title,
@@ -72,9 +116,12 @@ class EvidenceTray extends StatelessWidget {
                           status: citation.status,
                           sourceId: citation.id,
                           isActive: true,
+                          score: computedScore,
+                          confidence: sourceConfidence,
+                          authority: sourceAuthority,
                         ),
-                      ),
-                    ),
+                      );
+                    }),
                   ],
                   AnimatedSwitcher(
                     duration: const Duration(milliseconds: 300),
@@ -175,7 +222,7 @@ class EvidenceTray extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _buildIdBadge(source.id),
+              SourceReliabilityBadge(sourceId: source.id),
               const SizedBox(width: 8),
               Flexible(
                 child: ConstrainedBox(
@@ -193,27 +240,6 @@ class EvidenceTray extends StatelessWidget {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildIdBadge(int id) {
-    return Container(
-      width: 20,
-      height: 20,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.white24, width: 1),
-      ),
-      child: Text(
-        id.toString(),
-        style: GoogleFonts.outfit(
-          color: Colors.white60,
-          fontSize: 9,
-          fontWeight: FontWeight.bold,
         ),
       ),
     );

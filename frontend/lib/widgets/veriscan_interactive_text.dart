@@ -11,6 +11,7 @@ class VeriscanInteractiveText extends StatefulWidget {
   final List<ScannedSource> scannedSources;
   final List<SourceAttachment> attachments;
   final GroundingSupport? activeSupport;
+  final ReliabilityMetrics? reliabilityMetrics;
   final Function(GroundingSupport?)? onSupportSelected;
 
   const VeriscanInteractiveText({
@@ -21,6 +22,7 @@ class VeriscanInteractiveText extends StatefulWidget {
     required this.scannedSources,
     required this.attachments,
     this.activeSupport,
+    this.reliabilityMetrics,
     this.onSupportSelected,
   });
 
@@ -97,6 +99,8 @@ class _VeriscanInteractiveTextState extends State<VeriscanInteractiveText> {
                   activeChunkIndices:
                       widget.activeSupport!.groundingChunkIndices,
                   attachments: widget.attachments,
+                  reliabilityMetrics: widget.reliabilityMetrics,
+                  activeSupport: widget.activeSupport,
                   onClose: () => widget.onSupportSelected?.call(null),
                 ),
               ),

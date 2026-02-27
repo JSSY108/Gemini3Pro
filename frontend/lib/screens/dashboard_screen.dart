@@ -386,6 +386,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                                                   _result!.scannedSources,
                                               attachments: _migratedAttachments,
                                               activeSupport: _activeSupport,
+                                              reliabilityMetrics:
+                                                  _result?.reliabilityMetrics,
                                               onSupportSelected:
                                                   _handleSupportSelected,
                                             ),

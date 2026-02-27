@@ -3,8 +3,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:universal_html/html.dart' as html;
+import 'package:html_unescape/html_unescape.dart';
 import '../utils/web_helper.dart' as web_helper;
 import '../models/grounding_models.dart';
+import 'source_reliability_badge.dart';
 
 class EvidenceCard extends StatefulWidget {
   final String title;
@@ -15,6 +17,9 @@ class EvidenceCard extends StatefulWidget {
   final String status;
   final int sourceId;
   final bool isActive;
+  final double? score;
+  final double? confidence;
+  final double? authority;
   final VoidCallback? onDelete;
 
   const EvidenceCard({
@@ -27,6 +32,9 @@ class EvidenceCard extends StatefulWidget {
     this.status = 'live',
     this.sourceId = 0,
     this.isActive = false,
+    this.score,
+    this.confidence,
+    this.authority,
     this.onDelete,
   });
 
@@ -36,6 +44,7 @@ class EvidenceCard extends StatefulWidget {
 
 class _EvidenceCardState extends State<EvidenceCard> {
   bool _isExpanded = false;
+  final _unescape = HtmlUnescape();
 
   bool get _isUploadedFile =>
       widget.sourceFile != null || !widget.url.startsWith('http');
@@ -325,45 +334,12 @@ class _EvidenceCardState extends State<EvidenceCard> {
                     children: [
                       Row(
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(6),
-                            width: 28,
-                            height: 28,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: widget.sourceId > 0
-                                  ? (widget.isActive
-                                        ? const Color(0xFFD4AF37)
-                                        : const Color(
-                                            0xFFD4AF37,
-                                          ).withValues(alpha: 0.1))
-                                  : const Color(
-                                      0xFFD4AF37,
-                                    ).withValues(alpha: 0.1),
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: widget.sourceId > 0
-                                    ? const Color(0xFFD4AF37)
-                                    : Colors.transparent,
-                                width: 1,
-                              ),
-                            ),
-                            child: widget.sourceId > 0
-                                ? Text(
-                                    widget.sourceId.toString(),
-                                    style: GoogleFonts.outfit(
-                                      color: widget.isActive
-                                          ? Colors.black
-                                          : const Color(0xFFD4AF37),
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  )
-                                : const Icon(
-                                    Icons.auto_awesome,
-                                    color: Color(0xFFD4AF37),
-                                    size: 14,
-                                  ),
+                          SourceReliabilityBadge(
+                            sourceId: widget.sourceId,
+                            isActive: widget.isActive,
+                            score: widget.score,
+                            confidence: widget.confidence,
+                            authority: widget.authority,
                           ),
                           const SizedBox(width: 10),
                           Expanded(
@@ -436,7 +412,7 @@ class _EvidenceCardState extends State<EvidenceCard> {
                           builder: (context, constraints) {
                             final textPainter = TextPainter(
                               text: TextSpan(
-                                text: widget.snippet,
+                                text: _unescape.convert(widget.snippet),
                                 style: GoogleFonts.outfit(
                                   fontSize: 13,
                                   height: 1.5,
@@ -453,7 +429,7 @@ class _EvidenceCardState extends State<EvidenceCard> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  widget.snippet,
+                                  _unescape.convert(widget.snippet),
                                   maxLines: _isExpanded ? null : 3,
                                   overflow: _isExpanded
                                       ? null

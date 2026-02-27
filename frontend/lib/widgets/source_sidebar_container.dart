@@ -271,16 +271,26 @@ class _SourceSidebarContainerState extends State<SourceSidebarContainer> {
                 // Fallback to Global Max if not segment-specific
                 if (tileScore == null) {
                   double maxScore = 0.0;
+                  double? maxConf;
+                  double? maxAuth;
                   bool found = false;
                   for (final seg in widget.reliabilityMetrics!.segments) {
                     for (final src in seg.sources) {
                       if (src.chunkIndex == chunkIdx) {
                         found = true;
-                        if (src.score > maxScore) maxScore = src.score;
+                        if (src.score >= maxScore) {
+                          maxScore = src.score;
+                          maxConf = src.confidence;
+                          maxAuth = src.authority;
+                        }
                       }
                     }
                   }
-                  if (found) tileScore = maxScore;
+                  if (found) {
+                    tileScore = maxScore;
+                    tileConf = maxConf;
+                    tileAuth = maxAuth;
+                  }
                 }
               }
 
@@ -376,16 +386,26 @@ class _SourceSidebarContainerState extends State<SourceSidebarContainer> {
                 // Fallback to Global Max if not segment-specific
                 if (tileScore == null) {
                   double maxScore = 0.0;
+                  double? maxConf;
+                  double? maxAuth;
                   bool found = false;
                   for (final seg in widget.reliabilityMetrics!.segments) {
                     for (final src in seg.sources) {
                       if (src.chunkIndex == chunkIdx) {
                         found = true;
-                        if (src.score > maxScore) maxScore = src.score;
+                        if (src.score >= maxScore) {
+                          maxScore = src.score;
+                          maxConf = src.confidence;
+                          maxAuth = src.authority;
+                        }
                       }
                     }
                   }
-                  if (found) tileScore = maxScore;
+                  if (found) {
+                    tileScore = maxScore;
+                    tileConf = maxConf;
+                    tileAuth = maxAuth;
+                  }
                 }
               }
 

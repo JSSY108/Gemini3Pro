@@ -41,6 +41,8 @@ class SourceAudit(BaseModel):
     domain: str
     score: float
     quote_text: str
+    confidence: Optional[float] = 0.0
+    authority: Optional[float] = 0.0
 
 class SegmentAudit(BaseModel):
     text: str
