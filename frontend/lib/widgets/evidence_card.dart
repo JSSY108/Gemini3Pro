@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:file_picker/file_picker.dart';
-import 'dart:html' as html;
-import 'dart:ui_web' as ui_web;
+import 'package:universal_html/html.dart' as html;
+import '../utils/web_helper.dart' as web_helper;
 import '../models/grounding_models.dart';
 
 class EvidenceCard extends StatefulWidget {
@@ -168,7 +168,7 @@ class _EvidenceCardState extends State<EvidenceCard> {
 
     // Register the factory for this specific PDF URL
     final viewId = 'pdf-view-${file.name.hashCode}';
-    ui_web.platformViewRegistry.registerViewFactory(viewId, (int viewId) {
+    web_helper.registerViewFactory(viewId, (int viewId) {
       return html.IFrameElement()
         ..src = url
         ..style.border = 'none'

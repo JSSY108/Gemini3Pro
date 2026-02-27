@@ -1,9 +1,10 @@
-ERROR: Invalid \escape: line 15 column 253 (char 1743)
+ERROR: Invalid \escape: line 20 column 311 (char 2534)
 ==================================================
+```json
 {
-  "verdict": "MOSTLY_TRUE",
+  "verdict": "MOSTLY_FALSE",
   "confidence_score": 0.95,
-  "analysis": "**1. The Core Claim(s):**\nThe claim states that water boils at 100 degrees Celsius.\n\n**2. Evidence Breakdown:**\n*   Water boils at 100 degrees Celsius (212 degrees Fahrenheit) at sea level under standard atmospheric pressure.\n*   The boiling point of water changes with altitude and pressure. At higher altitudes, where atmospheric pressure is lower, water boils at a lower temperature.\n*   Impurities in the water can also affect its boiling point.\n\n**3. Context & Nuance:**\nThe statement is generally true under standard conditions (sea level, standard atmospheric pressure). However, it's important to note that the boiling point of water is not a fixed value and can vary depending on environmental factors such as altitude and pressure. The claim is mostly true because it doesn't specify the conditions under which water boils at 100 degrees Celsius.\n\n**4. Red Flags & Discrepancies:**\nNo major discrepancies found in the verified sources.",
+  "analysis": "**1. The Core Claim(s):**\nThe claim states that the speed of light is exactly 300,000 kilometers per second.\n\n**2. Evidence Breakdown:**\n*   The speed of light in a vacuum is a universal physical constant.\n*   The exact value is 299,792,458 meters per second.\n*   This is equivalent to approximately 299,792.458 kilometers per second.\n*   The approximate value of 300,000 kilometers per second is often used.\n\n**3. Context & Nuance:**\nWhile 300,000 km/s is a common approximation, the *exact* speed of light is 299,792.458 km/s. The claim is technically incorrect due to the rounding. The difference, while seemingly small, is significant in precise scientific calculations.\n\n**4. Red Flags & Discrepancies:**\nNo major discrepancies found in the verified sources.",
   "multimodal_cross_check": false,
   "source_metadata": {
     "types_analyzed": [
@@ -12,19 +13,19 @@ ERROR: Invalid \escape: line 15 column 253 (char 1743)
   },
   "grounding_citations": [
     {
-      "title": "Boiling points | Science | Research Starters - EBSCO",
-      "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEmxfeaLUT3yVSrdKKV-aoC-0TCcD28fjXD0b3i5RX4PxH-k0f0P9RGJjHC9H_--CIhZWEarFJjEK_5KHeWosQe_IqyVnsN4-ulXeuFvU2RZ5soTeXgPCSfbm9w_iJMDdJLWAFXHuxZy7tBVcXOSQxv-VGKv1xOjmY=",
-      "snippet": "At sea level, water boils at 212 degrees Fahrenheit(212°F) or 100 degrees Celsius (100°C). Water's boiling point changes as altitude is increased or decreased. For example, at 1,000 feet below sea level, water boils at 213.9°F (101.1°\xa0..."
+      "title": "Speed of light - Wikipedia",
+      "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHoxSguKhY25X_SCW9iKhgZtuSLWFTUBu3dfVEefu_XUe-xVYMC1mx0F0UYog_PIW2itLJnnHlRCIqLKHXhJrYa2quB9oPDq-gCZRO3BwRonNmR2NxMlad9iycDx1cX0JTih8VzHH4v",
+      "snippet": "The value 299,792,458 metres per second is approximately 1 billion kilometres per hour; 700 million miles per hour. For other approximations of c valid for various units and size scales see the sidebar. Speed of light. The distance from the Sun to Earth is shown as 150 million kilometres, an approximate. Due to its finite speed, sunlight takes 8 minutes and 10 to 27 seconds to reach Earth, depending on the time of year.\n\nThe speed of light in vacuum, often called simply the speed of light and commonly denoted c, is a universal physical constant exactly equal to 299792458 m⋅s<sup>−</sup><sup>1</sup>."
     },
     {
-      "title": "At 100°C and Rising: The Science Behind Water Boiling Point Explained",
-      "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQF2EKf2WzfMQO7SIDek2mq34UOqN9HtXlMU35nlT-cQxT4z53isVgzmt8IFeVf3agMW2S6wdlaLqr0ehhaQd_sraka_aA3Vzm4oZ4pHBlD6ISMK1dKx6rbbc9Y_GKRTaXsQ_iuZb85dHZWxe7htmI97oes48zA2OJx6vj8WI81qQOkF_xwopvi0rOB3os_-h3ccCr6ALpZDvmSkJyo=",
-      "snippet": "(2026-02-17) Water reaching its boiling point of 100°C at standard atmospheric pressure is a well-known phenomenon—yet the deeper mechanics behind this transformation reveal fascinating insights into molecular behavior, energy dynamics, and everyday impact."
+      "title": "What is the exact speed of light in Km/sec? - Quora",
+      "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGS7Nw2DQEvxJ-vKo2zRlNPThrBshE4eX0rykjNgKQji5BhByQLrLvM1FaHwrBynvTLkMbSk0uUe7-s1-ZhxCRypfhQL1FPC9r6Etzmvh8bnnOHZhX6fOxrVGENCcriJ9xcXO3knz7pRmzWyG-uCc9fU8stvwspNQlfTwk=",
+      "snippet": "Since 1983 speed of light is 299792458 meters per second, because a meter was defined as 1/299792458 light-seconds in that year. Prior definitions of the meter yielded similar speeds of light, as the changes in definition were intended to clarify and standardize measurements, not change them\xa0..."
     },
     {
-      "title": "Understanding Water's Boiling Point: A Simple Exploration - Oreate AI Blog",
-      "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFAZ2TSB5MBqJVOrGYgDre4vNTuUPgH9VjN6Y7zqiJrBgG9-6hcEwakd4DVsu-vdEUd4Aa-mgObo1goqnhBZDREslsrAmZe32x6hsaTua63s1AeZuc_bWHdBnf5641iw6hrn5gSxm3vTQ6ZpWQ6Gl2sarL7U2AdkVxtGJmrsW_To4tZj8LVMW8SjpZEl_seVHJC3XI0zhUltd6ORG7zibbUdW4aEgy1YC0t4r-Gp4rwFw==",
-      "snippet": "(2026-01-20) At standard atmospheric pressure—what we experience every day at sea level—water boils at 100 degrees Celsius (212 degrees Fahrenheit). This temperature marks the transition from liquid to gas, where water molecules gain enough energy to break free from their bonds and escape into the air as steam. But why does this number matter?"
+      "title": "Speed of light - Wikipedia",
+      "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHoxSguKhY25X_SCW9iKhgZtuSLWFTUBu3dfVEefu_XUe-xVYMC1mx0F0UYog_PIW2itLJnnHlRCIqLKHXhJrYa2quB9oPDq-gCZRO3BwRonNmR2NxMlad9iycDx1cX0JTih8VzHH4v",
+      "snippet": "The value 299,792,458 metres per second is approximately 1 billion kilometres per hour; 700 million miles per hour. For other approximations of c valid for various units and size scales see the sidebar. Speed of light. The distance from the Sun to Earth is shown as 150 million kilometres, an approximate. Due to its finite speed, sunlight takes 8 minutes and 10 to 27 seconds to reach Earth, depending on the time of year."
     }
   ],
   "media_literacy": {

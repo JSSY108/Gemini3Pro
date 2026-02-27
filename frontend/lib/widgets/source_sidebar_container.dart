@@ -243,29 +243,6 @@ class _SourceSidebarContainerState extends State<SourceSidebarContainer> {
                 child: AnimatedContainer(
                   key: _sourceKeys[keyStr],
                   duration: const Duration(milliseconds: 300),
-                  decoration: BoxDecoration(
-                    color: isActive
-                        ? const Color(0xFFD4AF37).withValues(alpha: 0.1)
-                        : Colors.transparent,
-                    border: Border.all(
-                      color: isActive
-                          ? const Color(0xFFD4AF37)
-                          : const Color(0xFFD4AF37).withValues(alpha: 0.3),
-                      width: isActive ? 2.0 : 1.5,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: isActive
-                        ? [
-                            BoxShadow(
-                              color: const Color(
-                                0xFFD4AF37,
-                              ).withValues(alpha: 0.3),
-                              blurRadius: 15,
-                              spreadRadius: 2,
-                            ),
-                          ]
-                        : [],
-                  ),
                   child: SourceTile(
                     title: source.title.isNotEmpty
                         ? source.title
@@ -323,29 +300,6 @@ class _SourceSidebarContainerState extends State<SourceSidebarContainer> {
                 child: AnimatedContainer(
                   key: _sourceKeys[keyStr],
                   duration: const Duration(milliseconds: 300),
-                  decoration: BoxDecoration(
-                    color: isActive
-                        ? const Color(0xFFD4AF37).withValues(alpha: 0.05)
-                        : Colors.transparent,
-                    border: Border.all(
-                      color: isActive
-                          ? const Color(0xFFD4AF37)
-                          : Colors.white.withValues(alpha: 0.1),
-                      width: isActive ? 2.0 : 1.0,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: isActive
-                        ? [
-                            BoxShadow(
-                              color: const Color(
-                                0xFFD4AF37,
-                              ).withValues(alpha: 0.2),
-                              blurRadius: 10,
-                              spreadRadius: 1,
-                            ),
-                          ]
-                        : [],
-                  ),
                   child: SourceTile(
                     title: source.title,
                     url: source.url,

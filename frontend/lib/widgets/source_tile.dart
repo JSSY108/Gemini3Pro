@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:file_picker/file_picker.dart';
-import 'dart:html' as html;
-import 'dart:ui_web' as ui_web;
+import 'package:universal_html/html.dart' as html;
+import '../utils/web_helper.dart' as web_helper;
 import '../models/grounding_models.dart';
 
 class SourceTile extends StatelessWidget {
@@ -160,7 +160,7 @@ class SourceTile extends StatelessWidget {
 
     // Register the factory for this specific PDF URL
     final viewId = 'pdf-tile-view-${file.name.hashCode}';
-    ui_web.platformViewRegistry.registerViewFactory(viewId, (int viewId) {
+    web_helper.registerViewFactory(viewId, (int viewId) {
       return html.IFrameElement()
         ..src = url
         ..style.border = 'none'
@@ -292,10 +292,7 @@ class SourceTile extends StatelessWidget {
                   ? const Color(0xFFD4AF37).withValues(alpha: 0.1)
                   : Colors.white.withValues(alpha: 0.03),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: isActive ? const Color(0xFFD4AF37) : Colors.white10,
-                width: isActive ? 1.0 : 0.5,
-              ),
+              border: Border.all(color: Colors.amber.withOpacity(0.5)),
             ),
             child: Material(
               color: Colors.transparent,

@@ -246,7 +246,7 @@ You MUST return your final response strictly as a valid JSON object matching the
 
 {
   "verdict": "TRUE | MOSTLY_TRUE | MIXTURE | MISLEADING | MOSTLY_FALSE | FALSE | UNVERIFIABLE | NOT_A_CLAIM",
-  "confidence_score": [float between 0.0 and 1.0 representing internal reasoning confidence],
+  "confidence_score": [float between 0.0 and 1.0 representing AI reasoning certainty],
   "analysis": "[A highly detailed markdown-formatted string following the exact structure outlined below]",
   "multimodal_cross_check": [boolean: true if uploaded files match verified web facts, false otherwise],
   "source_metadata": { 
@@ -553,14 +553,20 @@ The "analysis" string MUST be formatted in Markdown and strictly use these four 
             # Map VERDICT label back explicitly if not present or for engine-driven overrides if specifically requested
             # However, per user request, we now let the model provide the top-level verdict/score
             # and keep the reliability engine metrics separate.
+            # Fallback: Default to UNVERIFIABLE if model fails to provide verdict
             if "verdict" not in data or not data["verdict"]:
-                score = float(reliability_metrics.get("score", 0.0))
-                if score > 0.85:
-                    data["verdict"] = "TRUE"
-                elif score > 0.50:
-                    data["verdict"] = "MISLEADING"
+                data["verdict"] = "UNVERIFIABLE"
+            else:
+                # Ensure normalization to standard strings
+                v = str(data["verdict"]).upper().strip()
+                valid_tiers = ["TRUE", "MOSTLY_TRUE", "MIXTURE", "MISLEADING", "MOSTLY_FALSE", "FALSE", "UNVERIFIABLE", "NOT_A_CLAIM"]
+                if v not in valid_tiers:
+                    # Simple heuristic mapping for minor typos
+                    if "TRUE" in v: data["verdict"] = "TRUE"
+                    elif "FALSE" in v: data["verdict"] = "FALSE"
+                    else: data["verdict"] = "UNVERIFIABLE"
                 else:
-                    data["verdict"] = "FALSE"
+                    data["verdict"] = v
                  
         except Exception as e:
             logger.error(f"Error calculating reliability: {e}")

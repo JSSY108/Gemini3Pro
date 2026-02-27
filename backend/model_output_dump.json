@@ -1,7 +1,7 @@
 {
-  "verdict": "TRUE",
-  "confidence_score": 1.0,
-  "analysis": "**1. The Core Claim(s):**\nThe claim states that Donald Trump has been the president of the USA for two terms.\n\n**2. Evidence Breakdown:**\n*   Donald Trump served as the 45th president of the United States from 2017 to 2021.\n*   He was elected to a second term and inaugurated as the 47th president on January 20, 2025.\n\n**3. Context & Nuance:**\nThe evidence confirms that Donald Trump has served as president for two terms, one from 2017-2021 and another starting in 2025.\n\n**4. Red Flags & Discrepancies:**\nNo major discrepancies found in the verified sources.",
+  "verdict": "MOSTLY_FALSE",
+  "confidence_score": 0.95,
+  "analysis": "**1. The Core Claim(s):**\nThe claim states that the speed of light is exactly 300,000 kilometers per second.\n\n**2. Evidence Breakdown:**\n*   The speed of light in a vacuum is approximately 299,792.458 kilometers per second.\n*   The speed of light is a universal physical constant.\n*   The speed of light is used to define the meter.\n\n**3. Context & Nuance:**\nWhile 300,000 km/s is a common approximation, the exact value is 299,792.458 km/s. The claim is close, but not entirely accurate. The difference, while seemingly small, is significant in precise scientific calculations.\n\n**4. Red Flags & Discrepancies:**\nNo major discrepancies found in the verified sources.",
   "multimodal_cross_check": false,
   "source_metadata": {
     "types_analyzed": [
@@ -10,19 +10,29 @@
   },
   "grounding_citations": [
     {
-      "title": "Donald Trump Facts | Britannica",
-      "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEdVOG7ElRwtZaM6W_NgXi9XHajIr9E_EBnlaW_SPx4BbCH3QHoaxWC2IxKKhR2QqTia9t9VTyVph08G88oPTm9dY6GPGjYUkEAMW0H47oS_KvZuISqdd44Qzv4hGH3jLdLXQDIm8mWDw==",
-      "snippet": "Donald Trump served as the 45th president of the United States (2017\u201321). He was the third president in US history to be impeached by the US House of Representatives."
+      "title": "What is the speed of light?",
+      "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFpFVn1zsNz_bTx0t07VHNfPTHeKWM2ptTub4ganx4mi-aNNkVj5JGDmfwWSovJpJ7NaMnBbf4vXOrJESWjguKagcheq1g9jnLbpItSdhZ-EqrfZCubuOZFUfo6krO-ipjQWeZsyutllapUfaVZkpYw6HK3QP8DSSXJZLsL4VnSKfQ=",
+      "snippet": "Light moves at an incredible 186,000 miles per second (300,000 kilometers per second), equivalent to almost 700 million mph (more than 1 billion km/h). That&#39;s fast enough to circumnavigate the globe 7.5 times in one second, while a typical passenger jet would take more than two days to go around once (and that doesn&#39;t include stops for fuel or layovers!). ... Light moves so fast that, for much of human history, we thought it traveled instantaneously. As early as the late 1600s, though, scientist Ole Roemer was able to measure the speed of light (usually referred to as c) by using observations of Jupiter&#39;s moons, according to Britannica.\n... Nowadays, the speed of light is used to define units of length, so its value is fixed; humans have essentially agreed the speed of light is 299,792.458 kilometers per second, exactly."
     },
     {
-      "title": "Second presidency of Donald Trump - Wikipedia",
-      "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGXk7f3RSKoqYre0uDxtVXmoUTTEH4kKS5yjAmLOBxcWBM0KWzjeBqhFx9REZqFzO6NU_RV1sadaUv2CNEVK_Zoly9UdN342G1q9FZzaRwx97ovEsCanCdMNa--3drpGfXOvULsajuefj7dHrSYtQkZ-Gu7AwEFRZYd7A==",
-      "snippet": "Donald Trump's second and current tenure as the president of the United States began upon his inauguration as the 47th president on January 20, 2025. Trump, a Republican, previously served as the 45th president from 2017 to 2021. He lost re-election to Democratic candidate Joe Biden in 2020, and then won against Democratic candidate Kamala Harris in 2024. Trump is the second former U.S. president to return to office."
+      "title": "Speed of Light to Kilometers per Second Conversion (c to km/s) - Inch Calculator",
+      "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGh7gNH5Z9ItJ-DeXpZSSnc9Cyo9pfTyxGBwKkeFl9nKO_no2kCuADqdRH-limwu2X6m-MJveirzwqnBoD6KuCj0OkBGneSlcVfydIm1MC_Cwp9kdtR6mxAFWDvAMBfIG27VFU2bNglpchf4hocqlJebF695CQfuvWDhfW3vhLf25KlK3TZ6Kj7Tg==",
+      "snippet": "To convert a measurement in speed of light to a measurement in kilometers per second, multiply the speed by the following conversion ratio: 299,792.458 kilometers per second/speed of light.\n... What Is the Speed of Light? The speed of light is equal to exactly 299,792,458 meters per second, or 670,616,629 miles per hour. The definition of the speed of light is actually derived from the most recent 1983 international definition of the meter."
     },
     {
-      "title": "Timeline of the Donald Trump presidencies - Wikipedia",
-      "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGxA6bOj6XZ1sBl12OWH5i9ysyYqyEkz2QyZHRDPUMrLva9orGT3G2j3QPR4Rfx4SUMQJiAMKntohy-oJA0IKsUeg-ysKl9k_ocjx8A5_gvG-xlY-ODOdQJlB9eoELjo6TphBqHwJtsyLhXQLx3LiO67ijR3WnCa26xlOOx6O6NlqZT",
-      "snippet": "Donald Trump, a Republican originally from New York, who moved his principal residency to Florida in 2019, was elected president of the United States in 2016. He was inaugurated on January 20, 2017, as the nation's 45th president, and his presidency ended on January 20, 2021, with the inauguration of Joe Biden. Trump was then elected to a nonconsecutive second term in 2024, and assumed the presidency again on January 20, 2025, as the nation's 47th and current president."
+      "title": "Speed of light - Wikipedia",
+      "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEUO5lvdlVY_IjG7Axwhn4a1PHunNuJ1xn_lMsrlU_sBfMwRVahea5IpHoLVIQQbkAWRBGumUSqERJ4h0sVY7yXiqY_j8-EmiBGyQxYQSSp0PjhMXt7gHzCht-1vCGBIURnDaP9RKkR",
+      "snippet": "The speed of light in vacuum, often called simply the speed of light and commonly denoted c, is a universal physical constant exactly equal to 299792458 m\u22c5s-1. It is exact because, by international agreement, a metre is defined as the length of the path travelled by light in vacuum during a time interval of 1\u2044299792458 second."
+    },
+    {
+      "title": "What is the Speed of Light? - Universe Today",
+      "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEOiAT5P3j5xTVhcFVpCyGGfok67vCq1vv2VQB__wjGh6bbb5eCz5KTujOG81q1h5UOjyVAPYLXZya-5iuRymK8a5Wr-05jAq9vkItNa16Mv6gb0Tm5qqHdoWEmkr2YDdeXlOQtSN_GvABfmIWJDBPByus=",
+      "snippet": "Light travels at a constant speed of 1,079,252,848.8 (1.07 billion) km per hour. That works out to 299,792,458 m/s, or about 670,616,629 mph (miles per hour). To put that in perspective, if you could travel at the speed of light, you would be able to circumnavigate the globe approximately seven and a half times in one second."
+    },
+    {
+      "title": "What is the exact speed of light in Km/sec? - Quora",
+      "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQH8BmS3H_FP5HCOOb0gvgkGdmdTmP_bq-4lbS13W1g9X34BGagDWnQm7cLfH4TAhVS6ZaorS-1zP4LhksjqHOOxwh-wmbkYTnb-W91Uhdpx3xzBlsXTk9uAExA17UXmxSMDfbf4ID6uSZn7iqpycJdM2_qZ_db0nDUQHu8=",
+      "snippet": "Since 1983 speed of light is 299792458 meters per second, because a meter was defined as 1/299792458 light-seconds in that year. Prior definitions of the meter yielded similar speeds of light, as the changes in definition were intended to clarify and standardize measurements, not change them\u00a0..."
     }
   ],
   "media_literacy": {

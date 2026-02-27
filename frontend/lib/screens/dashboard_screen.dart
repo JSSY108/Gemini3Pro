@@ -336,7 +336,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             ),
           // Analysis Hub
           Expanded(
-            flex: 6,
+            flex: 20, // 2.0 Left Lane
             child: Container(
               color: const Color(0xFF121212),
               child: Column(
@@ -420,7 +420,7 @@ class _DashboardScreenState extends State<DashboardScreen>
           // Verdict Pane (Responsive)
           if (showVerdictPane)
             Expanded(
-              flex: 2,
+              flex: 12, // 1.2 Right Lane
               child: Container(
                 decoration: BoxDecoration(
                   color: const Color(0xFF1E1E1E),
@@ -430,7 +430,9 @@ class _DashboardScreenState extends State<DashboardScreen>
                     ),
                   ),
                 ),
-                child: VerdictPane(result: _result),
+                child: SingleChildScrollView(
+                  child: VerdictPane(result: _result),
+                ),
               ),
             ),
         ],
