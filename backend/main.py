@@ -84,6 +84,16 @@ def init_vertex():
 
 # --- Utilities ---
 
+def normalize_for_search(text: str) -> str:
+    """Normalizes text for robust anchor matching (degree symbols, spaces, etc)."""
+    if not text:
+        return ""
+    # Standardize degree symbol: handles standard, escaped, and common corruption variants
+    # Note: the empty string in replace('', '°') was likely a placeholder for a specific corruption char
+    # We'll use the specific ones mentioned and general cleanup.
+    normalized = text.replace('\\u00b0', '°').replace('â°', '°').strip()
+    return normalized
+
 def repair_and_parse_json(raw_text: str) -> dict:
     """Aggressively cleans and parses LLM-generated JSON."""
     if not raw_text:
@@ -565,6 +575,32 @@ The "analysis" string MUST be formatted in Markdown and strictly use these four 
             sanitized_analysis = raw_analysis.replace('\\n', '\n').replace('\\"', '"')
         else:
             sanitized_analysis = str(raw_analysis)
+
+        # Phase 3: Fuzzy Anchor Re-indexing
+        # After citation brackets are injected (in standardize_analysis or similar),
+        # we must find the strings again to ensure UI highlights are accurate.
+        clean_analysis = normalize_for_search(sanitized_analysis)
+        for support in data.get("grounding_supports", []):
+            segment = support.get("segment", {})
+            anchor_text = segment.get("text", "")
+            if not anchor_text:
+                continue
+            
+            clean_anchor = normalize_for_search(anchor_text)
+            
+            # 1. Try Exact Match in normalized text
+            new_start = clean_analysis.find(clean_anchor)
+            
+            # 2. Try Partial Match (Fingerprint) if exact fails
+            if new_start == -1:
+                # Use first 20 chars as unique fingerprint to avoid bracket collisions
+                fingerprint = clean_anchor[:min(len(clean_anchor), 20)]
+                if len(fingerprint) >= 5: # Ensure fingerprint is meaningful
+                    new_start = clean_analysis.find(fingerprint)
+            
+            if new_start != -1:
+                segment["startIndex"] = new_start
+                segment["endIndex"] = new_start + len(anchor_text) # Use original length for indexing
 
         return AnalysisResponse(
             verdict=data.get("verdict", "UNVERIFIABLE"),
