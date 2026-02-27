@@ -10,6 +10,8 @@ class SourceSidebarContainer extends StatefulWidget {
   final List<ScannedSource> scannedSources;
   final List<SourceAttachment> uploadedAttachments;
   final List<int> activeIndices;
+  final ReliabilityMetrics? reliabilityMetrics;
+  final GroundingSupport? activeSupport;
   final Function(int) onCitationSelected;
   final Function(String) onDeleteAttachment;
   final ScrollController scrollController;
@@ -22,6 +24,8 @@ class SourceSidebarContainer extends StatefulWidget {
     required this.scannedSources,
     required this.uploadedAttachments,
     this.activeIndices = const [],
+    this.reliabilityMetrics,
+    this.activeSupport,
     required this.onCitationSelected,
     required this.onDeleteAttachment,
     required this.scrollController,
@@ -234,6 +238,52 @@ class _SourceSidebarContainerState extends State<SourceSidebarContainer> {
               _sourceKeys[keyStr] =
                   _sourceKeys[keyStr] ?? GlobalKey(debugLabel: keyStr);
 
+              double? tileScore;
+              double? tileConf;
+              double? tileAuth;
+
+              if (widget.reliabilityMetrics != null && source.id > 0) {
+                final chunkIdx = source.id - 1;
+
+                // If a segment is active, try to fetch specific context matches
+                if (isActive && widget.activeSupport != null) {
+                  final matchIndexes =
+                      widget.activeSupport!.groundingChunkIndices;
+                  final confScores = widget.activeSupport!.confidenceScores;
+                  final idxInSegment = matchIndexes.indexOf(chunkIdx);
+
+                  if (idxInSegment != -1 && idxInSegment < confScores.length) {
+                    tileConf = confScores[idxInSegment];
+                    // lookup authority weight from reliability Metrics segment sources
+                    for (final seg in widget.reliabilityMetrics!.segments) {
+                      for (final src in seg.sources) {
+                        if (src.chunkIndex == chunkIdx) {
+                          tileAuth = src.authority;
+                          tileScore = src.score;
+                          break;
+                        }
+                      }
+                      if (tileAuth != null) break;
+                    }
+                  }
+                }
+
+                // Fallback to Global Max if not segment-specific
+                if (tileScore == null) {
+                  double maxScore = 0.0;
+                  bool found = false;
+                  for (final seg in widget.reliabilityMetrics!.segments) {
+                    for (final src in seg.sources) {
+                      if (src.chunkIndex == chunkIdx) {
+                        found = true;
+                        if (src.score > maxScore) maxScore = src.score;
+                      }
+                    }
+                  }
+                  if (found) tileScore = maxScore;
+                }
+              }
+
               return Padding(
                 key: ValueKey('sidebar_cited_${source.url}'),
                 padding: const EdgeInsets.symmetric(
@@ -252,6 +302,9 @@ class _SourceSidebarContainerState extends State<SourceSidebarContainer> {
                     status: citation.status,
                     sourceId: source.id,
                     isActive: isActive,
+                    score: tileScore,
+                    confidence: tileConf,
+                    authority: tileAuth,
                     onTap: () => widget.onCitationSelected(source.id - 1),
                   ),
                 ),
@@ -291,6 +344,51 @@ class _SourceSidebarContainerState extends State<SourceSidebarContainer> {
               _sourceKeys[keyStr] =
                   _sourceKeys[keyStr] ?? GlobalKey(debugLabel: keyStr);
 
+              double? tileScore;
+              double? tileConf;
+              double? tileAuth;
+
+              if (widget.reliabilityMetrics != null && source.id > 0) {
+                final chunkIdx = source.id - 1;
+
+                // If a segment is active, try to fetch specific context matches
+                if (isActive && widget.activeSupport != null) {
+                  final matchIndexes =
+                      widget.activeSupport!.groundingChunkIndices;
+                  final confScores = widget.activeSupport!.confidenceScores;
+                  final idxInSegment = matchIndexes.indexOf(chunkIdx);
+
+                  if (idxInSegment != -1 && idxInSegment < confScores.length) {
+                    tileConf = confScores[idxInSegment];
+                    for (final seg in widget.reliabilityMetrics!.segments) {
+                      for (final src in seg.sources) {
+                        if (src.chunkIndex == chunkIdx) {
+                          tileAuth = src.authority;
+                          tileScore = src.score;
+                          break;
+                        }
+                      }
+                      if (tileAuth != null) break;
+                    }
+                  }
+                }
+
+                // Fallback to Global Max if not segment-specific
+                if (tileScore == null) {
+                  double maxScore = 0.0;
+                  bool found = false;
+                  for (final seg in widget.reliabilityMetrics!.segments) {
+                    for (final src in seg.sources) {
+                      if (src.chunkIndex == chunkIdx) {
+                        found = true;
+                        if (src.score > maxScore) maxScore = src.score;
+                      }
+                    }
+                  }
+                  if (found) tileScore = maxScore;
+                }
+              }
+
               return Padding(
                 key: ValueKey('sidebar_scanned_${source.url}'),
                 padding: const EdgeInsets.symmetric(
@@ -307,6 +405,9 @@ class _SourceSidebarContainerState extends State<SourceSidebarContainer> {
                     status: 'live',
                     sourceId: source.id,
                     isActive: isActive,
+                    score: tileScore,
+                    confidence: tileConf,
+                    authority: tileAuth,
                     onTap: () => widget.onCitationSelected(source.id - 1),
                   ),
                 ),

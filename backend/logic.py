@@ -134,7 +134,9 @@ def calculate_reliability(grounding_supports: list, grounding_chunks: list, grou
                 "source_index": source_index,
                 "domain": raw_domain,
                 "score": chunk_score,
-                "quote_text": quote_text
+                "quote_text": quote_text,
+                "confidence": conf,
+                "authority": auth
             })
             
             print(f"[DEBUG_EVAL] Seg {seg_idx} | Chunk {chunk_idx} | DocIdx {source_index} | Domain: {raw_domain} | Conf: {conf:.2f} | Auth: {auth:.2f} | Score: {chunk_score:.2f}")

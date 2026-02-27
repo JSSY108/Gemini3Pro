@@ -1,7 +1,7 @@
 {
-  "verdict": "MOSTLY_FALSE",
+  "verdict": "MOSTLY_TRUE",
   "confidence_score": 0.95,
-  "analysis": "**1. The Core Claim(s):**\nThe claim states that the speed of light is exactly 300,000 kilometers per second.\n\n**2. Evidence Breakdown:**\n*   The speed of light in a vacuum is approximately 299,792.458 kilometers per second.\n*   The speed of light is a universal physical constant.\n*   The speed of light is used to define the meter.\n\n**3. Context & Nuance:**\nWhile 300,000 km/s is a common approximation, the exact value is 299,792.458 km/s. The claim is close, but not entirely accurate. The difference, while seemingly small, is significant in precise scientific calculations.\n\n**4. Red Flags & Discrepancies:**\nNo major discrepancies found in the verified sources.",
+  "analysis": "**1. The Core Claim(s):**\nThe claim states that the speed of light is exactly 300,000 kilometers per second. \n\n**2. Evidence Breakdown:**\n*   The speed of light in a vacuum is approximately 300,000 kilometers per second.\n*   The exact value defined by the International System of Units (SI) is 299,792.458 meters per second.\n*   Light travels at different speeds depending on the medium through which it travels.\n\n**3. Context & Nuance:**\nWhile the approximation of 300,000 km/s is commonly used, the exact speed of light in a vacuum is 299,792.458 km/s. The claim is mostly true because it provides a rounded value. The variance depends on the medium through which light travels, with the maximum speed achieved in a vacuum.\n\n**4. Red Flags & Discrepancies:**\nNo major discrepancies found in the verified sources.",
   "multimodal_cross_check": false,
   "source_metadata": {
     "types_analyzed": [
@@ -10,29 +10,19 @@
   },
   "grounding_citations": [
     {
-      "title": "What is the speed of light?",
-      "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFpFVn1zsNz_bTx0t07VHNfPTHeKWM2ptTub4ganx4mi-aNNkVj5JGDmfwWSovJpJ7NaMnBbf4vXOrJESWjguKagcheq1g9jnLbpItSdhZ-EqrfZCubuOZFUfo6krO-ipjQWeZsyutllapUfaVZkpYw6HK3QP8DSSXJZLsL4VnSKfQ=",
-      "snippet": "Light moves at an incredible 186,000 miles per second (300,000 kilometers per second), equivalent to almost 700 million mph (more than 1 billion km/h). That&#39;s fast enough to circumnavigate the globe 7.5 times in one second, while a typical passenger jet would take more than two days to go around once (and that doesn&#39;t include stops for fuel or layovers!). ... Light moves so fast that, for much of human history, we thought it traveled instantaneously. As early as the late 1600s, though, scientist Ole Roemer was able to measure the speed of light (usually referred to as c) by using observations of Jupiter&#39;s moons, according to Britannica.\n... Nowadays, the speed of light is used to define units of length, so its value is fixed; humans have essentially agreed the speed of light is 299,792.458 kilometers per second, exactly."
+      "title": "Speed of Light Explained: Physics, Speed & Optics Guide - Evident Scientific",
+      "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQF4ZqobqeRhHDuu4NYk46VZMtlk3TdvLekjGGuKyw2r0fsWXx5APOu0JP0FjfUg56YZKoY9ehqHTiph6L6qErnAwQ1b7lRE8wWc7fMNKLx5kub4HUqkCzov_W0uUcM3C_nVMEexmKcBlq8Y2lP6gRf3UMKQ9F5fjJbmTPDKXyG4irM47gthpU8bOO7Ua_xM5s361kBmexcMxA==",
+      "snippet": "In 1983, more than 300 years after the first serious measurement attempt, the speed of light was defined as being 299,792.458 kilometers per second by the Seventeenth General Congress on Weights and Measures. Thus, the meter is defined as the distance light travels during a time interval of 1/299,792,458 seconds. In general, however, (even in many scientific calculations) the speed of light is rounded to 300,000 kilometers (or 186,000 miles) per second."
     },
     {
-      "title": "Speed of Light to Kilometers per Second Conversion (c to km/s) - Inch Calculator",
-      "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGh7gNH5Z9ItJ-DeXpZSSnc9Cyo9pfTyxGBwKkeFl9nKO_no2kCuADqdRH-limwu2X6m-MJveirzwqnBoD6KuCj0OkBGneSlcVfydIm1MC_Cwp9kdtR6mxAFWDvAMBfIG27VFU2bNglpchf4hocqlJebF695CQfuvWDhfW3vhLf25KlK3TZ6Kj7Tg==",
-      "snippet": "To convert a measurement in speed of light to a measurement in kilometers per second, multiply the speed by the following conversion ratio: 299,792.458 kilometers per second/speed of light.\n... What Is the Speed of Light? The speed of light is equal to exactly 299,792,458 meters per second, or 670,616,629 miles per hour. The definition of the speed of light is actually derived from the most recent 1983 international definition of the meter."
+      "title": "What is the speed of light? | Live Science",
+      "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGk5lnFulT8CyeEyykk4GGrK-XTXyCpuHW6zPqKGWQA8SVpKuaFoqrpBxX2X963mv9moRMG7dCReiLqJbDzsSMRH0Y_hgrQSuRalDwpNpgdkqLIbaeWDwRfkMkE2ZfLjoj39o6EMuiIrGajOlJ2IUTo8U9cCPT5Tlcda4431Eef8wc=",
+      "snippet": "(2023-05-30) Light moves at an incredible 186,000 miles per second (300,000 kilometers per second), equivalent to almost 700 million mph (more than 1 billion km/h). That&#39;s fast enough to circumnavigate the globe 7.5 times in one second, while a typical passenger jet would take more than two days to go around once (and that doesn&#39;t include stops for fuel or layovers!). ... Light moves so fast that, for much of human history, we thought it traveled instantaneously. As early as the late 1600s, though, scientist Ole Roemer was able to measure the speed of light (usually referred to as c) by using observations of Jupiter&#39;s moons, according to Britannica."
     },
     {
       "title": "Speed of light - Wikipedia",
-      "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEUO5lvdlVY_IjG7Axwhn4a1PHunNuJ1xn_lMsrlU_sBfMwRVahea5IpHoLVIQQbkAWRBGumUSqERJ4h0sVY7yXiqY_j8-EmiBGyQxYQSSp0PjhMXt7gHzCht-1vCGBIURnDaP9RKkR",
-      "snippet": "The speed of light in vacuum, often called simply the speed of light and commonly denoted c, is a universal physical constant exactly equal to 299792458 m\u22c5s-1. It is exact because, by international agreement, a metre is defined as the length of the path travelled by light in vacuum during a time interval of 1\u2044299792458 second."
-    },
-    {
-      "title": "What is the Speed of Light? - Universe Today",
-      "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEOiAT5P3j5xTVhcFVpCyGGfok67vCq1vv2VQB__wjGh6bbb5eCz5KTujOG81q1h5UOjyVAPYLXZya-5iuRymK8a5Wr-05jAq9vkItNa16Mv6gb0Tm5qqHdoWEmkr2YDdeXlOQtSN_GvABfmIWJDBPByus=",
-      "snippet": "Light travels at a constant speed of 1,079,252,848.8 (1.07 billion) km per hour. That works out to 299,792,458 m/s, or about 670,616,629 mph (miles per hour). To put that in perspective, if you could travel at the speed of light, you would be able to circumnavigate the globe approximately seven and a half times in one second."
-    },
-    {
-      "title": "What is the exact speed of light in Km/sec? - Quora",
-      "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQH8BmS3H_FP5HCOOb0gvgkGdmdTmP_bq-4lbS13W1g9X34BGagDWnQm7cLfH4TAhVS6ZaorS-1zP4LhksjqHOOxwh-wmbkYTnb-W91Uhdpx3xzBlsXTk9uAExA17UXmxSMDfbf4ID6uSZn7iqpycJdM2_qZ_db0nDUQHu8=",
-      "snippet": "Since 1983 speed of light is 299792458 meters per second, because a meter was defined as 1/299792458 light-seconds in that year. Prior definitions of the meter yielded similar speeds of light, as the changes in definition were intended to clarify and standardize measurements, not change them\u00a0..."
+      "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHrz57iB2JC5Qce_BShm2XaUzQX02IQpWJg4Bp_8cFVYKAx7v4w6w3Rxw8GSylZmW0rjFi67oeHHd2ngnKk83C07QfgUivOnkU88o49Pkh1zJvbVU63X0H4Qj-7udPUxRms2lVLaGF3",
+      "snippet": "The speed of light in vacuum, often called simply the speed of light and commonly denoted c, is a universal physical constant exactly equal to 299792458 m\u22c5s<sup>\u2212</sup><sup>1</sup>. It is exact because, by international agreement, a metre is defined as the length of the path travelled by light in vacuum during a time interval of 1\u2044299792458 second. The value 299,792,458 metres per second is approximately 1 billion kilometres per hour; 700 million miles per hour. For other approximations of c valid for various units and size scales see the sidebar."
     }
   ],
   "media_literacy": {

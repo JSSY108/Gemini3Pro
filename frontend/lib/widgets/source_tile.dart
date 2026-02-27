@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:universal_html/html.dart' as html;
 import '../utils/web_helper.dart' as web_helper;
+import 'package:flutter_math_fork/flutter_math.dart';
 import '../models/grounding_models.dart';
 
 class SourceTile extends StatelessWidget {
@@ -14,6 +15,9 @@ class SourceTile extends StatelessWidget {
   final int count;
   final int sourceId;
   final bool isActive;
+  final double? score;
+  final double? confidence;
+  final double? authority;
   final VoidCallback? onTap;
   final VoidCallback? onDelete;
 
@@ -26,6 +30,9 @@ class SourceTile extends StatelessWidget {
     this.count = 1,
     this.sourceId = 0,
     this.isActive = false,
+    this.score,
+    this.confidence,
+    this.authority,
     this.onTap,
     this.onDelete,
   });
@@ -277,6 +284,105 @@ class SourceTile extends StatelessWidget {
     );
   }
 
+  void _showFactualBreakdown(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            const Icon(Icons.analytics_outlined, color: Color(0xFFD4AF37)),
+            const SizedBox(width: 10),
+            Text(
+              "Factual Breakdown",
+              style: GoogleFonts.outfit(
+                color: const Color(0xFFD4AF37),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Contextual Reliability",
+              style: GoogleFonts.outfit(
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.black26,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Math.tex(
+                r'Score_{seg} = \max(Conf_{i} \times Auth_{j})',
+                textStyle: const TextStyle(
+                  color: Color(0xFFD4AF37),
+                  fontSize: 16,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            if (confidence != null && authority != null && score != null) ...[
+              Text(
+                "• AI Confidence ($title): ${(confidence! * 100).toStringAsFixed(1)}%",
+                style: GoogleFonts.outfit(color: Colors.white70),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                "• Domain Authority Weight: ${(authority!).toStringAsFixed(2)}",
+                style: GoogleFonts.outfit(color: Colors.white70),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                "• Final Reliability: ${(score! * 100).toStringAsFixed(1)}%",
+                style: GoogleFonts.outfit(
+                  color: _getRingColor(),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ] else
+              Text(
+                "Global Summary metric. Precise metadata not provided.",
+                style: GoogleFonts.outfit(
+                  color: Colors.white54,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            const SizedBox(height: 12),
+            Text(
+              "High confidence indicates the segment strongly matches this source. The score is scaled by domain reputation.",
+              style: GoogleFonts.outfit(color: Colors.white54, fontSize: 12),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              "CLOSE",
+              style: GoogleFonts.outfit(color: const Color(0xFFD4AF37)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _getRingColor() {
+    final s = score ?? 0.0;
+    if (s > 0.85) return Colors.teal;
+    if (s > 0.50) return Colors.amber;
+    return Colors.redAccent;
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool isInaccessible = status == 'dead' || status == 'restricted';
@@ -307,52 +413,87 @@ class SourceTile extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Source ID Badge
-                      Container(
-                        padding: const EdgeInsets.all(6),
-                        width: 28,
-                        height: 28,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: sourceId > 0
-                              ? (isActive
-                                    ? const Color(0xFFD4AF37)
-                                    : const Color(
-                                        0xFFD4AF37,
-                                      ).withValues(alpha: 0.15))
-                              : (isInaccessible
-                                    ? Colors.white.withValues(alpha: 0.05)
-                                    : const Color(
-                                        0xFFD4AF37,
-                                      ).withValues(alpha: 0.15)),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: sourceId > 0
-                                ? const Color(0xFFD4AF37)
-                                : Colors.transparent,
-                            width: 1,
+                      // Source ID Badge with Radial Ring
+                      GestureDetector(
+                        onTap: () => _showFactualBreakdown(context),
+                        child: SizedBox(
+                          width: 34,
+                          height: 34,
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              // Background track
+                              if (score != null)
+                                CircularProgressIndicator(
+                                  value: 1.0,
+                                  strokeWidth: 2.5,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white.withValues(alpha: 0.1),
+                                  ),
+                                ),
+                              // Active Fill Ring
+                              if (score != null)
+                                CircularProgressIndicator(
+                                  value: score,
+                                  strokeWidth: 2.5,
+                                  backgroundColor: Colors.transparent,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    _getRingColor(),
+                                  ),
+                                ),
+                              // Inner Circular Badge
+                              Container(
+                                width: 26,
+                                height: 26,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: sourceId > 0
+                                      ? (isActive
+                                            ? const Color(0xFFD4AF37)
+                                            : const Color(
+                                                0xFFD4AF37,
+                                              ).withValues(alpha: 0.15))
+                                      : (isInaccessible
+                                            ? Colors.white.withValues(
+                                                alpha: 0.05,
+                                              )
+                                            : const Color(
+                                                0xFFD4AF37,
+                                              ).withValues(alpha: 0.15)),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: sourceId > 0 && score == null
+                                        ? const Color(0xFFD4AF37)
+                                        : Colors.transparent,
+                                    width: 1,
+                                  ),
+                                ),
+                                child: sourceId > 0
+                                    ? Text(
+                                        sourceId.toString(),
+                                        style: GoogleFonts.outfit(
+                                          color: isActive
+                                              ? Colors.black
+                                              : (score != null
+                                                    ? Colors.white
+                                                    : const Color(0xFFD4AF37)),
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      )
+                                    : Icon(
+                                        isInaccessible
+                                            ? Icons.warning_amber_rounded
+                                            : Icons.link,
+                                        color: isInaccessible
+                                            ? Colors.white24
+                                            : const Color(0xFFD4AF37),
+                                        size: 13,
+                                      ),
+                              ),
+                            ],
                           ),
                         ),
-                        child: sourceId > 0
-                            ? Text(
-                                sourceId.toString(),
-                                style: GoogleFonts.outfit(
-                                  color: isActive
-                                      ? Colors.black
-                                      : const Color(0xFFD4AF37),
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              )
-                            : Icon(
-                                isInaccessible
-                                    ? Icons.warning_amber_rounded
-                                    : Icons.link,
-                                color: isInaccessible
-                                    ? Colors.white24
-                                    : const Color(0xFFD4AF37),
-                                size: 14,
-                              ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(

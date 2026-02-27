@@ -119,6 +119,8 @@ class SourceAudit {
   final String domain;
   final double score;
   final String quoteText;
+  final double confidence;
+  final double authority;
 
   SourceAudit({
     required this.id,
@@ -127,6 +129,8 @@ class SourceAudit {
     required this.domain,
     required this.score,
     required this.quoteText,
+    required this.confidence,
+    required this.authority,
   });
 
   factory SourceAudit.fromJson(Map<String, dynamic> json) {
@@ -137,6 +141,8 @@ class SourceAudit {
       domain: json['domain'] as String,
       score: (json['score'] as num).toDouble(),
       quoteText: json['quote_text'] as String? ?? json['text'] as String? ?? '',
+      confidence: (json['confidence'] as num?)?.toDouble() ?? 0.0,
+      authority: (json['authority'] as num?)?.toDouble() ?? 0.0,
     );
   }
 }

@@ -329,6 +329,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                 scannedSources: _result?.scannedSources ?? [],
                 uploadedAttachments: _migratedAttachments,
                 activeIndices: _activeCitationIndices,
+                reliabilityMetrics: _result?.reliabilityMetrics,
+                activeSupport: _activeSupport,
                 onCitationSelected: _handleCitationSelected,
                 onDeleteAttachment: _handleDeleteMigratedAttachment,
                 scrollController: _sidebarScrollController,
