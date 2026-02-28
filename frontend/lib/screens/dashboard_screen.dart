@@ -16,6 +16,8 @@ import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'community_screen.dart';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
+import '../utils/demo_manager.dart';
+import '../services/demo_service.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -34,6 +36,7 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   AnalysisResponse? _result;
   bool _isLoading = false;
+  bool _isHydratingDemo = false; // New flag for demo loading
   bool _hasError = false;
   bool _isSidebarExpanded = true;
   int _mobileSelectedIndex = 0;
@@ -62,6 +65,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     _intentDataStreamSubscription.cancel(); // Prevent memory leaks
     _inputController.dispose();
     _sidebarScrollController.dispose();
+    DemoManager.isDemoMode = false; // Reset demo mode on exit
     super.dispose();
   }
 
@@ -155,6 +159,9 @@ class _DashboardScreenState extends State<DashboardScreen>
       return;
     }
 
+    // Reset demo mode if starting real analysis
+    DemoManager.isDemoMode = false;
+
     // 1. Start Migration Animation
     if (_pendingAttachments.isNotEmpty) {
       await _animateMigration();
@@ -162,6 +169,7 @@ class _DashboardScreenState extends State<DashboardScreen>
 
     setState(() {
       _isLoading = true;
+      _isHydratingDemo = false; // Manual analysis is NOT demo hydration
       _hasError = false;
       _result = null;
       _activeSupport = null;
@@ -216,6 +224,90 @@ class _DashboardScreenState extends State<DashboardScreen>
       if (mounted) {
         setState(() {
           _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _handleDemoTrigger() async {
+    setState(() {
+      _isLoading = true;
+      _isHydratingDemo = true; // Set demo hydration flag
+      _hasError = false;
+      _result = null;
+      _activeSupport = null; // Reset selection state for demo
+      _activeCitationIndices = [];
+    });
+
+    print("🔍 DEBUG: Starting Demo Trigger in DashboardScreen.");
+
+    try {
+      final demoService = DemoService();
+      await demoService.simulateLoading();
+      final result = await DemoService.loadLemonDemo();
+      print(
+          "🔍 DEBUG: Demo data received: ${result != null ? 'SUCCESS' : 'NULL'}");
+
+      if (result == null) {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+            _isHydratingDemo = false;
+          });
+          DemoManager.isDemoMode = false;
+
+          String errorMessage = "Forensic Asset load failed.";
+          // This specific case (result == null) is treated as asset not found
+          errorMessage = "Forensic Asset not found. Reverting to Live Mode.";
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(errorMessage)),
+          );
+        }
+        return;
+      }
+
+      if (mounted) {
+        setState(() {
+          _result = result;
+          _isLoading = false;
+        });
+
+        // Interactive Hook: Auto-select first segment after 1.5s
+        Future.delayed(const Duration(milliseconds: 1500), () {
+          if (mounted &&
+              _result != null &&
+              _result!.groundingSupports.isNotEmpty) {
+            _handleSupportSelected(_result!.groundingSupports.first);
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint('DEMO HYDRATION ERROR: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _isHydratingDemo = false;
+        });
+        DemoManager.isDemoMode = false;
+
+        String errorMessage = "Demo Hydration Failed.";
+        if (e is TypeError) {
+          errorMessage = "Forensic Data Corrupted. Reverting to Live Mode.";
+          print("❌ DEBUG TYPE ERROR: $e");
+        } else {
+          errorMessage = "Forensic Asset not found. Reverting to Live Mode.";
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMessage)),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _isHydratingDemo = false; // Reset demo hydration flag
         });
       }
     }
@@ -507,38 +599,94 @@ class _DashboardScreenState extends State<DashboardScreen>
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              "FORENSIC ANALYSIS",
-                              style: GoogleFonts.outfit(
-                                color: const Color(0xFFD4AF37),
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 2.0,
-                              ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  "FORENSIC ANALYSIS",
+                                  style: GoogleFonts.outfit(
+                                    color: const Color(0xFFD4AF37),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 2.0,
+                                  ),
+                                ),
+                                if (DemoManager.isDemoMode)
+                                  Flexible(
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 12, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color:
+                                            Colors.amber.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(20),
+                                        border: Border.all(
+                                            color: Colors.amber
+                                                .withValues(alpha: 0.4)),
+                                      ),
+                                      child: FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        child: Text(
+                                          "SYSTEM DEMO: PRE-LOADED FORENSIC DATA",
+                                          style: GoogleFonts.outfit(
+                                            color: Colors.amber,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                            letterSpacing: 0.5,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             ),
                             const SizedBox(height: 16),
                             Expanded(
-                              child: _hasError
-                                  ? _buildErrorRetryCard()
-                                  : (_result == null
-                                      ? _buildForensicHubGrid()
-                                      : SingleChildScrollView(
-                                          child: VeriscanInteractiveText(
-                                            analysisText: _result!.analysis,
-                                            groundingSupports:
-                                                _result!.groundingSupports,
-                                            groundingCitations:
-                                                _result!.groundingCitations,
-                                            scannedSources:
-                                                _result!.scannedSources,
-                                            attachments: _migratedAttachments,
-                                            activeSupport: _activeSupport,
-                                            reliabilityMetrics:
-                                                _result?.reliabilityMetrics,
-                                            onSupportSelected:
-                                                _handleSupportSelected,
+                              child: Container(
+                                decoration: DemoManager.isDemoMode &&
+                                        _result != null
+                                    ? BoxDecoration(
+                                        borderRadius: BorderRadius.circular(16),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.amber
+                                                .withValues(alpha: 0.05),
+                                            blurRadius: 20,
+                                            spreadRadius: 2,
                                           ),
-                                        )),
+                                        ],
+                                      )
+                                    : null,
+                                child: _isHydratingDemo
+                                    ? const Center(
+                                        child: CircularProgressIndicator(
+                                          color: Color(0xFFD4AF37),
+                                        ),
+                                      )
+                                    : (_hasError && !DemoManager.isDemoMode
+                                        ? _buildErrorRetryCard()
+                                        : (_result == null
+                                            ? _buildForensicHubGrid()
+                                            : SingleChildScrollView(
+                                                child: VeriscanInteractiveText(
+                                                  analysisText:
+                                                      _result!.analysis,
+                                                  groundingSupports: _result!
+                                                      .groundingSupports,
+                                                  groundingCitations: _result!
+                                                      .groundingCitations,
+                                                  scannedSources:
+                                                      _result!.scannedSources,
+                                                  attachments:
+                                                      _migratedAttachments,
+                                                  activeSupport: _activeSupport,
+                                                  reliabilityMetrics: _result
+                                                      ?.reliabilityMetrics,
+                                                  onSupportSelected:
+                                                      _handleSupportSelected,
+                                                ),
+                                              ))),
+                              ),
                             ),
                           ],
                         ),
@@ -737,67 +885,108 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   Widget _buildForensicHubGrid() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.02),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: const Color(0xFFD4AF37).withValues(alpha: 0.1),
-          width: 0.5,
-        ),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.biotech_outlined,
-            size: 48,
-            color: const Color(0xFFD4AF37).withValues(alpha: 0.3),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            "Awaiting Forensic Ingestion...",
-            style: GoogleFonts.outfit(
-              color: const Color(0xFFE0E0E0),
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
+    return Center(
+      child: SingleChildScrollView(
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.02),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: const Color(0xFFD4AF37).withValues(alpha: 0.1),
+              width: 0.5,
             ),
           ),
-          const SizedBox(height: 32),
-          Text(
-            "CAPABILITIES",
-            style: GoogleFonts.outfit(
-              color: const Color(0xFFD4AF37),
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.5,
-            ),
-          ),
-          const SizedBox(height: 16),
-          // Capabilities Grid Section
-          Column(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Row(
-                children: [
-                  _buildCapabilityItem(Icons.verified_user_outlined, "Claims"),
-                  const SizedBox(width: 12),
-                  _buildCapabilityItem(Icons.image_search, "Media"),
-                ],
+              Icon(
+                Icons.biotech_outlined,
+                size: 48,
+                color: const Color(0xFFD4AF37).withValues(alpha: 0.3),
               ),
-              const SizedBox(height: 12),
-              Row(
+              const SizedBox(height: 16),
+              Text(
+                "Awaiting Forensic Ingestion...",
+                style: GoogleFonts.outfit(
+                  color: const Color(0xFFE0E0E0),
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 32),
+              Text(
+                "CAPABILITIES",
+                style: GoogleFonts.outfit(
+                  color: const Color(0xFFD4AF37),
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.5,
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Capabilities Grid Section
+              Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  _buildCapabilityItem(Icons.find_in_page_outlined, "Sources"),
-                  const SizedBox(width: 12),
-                  _buildCapabilityItem(Icons.history_edu, "Archives"),
+                  Row(
+                    children: [
+                      _buildCapabilityItem(
+                          Icons.verified_user_outlined, "Claims"),
+                      const SizedBox(width: 12),
+                      _buildCapabilityItem(Icons.image_search, "Media"),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      _buildCapabilityItem(
+                          Icons.find_in_page_outlined, "Sources"),
+                      const SizedBox(width: 12),
+                      _buildCapabilityItem(Icons.history_edu, "Archives"),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  // THE DEMO TRIGGER
+                  JuicyButton(
+                    onTap: () {
+                      DemoManager.isDemoMode = true;
+                      _handleDemoTrigger();
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                            color: Colors.amber.withValues(alpha: 0.3)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.biotech,
+                              color: Colors.amber, size: 20),
+                          const SizedBox(width: 12),
+                          Text(
+                            "TRY FORENSIC DEMO",
+                            style: GoogleFonts.outfit(
+                              color: Colors.amber,
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.0,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }

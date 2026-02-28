@@ -11,9 +11,9 @@ class Segment {
 
   factory Segment.fromJson(Map<String, dynamic> json) {
     return Segment(
-      startIndex: json['startIndex'] as int,
-      endIndex: json['endIndex'] as int,
-      text: json['text'] as String,
+      startIndex: (json['startIndex'] ?? json['start_index'] ?? 0) as int,
+      endIndex: (json['endIndex'] ?? json['end_index'] ?? 0) as int,
+      text: json['text'] as String? ?? '',
     );
   }
 }
@@ -31,12 +31,13 @@ class GroundingSupport {
 
   factory GroundingSupport.fromJson(Map<String, dynamic> json) {
     return GroundingSupport(
-      segment: Segment.fromJson(json['segment']),
+      segment: Segment.fromJson(json['segment'] ?? {}),
       groundingChunkIndices: List<int>.from(
-        json['groundingChunkIndices'] ?? [],
+        json['groundingChunkIndices'] ?? json['grounding_chunk_indices'] ?? [],
       ),
       confidenceScores: List<double>.from(
-        (json['confidenceScores'] ?? []).map((x) => x.toDouble()),
+        (json['confidenceScores'] ?? json['confidence_scores'] ?? [])
+            .map((x) => x.toDouble()),
       ),
     );
   }
@@ -47,20 +48,23 @@ class ScannedSource {
   final String title;
   final String url;
   final bool isCited;
+  final String? snippet;
 
   ScannedSource({
     required this.id,
     required this.title,
     required this.url,
     required this.isCited,
+    this.snippet,
   });
 
   factory ScannedSource.fromJson(Map<String, dynamic> json) {
     return ScannedSource(
-      id: (json['id'] ?? json['index']) as int? ?? -1,
-      title: json['title'] ?? '',
-      url: json['url'] ?? '',
-      isCited: json['is_cited'] ?? false,
+      id: (json['id'] ?? json['index'] ?? -1) as int,
+      title: json['title'] as String? ?? '',
+      url: json['url'] as String? ?? '',
+      isCited: json['is_cited'] as bool? ?? false,
+      snippet: json['snippet'] as String?,
     );
   }
 }
@@ -122,6 +126,7 @@ class SourceAudit {
   final double confidence;
   final double authority;
   final bool isVerified;
+  final String? snippet;
 
   SourceAudit({
     required this.id,
@@ -133,20 +138,21 @@ class SourceAudit {
     required this.confidence,
     required this.authority,
     this.isVerified = false,
+    this.snippet,
   });
 
   factory SourceAudit.fromJson(Map<String, dynamic> json) {
-    print("DEBUG: Source ${json['id']} isVerified: ${json['is_verified']}");
     return SourceAudit(
-      id: json['id'] as int,
-      sourceIndex: json['source_index'] as int? ?? -1,
-      chunkIndex: json['chunk_index'] as int? ?? json['id'] as int,
-      domain: json['domain'] as String,
-      score: (json['score'] as num).toDouble(),
+      id: (json['id'] ?? 0) as int,
+      sourceIndex: (json['source_index'] ?? -1) as int,
+      chunkIndex: (json['chunk_index'] ?? json['id'] ?? 0) as int,
+      domain: json['domain'] as String? ?? 'unknown',
+      score: (json['score'] as num?)?.toDouble() ?? 0.0,
       quoteText: json['quote_text'] as String? ?? json['text'] as String? ?? '',
       confidence: (json['confidence'] as num?)?.toDouble() ?? 0.0,
       authority: (json['authority'] as num?)?.toDouble() ?? 0.0,
       isVerified: json['is_verified'] as bool? ?? false,
+      snippet: json['snippet'] as String?,
     );
   }
 }
@@ -166,9 +172,9 @@ class SegmentAudit {
 
   factory SegmentAudit.fromJson(Map<String, dynamic> json) {
     return SegmentAudit(
-      text: json['text'] as String,
-      topSourceDomain: json['top_source_domain'] as String,
-      topSourceScore: (json['top_source_score'] as num).toDouble(),
+      text: json['text'] as String? ?? '',
+      topSourceDomain: json['top_source_domain'] as String? ?? 'unknown',
+      topSourceScore: (json['top_source_score'] as num?)?.toDouble() ?? 0.0,
       sources: (json['sources'] as List<dynamic>?)
               ?.map((e) => SourceAudit.fromJson(e as Map<String, dynamic>))
               .toList() ??
@@ -257,25 +263,78 @@ class AnalysisResponse {
   });
 
   factory AnalysisResponse.fromJson(Map<String, dynamic> json) {
+    final citations = ((json['grounding_citations'] ??
+            json['groundingCitations'] ??
+            []) as List<dynamic>)
+        .map((e) => GroundingCitation.fromJson(e as Map<String, dynamic>))
+        .toList();
+
+    final scanned = ((json['scanned_sources'] ?? json['scannedSources'] ?? [])
+            as List<dynamic>)
+        .map((e) {
+      final sourceMap = Map<String, dynamic>.from(e as Map<String, dynamic>);
+      final url = sourceMap['url'] as String? ?? '';
+      if (url.isNotEmpty) {
+        final matchingCitation = citations.firstWhere(
+          (c) => c.url == url,
+          orElse: () => GroundingCitation(title: '', url: '', snippet: ''),
+        );
+        if (matchingCitation.snippet.isNotEmpty) {
+          sourceMap['snippet'] = matchingCitation.snippet;
+        }
+      }
+      return ScannedSource.fromJson(sourceMap);
+    }).toList();
+
+    final metricsJson =
+        json['reliability_metrics'] ?? json['reliabilityMetrics'];
+    ReliabilityMetrics? metrics;
+    if (metricsJson != null) {
+      final metricsMap = Map<String, dynamic>.from(metricsJson);
+      final segmentsJson = metricsMap['segments'] as List<dynamic>?;
+      if (segmentsJson != null) {
+        final updatedSegments = segmentsJson.map((s) {
+          final segmentMap =
+              Map<String, dynamic>.from(s as Map<String, dynamic>);
+          final sourcesJson = segmentMap['sources'] as List<dynamic>?;
+          if (sourcesJson != null) {
+            final updatedSources = sourcesJson.map((src) {
+              final srcMap =
+                  Map<String, dynamic>.from(src as Map<String, dynamic>);
+              final id = srcMap['id'] as int? ?? 0;
+              final matchingCitation = citations.firstWhere(
+                (c) => c.id == id,
+                orElse: () =>
+                    GroundingCitation(title: '', url: '', snippet: ''),
+              );
+              if (matchingCitation.snippet.isNotEmpty) {
+                srcMap['snippet'] = matchingCitation.snippet;
+              }
+              return srcMap;
+            }).toList();
+            segmentMap['sources'] = updatedSources;
+          }
+          return segmentMap;
+        }).toList();
+        metricsMap['segments'] = updatedSegments;
+      }
+      metrics = ReliabilityMetrics.fromJson(metricsMap);
+    }
+
     return AnalysisResponse(
-      verdict: json['verdict'] ?? 'UNVERIFIED',
-      confidenceScore: (json['confidence_score'] ?? 0.0).toDouble(),
-      analysis: json['analysis'] ?? '',
-      groundingCitations: (json['grounding_citations'] as List<dynamic>?)
-              ?.map((e) => GroundingCitation.fromJson(e))
-              .toList() ??
-          [],
-      scannedSources: (json['scanned_sources'] as List<dynamic>?)
-              ?.map((e) => ScannedSource.fromJson(e))
-              .toList() ??
-          [],
-      groundingSupports: (json['grounding_supports'] as List<dynamic>?)
-              ?.map((e) => GroundingSupport.fromJson(e))
-              .toList() ??
-          [],
-      reliabilityMetrics: json['reliability_metrics'] != null
-          ? ReliabilityMetrics.fromJson(json['reliability_metrics'])
-          : null,
+      verdict: json['verdict'] as String? ?? 'UNVERIFIED',
+      confidenceScore:
+          (json['confidence_score'] ?? json['confidenceScore'] ?? 0.0)
+              .toDouble(),
+      analysis: json['analysis'] as String? ?? '',
+      groundingCitations: citations,
+      scannedSources: scanned,
+      groundingSupports: ((json['grounding_supports'] ??
+              json['groundingSupports'] ??
+              []) as List<dynamic>)
+          .map((e) => GroundingSupport.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      reliabilityMetrics: metrics,
     );
   }
 }

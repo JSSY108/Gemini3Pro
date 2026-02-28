@@ -349,7 +349,9 @@ class _EvidenceCardState extends State<EvidenceCard> {
                           builder: (context, constraints) {
                             final textPainter = TextPainter(
                               text: TextSpan(
-                                text: _unescape.convert(widget.snippet),
+                                text: (widget.snippet.isNotEmpty)
+                                    ? _unescape.convert(widget.snippet)
+                                    : "Evidence verification in progress...",
                                 style: GoogleFonts.outfit(
                                   fontSize: 13,
                                   height: 1.5,
@@ -366,7 +368,9 @@ class _EvidenceCardState extends State<EvidenceCard> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  _unescape.convert(widget.snippet),
+                                  (widget.snippet.isNotEmpty)
+                                      ? _unescape.convert(widget.snippet)
+                                      : "Evidence verification in progress...",
                                   maxLines: _isExpanded ? null : 3,
                                   overflow: _isExpanded
                                       ? null
@@ -375,7 +379,9 @@ class _EvidenceCardState extends State<EvidenceCard> {
                                     color: Colors.white.withValues(alpha: 0.85),
                                     fontSize: 13,
                                     height: 1.5,
-                                    fontStyle: FontStyle.italic,
+                                    fontStyle: (widget.snippet.isNotEmpty)
+                                        ? FontStyle.italic
+                                        : FontStyle.normal,
                                   ),
                                 ),
                                 if (isTruncated) ...[

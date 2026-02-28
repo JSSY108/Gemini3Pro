@@ -642,7 +642,7 @@ The "analysis" string MUST be formatted in Markdown and strictly use these four 
                 segment["startIndex"] = new_start
                 segment["endIndex"] = new_start + len(anchor_text) # Use original length for indexing
 
-        return AnalysisResponse(
+        final_response = AnalysisResponse(
             verdict=data.get("verdict", "UNVERIFIABLE"),
             confidence_score=data.get("confidence_score", 0.0),
             analysis=sanitized_analysis,
@@ -652,6 +652,8 @@ The "analysis" string MUST be formatted in Markdown and strictly use these four 
             scanned_sources=data.get("scanned_sources", []),
             grounding_supports=data.get("grounding_supports", [])
         )
+
+        return final_response
 
     except Exception as e:
         import traceback

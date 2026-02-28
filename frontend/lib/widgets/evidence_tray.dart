@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../models/grounding_models.dart';
 import 'evidence_card.dart';
-import 'source_reliability_badge.dart';
+import 'source_tile.dart';
+import '../utils/demo_manager.dart';
 
 class EvidenceTray extends StatelessWidget {
   final List<GroundingCitation> citedSources;
@@ -134,7 +134,19 @@ class EvidenceTray extends StatelessWidget {
                                 spacing: 8,
                                 runSpacing: 8,
                                 children: displayedScanned
-                                    .map((s) => _buildScannedChip(s))
+                                    .map((s) => ConstrainedBox(
+                                          constraints: const BoxConstraints(
+                                              maxWidth: 200),
+                                          child: SourceTile(
+                                            title: s.title,
+                                            url: s.url,
+                                            attachments: attachments,
+                                            status: 'live',
+                                            sourceId: s.id,
+                                            isActive: false,
+                                            snippet: s.snippet,
+                                          ),
+                                        ))
                                     .toList(),
                               ),
                             ],
@@ -187,58 +199,38 @@ class EvidenceTray extends StatelessWidget {
   }
 
   Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: GoogleFonts.outfit(
-        color: Colors.white38,
-        fontSize: 10,
-        fontWeight: FontWeight.bold,
-        letterSpacing: 1.5,
-      ),
-    );
-  }
-
-  Widget _buildScannedChip(ScannedSource source) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () async {
-          final uri = Uri.parse(source.url);
-          if (await canLaunchUrl(uri)) {
-            await launchUrl(uri);
-          }
-        },
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.03),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white10),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SourceReliabilityBadge(sourceId: source.id),
-              const SizedBox(width: 8),
-              Flexible(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 180),
-                  child: Text(
-                    source.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.outfit(
-                      color: Colors.white60,
-                      fontSize: 11,
-                    ),
-                  ),
-                ),
-              ),
-            ],
+    return Row(
+      children: [
+        Text(
+          title,
+          style: GoogleFonts.outfit(
+            color: Colors.white38,
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.5,
           ),
         ),
-      ),
+        if (title == "VERIFIED EVIDENCE" && DemoManager.isDemoMode) ...[
+          const SizedBox(width: 6),
+          Tooltip(
+            message:
+                "This demo showcases verified historical snippets. Actual claims ingest real-time live data.",
+            margin: const EdgeInsets.symmetric(horizontal: 24),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E1E1E),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.amber.withValues(alpha: 0.2)),
+            ),
+            textStyle: GoogleFonts.outfit(color: Colors.white, fontSize: 11),
+            child: const Icon(
+              Icons.info_outline,
+              size: 14,
+              color: Colors.amber,
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

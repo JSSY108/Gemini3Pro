@@ -3,6 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../services/fact_check_service.dart';
 import '../models/grounding_models.dart';
 import '../widgets/veriscan_interactive_text.dart';
+import '../utils/demo_manager.dart';
+import '../services/demo_service.dart';
 
 class FactCheckScreen extends StatefulWidget {
   const FactCheckScreen({super.key});
@@ -18,6 +20,100 @@ class _FactCheckScreenState extends State<FactCheckScreen> {
   bool _isLoading = false;
   bool _isRateLimited = false;
   bool _isRecoveringFromHallucination = false;
+  bool _isHydratingDemo = false;
+  GroundingSupport? _activeSupport;
+
+  @override
+  void initState() {
+    super.initState();
+    print(
+        "🔍 DEBUG: FactCheckScreen initState. isDemoMode: ${DemoManager.isDemoMode}");
+    if (DemoManager.isDemoMode) {
+      print("🔍 DEBUG: Demo Mode detected in FactCheckScreen.");
+      _handleDemoHydration();
+    }
+  }
+
+  @override
+  void dispose() {
+    DemoManager.isDemoMode = false;
+    super.dispose();
+  }
+
+  Future<void> _handleDemoHydration() async {
+    setState(() {
+      _isLoading = true;
+      _isHydratingDemo = true;
+      _result = null;
+      _activeSupport = null; // Reset selection state for demo
+    });
+
+    try {
+      final demoService = DemoService();
+      await demoService.simulateLoading();
+      final result = await DemoService.loadLemonDemo();
+      print(
+          "🔍 DEBUG: Demo data received: ${result != null ? 'SUCCESS' : 'NULL'}");
+
+      if (result == null) {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+            _isHydratingDemo = false;
+          });
+          DemoManager.isDemoMode = false;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content:
+                    Text("Forensic Asset not found. Reverting to Live Mode.")),
+          );
+        }
+        return;
+      }
+
+      setState(() {
+        _result = result;
+      });
+
+      // Interactive Hook: Auto-select first segment after 1.5s
+      Future.delayed(const Duration(milliseconds: 1500), () {
+        if (mounted &&
+            _result != null &&
+            _result!.groundingSupports.isNotEmpty) {
+          print("🔍 DEBUG: Auto-selecting first segment for demo.");
+          _handleSupportSelected(_result!.groundingSupports.first);
+        }
+      });
+    } catch (e) {
+      debugPrint('DEMO HYDRATION ERROR: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _isHydratingDemo = false;
+        });
+        DemoManager.isDemoMode = false;
+
+        String errorMessage = "Demo Hydration Failed.";
+        if (e is TypeError) {
+          errorMessage = "Forensic Data Corrupted. Reverting to Live Mode.";
+        } else {
+          errorMessage = "Forensic Asset not found. Reverting to Live Mode.";
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMessage)),
+        );
+      }
+    } finally {
+      if (mounted && _isLoading) {
+        setState(() {
+          _isLoading = false;
+          _isHydratingDemo = false;
+        });
+      }
+    }
+  }
+
   Future<void> _handleVerify() async {
     if (_controller.text.isEmpty) return;
 
@@ -56,6 +152,12 @@ class _FactCheckScreenState extends State<FactCheckScreen> {
         });
       }
     }
+  }
+
+  void _handleSupportSelected(GroundingSupport? support) {
+    setState(() {
+      _activeSupport = support;
+    });
   }
 
   @override
@@ -131,13 +233,47 @@ class _FactCheckScreenState extends State<FactCheckScreen> {
                     ),
             ),
             const SizedBox(height: 32),
+            if (_isHydratingDemo)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 40),
+                  child: CircularProgressIndicator(color: Color(0xFFD4AF37)),
+                ),
+              ),
             if (_isRateLimited) _buildRateLimitBanner(),
             if (_isRecoveringFromHallucination) _buildHallucinationBanner(),
+            if (DemoManager.isDemoMode) _buildDemoBanner(),
             if (_result != null &&
                 !_isRateLimited &&
                 !_isRecoveringFromHallucination)
               _buildResultCard(),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDemoBanner() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 24),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.amber.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+      ),
+      child: Center(
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            "SYSTEM DEMO: PRE-LOADED FORENSIC DATA",
+            style: GoogleFonts.outfit(
+              color: Colors.amber,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.0,
+            ),
+          ),
         ),
       ),
     );
@@ -211,6 +347,8 @@ class _FactCheckScreenState extends State<FactCheckScreen> {
             groundingCitations: _result!.groundingCitations,
             scannedSources: _result!.scannedSources,
             attachments: const [],
+            activeSupport: _activeSupport,
+            onSupportSelected: _handleSupportSelected,
           ),
           // ----------------------------------
 

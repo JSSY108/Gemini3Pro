@@ -19,6 +19,7 @@ class SourceTile extends StatelessWidget {
   final double? confidence;
   final double? authority;
   final bool isVerified;
+  final String? snippet;
   final VoidCallback? onTap;
   final VoidCallback? onDelete;
 
@@ -35,6 +36,7 @@ class SourceTile extends StatelessWidget {
     this.confidence,
     this.authority,
     this.isVerified = false,
+    this.snippet,
     this.onTap,
     this.onDelete,
   });
@@ -237,10 +239,10 @@ class SourceTile extends StatelessWidget {
             margin: const EdgeInsets.only(bottom: 8),
             decoration: BoxDecoration(
               color: isActive
-                  ? const Color(0xFFD4AF37).withOpacity(0.1)
-                  : Colors.white.withOpacity(0.03),
+                  ? const Color(0xFFD4AF37).withValues(alpha: 0.1)
+                  : Colors.white.withValues(alpha: 0.03),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.amber.withOpacity(0.5)),
+              border: Border.all(color: Colors.amber.withValues(alpha: 0.5)),
             ),
             child: Material(
               color: Colors.transparent,
@@ -289,20 +291,25 @@ class SourceTile extends StatelessWidget {
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: Text(
-                          unescape.convert(title),
-                          style: GoogleFonts.outfit(
-                            color: isInaccessible
-                                ? Colors.white24
-                                : Colors.white.withOpacity(0.9),
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            decoration: isInaccessible
-                                ? TextDecoration.lineThrough
-                                : null,
+                        child: Tooltip(
+                          message: (snippet != null && snippet!.isNotEmpty)
+                              ? snippet!
+                              : "Evidence verification in progress...",
+                          child: Text(
+                            unescape.convert(title),
+                            style: GoogleFonts.outfit(
+                              color: isInaccessible
+                                  ? Colors.white24
+                                  : Colors.white.withValues(alpha: 0.9),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              decoration: isInaccessible
+                                  ? TextDecoration.lineThrough
+                                  : null,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       const SizedBox(width: 8),

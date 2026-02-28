@@ -24,6 +24,7 @@ dependencies:
   html_unescape: ^2.0.0
   receive_sharing_intent: ^1.8.1
   timeago: ^3.6.1
+  web: ^1.0.0
 
 dev_dependencies:
   flutter_test:
@@ -33,4 +34,5 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
+    - assets/data/
     - assets/images/

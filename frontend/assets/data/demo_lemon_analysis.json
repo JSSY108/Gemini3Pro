@@ -1,0 +1,427 @@
+{
+    "verdict": "MIXTURE",
+    "confidence_score": 0.85,
+    "analysis": "**1. The Core Claim(s):**\nThe claim suggests that drinking lemon water every morning significantly boosts metabolism and cures chronic digestive diseases.\n\n**2. Evidence Breakdown:**\n*   Lemon water may support hydration, boost metabolism, and increase weight loss.\n*   Drinking water, including lemon water, can temporarily increase metabolic rate. A study indicated that consuming about 500ml of water could boost metabolic rate by approximately 30% for about 30-40 minutes.\n*   Lemon water is not a miracle cure for gut health issues.\n*   The citric acid in lemons may help stimulate gastric acid production, which is crucial for breaking down food.\n*   Lemon water may offer some digestive benefits but should not be viewed as a cure-all for gut health.\n*   Lemon juice can help stimulate digestive enzymes and reduce bloating, offering relief from mild indigestion.\n*   Lemon can worsen symptoms in people with acid reflux or GERD due to its acidity.\n*   Lemon water is not necessarily better than regular water for fat loss.\n\n**3. Context & Nuance:**\nWhile lemon water can provide some benefits such as boosting metabolism and aiding digestion, it is not a cure for chronic digestive diseases. The metabolic boost primarily comes from the water content, not the lemon itself. Lemon can help with minor digestive issues, but persistent indigestion may indicate an underlying problem requiring medical advice.\n\n**4. Red Flags & Discrepancies:**\nNo major discrepancies found in the verified sources.",
+    "multimodal_cross_check": false,
+    "reliability_metrics": {
+        "reliability_score": 0.6493765217,
+        "ai_confidence": 0.85,
+        "base_grounding": 0.5993765217,
+        "consistency_bonus": 0.05,
+        "multimodal_bonus": 0.0,
+        "verdict_label": "Medium (Mixed/Uncertain)",
+        "explanation": "Base grounding evaluated at 0.60 across 9 segments. Consistency bonus (+0.05) applied for 6 unique domains.",
+        "segments": [
+            {
+                "text": "Lemon water may support hydration, boost metabolism, and increase weight loss.",
+                "top_source_domain": "cymbiotika.com",
+                "top_source_score": 0.85,
+                "sources": [
+                    {
+                        "id": 1,
+                        "chunk_index": 0,
+                        "source_index": 0,
+                        "domain": "cymbiotika.com",
+                        "score": 0.85,
+                        "quote_text": "cymbiotika.com",
+                        "confidence": 0.85,
+                        "authority": 0.8,
+                        "is_verified": false,
+                        "snippet": "A study found that drinking 500ml of water increased metabolic rate by 30% for 30\u201340 minutes. While lemon adds Vitamin C, the metabolic boost is primarily driven by water thermogenesis."
+                    },
+                    {
+                        "id": 2,
+                        "chunk_index": 1,
+                        "source_index": 0,
+                        "domain": "healthline.com",
+                        "score": 0.75,
+                        "quote_text": "healthline.com",
+                        "confidence": 0.75,
+                        "authority": 0.8,
+                        "is_verified": false,
+                        "snippet": "There is no scientific evidence that lemon water 'cures' chronic digestive diseases. However, the atomic structure of lemon juice is similar to digestive juices, which may help stimulate bile production."
+                    }
+                ]
+            },
+            {
+                "text": "Drinking water, including lemon water, can temporarily increase metabolic rate.",
+                "top_source_domain": "cymbiotika.com",
+                "top_source_score": 0.95,
+                "sources": [
+                    {
+                        "id": 1,
+                        "chunk_index": 0,
+                        "source_index": 0,
+                        "domain": "cymbiotika.com",
+                        "score": 0.95,
+                        "quote_text": "cymbiotika.com",
+                        "confidence": 0.95,
+                        "authority": 0.8,
+                        "is_verified": false,
+                        "snippet": "A study found that drinking 500ml of water increased metabolic rate by 30% for 30\u201340 minutes. While lemon adds Vitamin C, the metabolic boost is primarily driven by water thermogenesis."
+                    }
+                ]
+            },
+            {
+                "text": "A study indicated that consuming about 500ml of water could boost metabolic rate by approximately 30% for about 30-40 minutes.",
+                "top_source_domain": "cymbiotika.com",
+                "top_source_score": 0.96,
+                "sources": [
+                    {
+                        "id": 1,
+                        "chunk_index": 0,
+                        "source_index": 0,
+                        "domain": "cymbiotika.com",
+                        "score": 0.96,
+                        "quote_text": "cymbiotika.com",
+                        "confidence": 0.96,
+                        "authority": 0.8,
+                        "is_verified": false,
+                        "snippet": "A study found that drinking 500ml of water increased metabolic rate by 30% for 30\u201340 minutes. While lemon adds Vitamin C, the metabolic boost is primarily driven by water thermogenesis."
+                    }
+                ]
+            },
+            {
+                "text": "Lemon water is not a miracle cure for gut health issues.",
+                "top_source_domain": "clevelandclinic.org",
+                "top_source_score": 0.9,
+                "sources": [
+                    {
+                        "id": 3,
+                        "chunk_index": 2,
+                        "source_index": 0,
+                        "domain": "clevelandclinic.org",
+                        "score": 0.9,
+                        "quote_text": "clevelandclinic.org",
+                        "confidence": 0.9,
+                        "authority": 0.8,
+                        "is_verified": false,
+                        "snippet": "The citric acid in lemons can excite the production of gastric acid, a digestive fluid that helps your body break down and digest food. It may also help stimulate the liver to produce bile."
+                    },
+                    {
+                        "id": 4,
+                        "chunk_index": 3,
+                        "source_index": 0,
+                        "domain": "healthline.com",
+                        "score": 0.88,
+                        "quote_text": "healthline.com",
+                        "confidence": 0.88,
+                        "authority": 0.8,
+                        "is_verified": false,
+                        "snippet": "While some animal studies suggest that lemon polyphenols can help prevent weight gain, human evidence is lacking. The main weight-loss benefit is likely displacement of higher-calorie drinks."
+                    }
+                ]
+            },
+            {
+                "text": "The citric acid in lemons may help stimulate gastric acid production, which is crucial for breaking down food.",
+                "top_source_domain": "clevelandclinic.org",
+                "top_source_score": 0.92,
+                "sources": [
+                    {
+                        "id": 3,
+                        "chunk_index": 2,
+                        "source_index": 0,
+                        "domain": "clevelandclinic.org",
+                        "score": 0.92,
+                        "quote_text": "clevelandclinic.org",
+                        "confidence": 0.92,
+                        "authority": 0.8,
+                        "is_verified": false,
+                        "snippet": "The citric acid in lemons can excite the production of gastric acid, a digestive fluid that helps your body break down and digest food. It may also help stimulate the liver to produce bile."
+                    }
+                ]
+            },
+            {
+                "text": "Lemon water may offer some digestive benefits but should not be viewed as a cure-all for gut health.",
+                "top_source_domain": "healthline.com",
+                "top_source_score": 0.85,
+                "sources": [
+                    {
+                        "id": 4,
+                        "chunk_index": 3,
+                        "source_index": 0,
+                        "domain": "healthline.com",
+                        "score": 0.85,
+                        "quote_text": "healthline.com",
+                        "confidence": 0.85,
+                        "authority": 0.8,
+                        "is_verified": false,
+                        "snippet": "While some animal studies suggest that lemon polyphenols can help prevent weight gain, human evidence is lacking. The main weight-loss benefit is likely displacement of higher-calorie drinks."
+                    }
+                ]
+            },
+            {
+                "text": "Lemon juice can help stimulate digestive enzymes and reduce bloating, offering relief from mild indigestion.",
+                "top_source_domain": "sahyadrihospital.com",
+                "top_source_score": 0.88,
+                "sources": [
+                    {
+                        "id": 5,
+                        "chunk_index": 4,
+                        "source_index": 0,
+                        "domain": "sahyadrihospital.com",
+                        "score": 0.88,
+                        "quote_text": "sahyadrihospital.com",
+                        "confidence": 0.88,
+                        "authority": 0.8,
+                        "is_verified": false,
+                        "snippet": "Lemon juice contains enzymes that mimic natural digestive juices. Regular consumption can help promote a healthy digestive environment by assisting in the breakdown of complex proteins."
+                    }
+                ]
+            },
+            {
+                "text": "Lemon can worsen symptoms in people with acid reflux or GERD due to its acidity.",
+                "top_source_domain": "indiatimes.com",
+                "top_source_score": 0.94,
+                "sources": [
+                    {
+                        "id": 6,
+                        "chunk_index": 5,
+                        "source_index": 0,
+                        "domain": "indiatimes.com",
+                        "score": 0.94,
+                        "quote_text": "indiatimes.com",
+                        "confidence": 0.94,
+                        "authority": 0.8,
+                        "is_verified": false,
+                        "snippet": "Medical experts warn that excessive lemon water consumption can lead to dental erosion and may exacerbate symptoms of gastroesophageal reflux disease (GERD) in sensitive individuals."
+                    }
+                ]
+            },
+            {
+                "text": "Lemon water is not necessarily better than regular water for fat loss.",
+                "top_source_domain": "healthline.com",
+                "top_source_score": 0.7,
+                "sources": [
+                    {
+                        "id": 2,
+                        "chunk_index": 1,
+                        "source_index": 0,
+                        "domain": "healthline.com",
+                        "score": 0.7,
+                        "quote_text": "healthline.com",
+                        "confidence": 0.7,
+                        "authority": 0.8,
+                        "is_verified": false,
+                        "snippet": "There is no scientific evidence that lemon water 'cures' chronic digestive diseases. However, the atomic structure of lemon juice is similar to digestive juices, which may help stimulate bile production."
+                    }
+                ]
+            }
+        ],
+        "unused_sources": []
+    },
+    "grounding_citations": [
+        {
+            "id": 1,
+            "title": "cymbiotika.com",
+            "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHhImZuUntzAwmckf3_-v5fHoYHMofUDqkAmCzniWy0lgNXX62uva16_-7hUPeBFvqDsJKFmGLsiN5oUn--8GQOG2jPSK9KNVUiAyL5RVzcbU01--_969LYpi3zMGVMxREO0VJtyToGx3Rf1XB0CiY7tronamn5a5JferQq5HWO1Rfr9EzbNVklV5Vf9TdTII_Hkphisay3Wl0lDXMAUWEXdYGdK53is4P0BG5ww1Y4F1TAXg2xKA==",
+            "snippet": "A study found that drinking 500ml of water increased metabolic rate by 30% for 30\u201340 minutes. While lemon adds Vitamin C, the metabolic boost is primarily driven by water thermogenesis."
+        },
+        {
+            "id": 2,
+            "title": "healthline.com",
+            "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHJ06Mybx_ntlSGkhYj0AHqM-q-beBYrNJLJaFHFndhsOrPP5wwJNmLTpD2QT0qZT5vXbuwbkEOpE-WlTZdXV6ROzV0KDHYFNFKbq2YCwNkx493dphQk6Hy2tYOegeQ3_R8u4s5FrZzPue4xkucdfQjyu1RVhmZmiGWg68=",
+            "snippet": "There is no scientific evidence that lemon water 'cures' chronic digestive diseases. However, the atomic structure of lemon juice is similar to digestive juices, which may help stimulate bile production."
+        },
+        {
+            "id": 3,
+            "title": "clevelandclinic.org",
+            "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEgB1f0ALP3dAdrzHM4_IQpgcpCFmnthEIHg3plf6B0PyWapHCt4CUNql6eAaDjVcJifCFiAeKefUeJVBcyyW6AJjNb5hYdBc1URP_t5qdPLMP-SA45VrAh-vnc8sqkiPPrU1DK9-AotfYkAIp1hLBxA4TLXXw=",
+            "snippet": "The citric acid in lemons can excite the production of gastric acid, a digestive fluid that helps your body break down and digest food. It may also help stimulate the liver to produce bile."
+        },
+        {
+            "id": 4,
+            "title": "healthline.com",
+            "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGBgIH6tnDkv5IasoTDajQTDzROUuXLVQgx-l8UJcmKQv7fhLJxWua_9-0vk5WL9uEnFZR3MzkyRvpgfp8CW1Lh3Gf6mQs3LM29xKXeLo6S9cKO5G_L_p3z5j1RMDRldm7e9QxSoKPjGH801onhh-iT2c9k3vIDrEzVFxRHIpm69Y3SBg==",
+            "snippet": "While some animal studies suggest that lemon polyphenols can help prevent weight gain, human evidence is lacking. The main weight-loss benefit is likely displacement of higher-calorie drinks."
+        },
+        {
+            "id": 5,
+            "title": "sahyadrihospital.com",
+            "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQE7xTYHEH7_vTkmO-TLFFcu5hwM0jJmwCrPwH9PYtV7IinT3uwMQKVPnWnZMiREcNAxWJHhVEU9GwDN4xN-p3tINtcXbda7yU9e9f48kj2I6DOAQGnvazGeSUFZ_-5MhWsOy_IebrFbQwCO5bx0KL0vmyyqTLPs210xWJI=",
+            "snippet": "Lemon juice contains enzymes that mimic natural digestive juices. Regular consumption can help promote a healthy digestive environment by assisting in the breakdown of complex proteins."
+        },
+        {
+            "id": 6,
+            "title": "indiatimes.com",
+            "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGRs4KpyiUDBUI3ES7M9ZvGXS4uqOmz5N5p8cvrpEAygMuPuk4kr7PgjDuF1EIkIWzDr9E5ZjXq97hb5Zo0tkyJlUI3rWrjnGGUhlq2Nzv299qwgXhW4455O3glEYAX5UQMrtUk9LJkxm54dxTG5wUV3QnjVG54SSkqdRr4Zy4xlN1nzf30HqsWqdKi1GRMCZMw5DB5_g5fMdYLgc18kU1fnsip_-wwR9R2pt-KObhVes7FYqHV_9YhtmOc1qw0f5kaXZJNVkWrOsPlAb-e",
+            "snippet": "Medical experts warn that excessive lemon water consumption can lead to dental erosion and may exacerbate symptoms of gastroesophageal reflux disease (GERD) in sensitive individuals."
+        }
+    ],
+    "scanned_sources": [
+        {
+            "id": 1,
+            "title": "cymbiotika.com",
+            "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHhImZuUntzAwmckf3_-v5fHoYHMofUDqkAmCzniWy0lgNXX62uva16_-7hUPeBFvqDsJKFmGLsiN5oUn--8GQOG2jPSK9KNVUiAyL5RVzcbU01--_969LYpi3zMGVMxREO0VJtyToGx3Rf1XB0CiY7tronamn5a5JferQq5HWO1Rfr9EzbNVklV5Vf9TdTII_Hkphisay3Wl0lDXMAUWEXdYGdK53is4P0BG5ww1Y4F1TAXg2xKA==",
+            "is_cited": true,
+            "snippet": "A study found that drinking 500ml of water increased metabolic rate by 30% for 30\u201340 minutes. While lemon adds Vitamin C, the metabolic boost is primarily driven by water thermogenesis."
+        },
+        {
+            "id": 2,
+            "title": "healthline.com",
+            "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHJ06Mybx_ntlSGkhYj0AHqM-q-beBYrNJLJaFHFndhsOrPP5wwJNmLTpD2QT0qZT5vXbuwbkEOpE-WlTZdXV6ROzV0KDHYFNFKbq2YCwNkx493dphQk6Hy2tYOegeQ3_R8u4s5FrZzPue4xkucdfQjyu1RVhmZmiGWg68=",
+            "is_cited": true,
+            "snippet": "There is no scientific evidence that lemon water 'cures' chronic digestive diseases. However, the atomic structure of lemon juice is similar to digestive juices, which may help stimulate bile production."
+        },
+        {
+            "id": 3,
+            "title": "clevelandclinic.org",
+            "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEgB1f0ALP3dAdrzHM4_IQpgcpCFmnthEIHg3plf6B0PyWapHCt4CUNql6eAaDjVcJifCFiAeKefUeJVBcyyW6AJjNb5hYdBc1URP_t5qdPLMP-SA45VrAh-vnc8sqkiPPrU1DK9-AotfYkAIp1hLBxA4TLXXw=",
+            "is_cited": true,
+            "snippet": "The citric acid in lemons can excite the production of gastric acid, a digestive fluid that helps your body break down and digest food. It may also help stimulate the liver to produce bile."
+        },
+        {
+            "id": 4,
+            "title": "healthline.com",
+            "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGBgIH6tnDkv5IasoTDajQTDzROUuXLVQgx-l8UJcmKQv7fhLJxWua_9-0vk5WL9uEnFZR3MzkyRvpgfp8CW1Lh3Gf6mQs3LM29xKXeLo6S9cKO5G_L_p3z5j1RMDRldm7e9QxSoKPjGH801onhh-iT2c9k3vIDrEzVFxRHIpm69Y3SBg==",
+            "is_cited": true,
+            "snippet": "While some animal studies suggest that lemon polyphenols can help prevent weight gain, human evidence is lacking. The main weight-loss benefit is likely displacement of higher-calorie drinks."
+        },
+        {
+            "id": 5,
+            "title": "sahyadrihospital.com",
+            "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQE7xTYHEH7_vTkmO-TLFFcu5hwM0jJmwCrPwH9PYtV7IinT3uwMQKVPnWnZMiREcNAxWJHhVEU9GwDN4xN-p3tINtcXbda7yU9e9f48kj2I6DOAQGnvazGeSUFZ_-5MhWsOy_IebrFbQwCO5bx0KL0vmyyqTLPs210xWJI=",
+            "is_cited": true,
+            "snippet": "Lemon juice contains enzymes that mimic natural digestive juices. Regular consumption can help promote a healthy digestive environment by assisting in the breakdown of complex proteins."
+        },
+        {
+            "id": 6,
+            "title": "indiatimes.com",
+            "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGRs4KpyiUDBUI3ES7M9ZvGXS4uqOmz5N5p8cvrpEAygMuPuk4kr7PgjDuF1EIkIWzDr9E5ZjXq97hb5Zo0tkyJlUI3rWrjnGGUhlq2Nzv299qwgXhW4455O3glEYAX5UQMrtUk9LJkxm54dxTG5wUV3QnjVG54SSkqdRr4Zy4xlN1nzf30HqsWqdKi1GRMCZMw5DB5_g5fMdYLgc18kU1fnsip_-wwR9R2pt-KObhVes7FYqHV_9YhtmOc1qw0f5kaXZJNVkWrOsPlAb-e",
+            "is_cited": true,
+            "snippet": "Medical experts warn that excessive lemon water consumption can lead to dental erosion and may exacerbate symptoms of gastroesophageal reflux disease (GERD) in sensitive individuals."
+        }
+    ],
+    "grounding_supports": [
+        {
+            "confidence_scores": [
+                0.85,
+                0.75
+            ],
+            "grounding_chunk_indices": [
+                0,
+                1
+            ],
+            "segment": {
+                "start_index": 187,
+                "end_index": 265,
+                "text": "Lemon water may support hydration, boost metabolism, and increase weight loss.",
+                "part_index": 0
+            }
+        },
+        {
+            "confidence_scores": [
+                0.95
+            ],
+            "grounding_chunk_indices": [
+                0
+            ],
+            "segment": {
+                "start_index": 270,
+                "end_index": 349,
+                "text": "Drinking water, including lemon water, can temporarily increase metabolic rate.",
+                "part_index": 0
+            }
+        },
+        {
+            "confidence_scores": [
+                0.96
+            ],
+            "grounding_chunk_indices": [
+                0
+            ],
+            "segment": {
+                "start_index": 350,
+                "end_index": 476,
+                "text": "A study indicated that consuming about 500ml of water could boost metabolic rate by approximately 30% for about 30-40 minutes.",
+                "part_index": 0
+            }
+        },
+        {
+            "confidence_scores": [
+                0.9,
+                0.88
+            ],
+            "grounding_chunk_indices": [
+                2,
+                3
+            ],
+            "segment": {
+                "start_index": 481,
+                "end_index": 537,
+                "text": "Lemon water is not a miracle cure for gut health issues.",
+                "part_index": 0
+            }
+        },
+        {
+            "confidence_scores": [
+                0.92
+            ],
+            "grounding_chunk_indices": [
+                2
+            ],
+            "segment": {
+                "start_index": 542,
+                "end_index": 652,
+                "text": "The citric acid in lemons may help stimulate gastric acid production, which is crucial for breaking down food.",
+                "part_index": 0
+            }
+        },
+        {
+            "confidence_scores": [
+                0.85
+            ],
+            "grounding_chunk_indices": [
+                3
+            ],
+            "segment": {
+                "start_index": 657,
+                "end_index": 757,
+                "text": "Lemon water may offer some digestive benefits but should not be viewed as a cure-all for gut health.",
+                "part_index": 0
+            }
+        },
+        {
+            "confidence_scores": [
+                0.88
+            ],
+            "grounding_chunk_indices": [
+                4
+            ],
+            "segment": {
+                "start_index": 762,
+                "end_index": 870,
+                "text": "Lemon juice can help stimulate digestive enzymes and reduce bloating, offering relief from mild indigestion.",
+                "part_index": 0
+            }
+        },
+        {
+            "confidence_scores": [
+                0.94
+            ],
+            "grounding_chunk_indices": [
+                5
+            ],
+            "segment": {
+                "start_index": 875,
+                "end_index": 955,
+                "text": "Lemon can worsen symptoms in people with acid reflux or GERD due to its acidity.",
+                "part_index": 0
+            }
+        },
+        {
+            "confidence_scores": [
+                0.7
+            ],
+            "grounding_chunk_indices": [
+                1
+            ],
+            "segment": {
+                "start_index": 960,
+                "end_index": 1030,
+                "text": "Lemon water is not necessarily better than regular water for fat loss.",
+                "part_index": 0
+            }
+        }
+    ]
+}

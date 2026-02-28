@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/grounding_models.dart';
-import 'confidence_gauge.dart';
+// import 'confidence_gauge.dart'; // Removed unused import
 import 'forensic_reliability_bar.dart';
 import 'confidence_card.dart';
 import 'verdict_card.dart';
