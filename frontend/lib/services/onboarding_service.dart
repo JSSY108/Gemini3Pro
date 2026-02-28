@@ -33,7 +33,7 @@ class OnboardingService {
     GlobalKey? scannedRingKey,
     Function? onFinish,
   }) {
-    print(
+    debugPrint(
         "🎯 DEBUG: Phase 1 — First Segment: ${firstSegmentKey.currentContext != null}");
 
     _showPhase1(
@@ -105,12 +105,14 @@ class OnboardingService {
       paddingFocus: 10,
       opacityShadow: 0.85,
       onClickTarget: (target) {
-        print("🎯 Phase 1 — User tapped underline. Opening Evidence Tray…");
+        debugPrint(
+            "🎯 Phase 1 — User tapped underline. Opening Evidence Tray…");
         onSelectFirstSegment();
       },
       onFinish: () {
-        print("🎯 Phase 1 complete. Waiting for tray to render…");
+        debugPrint("🎯 Phase 1 complete. Waiting for tray to render…");
         Future.delayed(const Duration(milliseconds: 600), () {
+          if (!context.mounted) return;
           _scrollAndShowPhase2(
             context,
             evidenceTrayKey: evidenceTrayKey,
@@ -121,7 +123,7 @@ class OnboardingService {
         });
       },
       onSkip: () {
-        print("Tutorial Skipped");
+        debugPrint("Tutorial Skipped");
         markTourAsSeen();
         onFinish?.call();
         return true;
@@ -140,7 +142,7 @@ class OnboardingService {
     Function? onFinish,
   }) async {
     if (evidenceTrayKey.currentContext != null) {
-      print("🎯 Scrolling Evidence Tray into view…");
+      debugPrint("🎯 Scrolling Evidence Tray into view…");
       await Scrollable.ensureVisible(
         evidenceTrayKey.currentContext!,
         duration: const Duration(milliseconds: 500),
@@ -148,10 +150,11 @@ class OnboardingService {
         alignment: 0.5,
       );
     } else {
-      print("⚠️ Evidence Tray key has no context — skipping scroll.");
+      debugPrint("⚠️ Evidence Tray key has no context — skipping scroll.");
     }
 
     await Future.delayed(const Duration(milliseconds: 300));
+    if (!context.mounted) return;
 
     _showPhase2(
       context,
@@ -172,7 +175,7 @@ class OnboardingService {
     GlobalKey? scannedRingKey,
     Function? onFinish,
   }) {
-    print(
+    debugPrint(
         "🎯 DEBUG: Phase 2 — Tray: ${evidenceTrayKey.currentContext != null}, "
         "Lane: ${globalRingKey.currentContext != null}, "
         "ScannedRing: ${scannedRingKey?.currentContext != null}");
@@ -226,10 +229,11 @@ class OnboardingService {
       try {
         final RenderBox box =
             globalRingKey.currentContext!.findRenderObject() as RenderBox;
-        print("🔍 DEBUG Step 3: Position: ${box.localToGlobal(Offset.zero)}");
-        print("🔍 DEBUG Step 3: Size: ${box.size}");
+        debugPrint(
+            "🔍 DEBUG Step 3: Position: ${box.localToGlobal(Offset.zero)}");
+        debugPrint("🔍 DEBUG Step 3: Size: ${box.size}");
       } catch (e) {
-        print("⚠️ DEBUG Step 3: RenderBox error: $e");
+        debugPrint("⚠️ DEBUG Step 3: RenderBox error: $e");
       }
 
       targets.add(
@@ -302,10 +306,11 @@ class OnboardingService {
       try {
         final RenderBox box =
             scannedRingKey.currentContext!.findRenderObject() as RenderBox;
-        print("🔍 DEBUG Step 4: Position: ${box.localToGlobal(Offset.zero)}");
-        print("🔍 DEBUG Step 4: Size: ${box.size}");
+        debugPrint(
+            "🔍 DEBUG Step 4: Position: ${box.localToGlobal(Offset.zero)}");
+        debugPrint("🔍 DEBUG Step 4: Size: ${box.size}");
       } catch (e) {
-        print("⚠️ DEBUG Step 4: RenderBox error: $e");
+        debugPrint("⚠️ DEBUG Step 4: RenderBox error: $e");
       }
 
       targets.add(
@@ -365,7 +370,7 @@ class OnboardingService {
     }
 
     if (targets.isEmpty) {
-      print("⚠️ No Phase 2 targets found. Tour ends here.");
+      debugPrint("⚠️ No Phase 2 targets found. Tour ends here.");
       markTourAsSeen();
       onFinish?.call();
       return;
@@ -378,7 +383,7 @@ class OnboardingService {
       paddingFocus: 10,
       opacityShadow: 0.8,
       onClickTarget: (target) {
-        print("🎯 Phase 2 — Target tapped: ${target.identify}");
+        debugPrint("🎯 Phase 2 — Target tapped: ${target.identify}");
 
         // Scroll the Lane into view before Step 3
         if (target.identify == "AuditTrail" &&
@@ -405,19 +410,21 @@ class OnboardingService {
         // Step 4 clicked → open formula dialog → completion on close
         if (target.identify == "ForensicVeracity") {
           Future.delayed(const Duration(milliseconds: 300), () {
+            if (!context.mounted) return;
             _showFormulaDialog(context, onClose: () {
+              if (!context.mounted) return;
               _showCompletionOverlay(context);
             });
           });
         }
       },
       onFinish: () {
-        print("🎯 Tour complete — transitioning to Live Mode.");
+        debugPrint("🎯 Tour complete — transitioning to Live Mode.");
         markTourAsSeen();
         onFinish?.call();
       },
       onSkip: () {
-        print("Tutorial Skipped");
+        debugPrint("Tutorial Skipped");
         markTourAsSeen();
         onFinish?.call();
         return true;

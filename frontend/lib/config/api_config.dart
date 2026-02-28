@@ -30,6 +30,17 @@ class ApiConfig {
           }
         }
 
+        // ✅ PRODUCTION FIX: Check for Firebase Hosting domains
+        // Use same-origin relative URL - firebase.json rewrites /community/** → Cloud Function
+        // This avoids CORS entirely as it's a same-origin request.
+        if (uri.host.contains('web.app') ||
+            uri.host.contains('firebaseapp.com')) {
+          final origin = '${uri.scheme}://${uri.host}';
+          debugPrint('🚀 Detected Firebase production environment');
+          debugPrint('🔗 Using same-origin community URL: $origin/community');
+          return '$origin/community';
+        }
+
         // Check if we're running on a forwarded port (but exclude localhost/127.0.0.1)
         if (uri.port != 0 && uri.port != 80 && uri.port != 443) {
           if (uri.host != 'localhost' && uri.host != '127.0.0.1') {

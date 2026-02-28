@@ -58,11 +58,6 @@ class LandingWrapper extends StatelessWidget {
         Navigator.of(context)
             .pushReplacement(createSlideRoute(const DashboardScreen()));
       },
-      // Same for menu button
-      onOpenMenu: () {
-        Navigator.of(context)
-            .pushReplacement(createSlideRoute(const DashboardScreen()));
-      },
     );
   }
 }
@@ -87,6 +82,6 @@ Route createSlideRoute(Widget page) {
         ),
       );
     },
-    transitionDuration: const Duration(milliseconds: 300), // 40% faster
+    transitionDuration: const Duration(milliseconds: 200), // Ultra-fast
   );
 }

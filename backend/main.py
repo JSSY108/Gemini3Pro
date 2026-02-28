@@ -5,7 +5,8 @@ import logging
 import base64
 import httpx
 from typing import Optional, List, Dict, Any
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, responses
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from google import genai
@@ -51,13 +52,23 @@ app.add_middleware(
         "http://localhost:8000",
         "http://127.0.0.1",
         "http://127.0.0.1:8000",
-        "http://127.0.0.1:8080"
+        "http://127.0.0.1:8080",
+        # Firebase Hosting production domains
+        "https://veriscan-kitahack.web.app",
+        "https://veriscan-kitahack.firebaseapp.com",
     ],
-    allow_origin_regex=r"https://.*\.app\.github\.dev|http://localhost:.*",
+    allow_origin_regex=r"https://.*\.app\.github\.dev|http://localhost:.*|https://.*\.web\.app|https://.*\.firebaseapp\.com",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.exception_handler(413)
+async def request_too_large_handler(request, exc):
+    return JSONResponse(
+        status_code=413,
+        content={"error": "File Size Limit Exceeded. Please ensure individual files are under 20MB and total upload is under 50MB."}
+    )
 
 # --- Vertex AI Configuration ---
 PROJECT_ID = os.getenv("PROJECT_ID", "veriscan-kitahack")
@@ -229,26 +240,36 @@ async def process_multimodal_gemini(gemini_parts: List[Any], request_id: str, fi
     try:
         # --- YOUR OPTIMIZED OPINION-PROOF PROMPT ---
         system_instruction = """
-You are the VeriScan Lead Forensic Auditor, an expert fact-checking AI designed for the KitaHack 2026 platform. Your job is to analyze claims objectively, rely ONLY on the provided evidence, and output a highly structured factual breakdown.
+You are the VeriScan Skeptical Fact-Checking Analyst and Lead Forensic Auditor. Your job is to analyze claims with extreme skepticism, treating all user-provided data as unverified until cross-referenced with external authorities.
 
-You will be provided with a user's input and, optionally, a combination of uploaded files (images, PDFs) and external URLs. You also have access to Google Search (Grounding Metadata) to verify the facts.
+### HANDLING USER UPLOADS:
+- Treat all information in uploaded files (PDFs, Images, Text) as **Unverified Claims**, not as factual sources.
+- **Strict Rule:** Never use an uploaded file as a citation to prove its own contents. You MUST seek independent verification.
 
-### STRICT RULES OF ENGAGEMENT:
-1. ZERO HALLUCINATION: You must base your analysis entirely on the provided 'Grounding Metadata' (Search Results) and the user's uploaded files/URLs. Do not use outside knowledge.
-2. NO ASSUMPTIONS: If the grounding data does not explicitly confirm or deny a claim, you must categorize the verdict as "UNVERIFIABLE".
-3. VERDICT HIERARCHY:
-    - TRUE: 100% of the claim is factual.
+### GROUNDING WORKFLOW & RULE OF ENGAGEMENT:
+1. **Identify Claims:** Extract the core factual claims from the user's uploaded file or text.
+2. **External Verification:** Use the Google Search tool to find independent, external sources (news, government data, academic papers) that either support or refute those claims.
+3. **Citation Mandate:** Only cite URLs and snippets from the independent Google Search results in your final "Evidence" section. 
+4. **Logic Engine:** 
+    - If search results match the file: **Verified/True**. 
+    - If search results conflict with the file: **Fake/False**. 
+    - If no independent external evidence is found: **Unverified/Unverifiable**.
+5. ZERO HALLUCINATION: You must base your analysis entirely on the provided 'Grounding Metadata' (Search Results) and the user's uploaded files/URLs. Do not use outside knowledge.
+6. NO ASSUMPTIONS: If the grounding data does not explicitly confirm or deny a claim, you must categorize the verdict as "UNVERIFIABLE".
+7. VERDICT HIERARCHY:
+    - TRUE: 100% of the claim is factual based on external evidence.
     - MOSTLY_TRUE: The core claim is factual but contains a minor scientific technicality or rounding error.
-    - MIXTURE: Use this if the input contains multiple facts where at least one is TRUE and at least one is FALSE. (e.g., "A is true and B is false" = MIXTURE).
-    - MISLEADING: The facts are technically true but presented in a way that implies a false conclusion (e.g., correlations presented as causations).
+    - MIXTURE: Use this if the input contains multiple facts where at least one is TRUE and at least one is FALSE, OR if there is a conflict between an uploaded file and a live search result. (e.g., "A is true and B is false" = MIXTURE).
+    - MISLEADING: The facts are technically true but presented in a way that implies a false conclusion.
     - MOSTLY_FALSE: The core claim is false but contains a minor element of truth.
-    - FALSE: The core claim is entirely false.
-    - UNVERIFIABLE: Insufficient grounding data exists.
+    - FALSE: The core claim is refuted by external search results.
+    - UNVERIFIABLE: Insufficient independent grounding data exists.
     - NOT_A_CLAIM: Subjective, opinion, or future prediction.
-4. MULTIMODAL CROSS-EXAMINATION: You must cross-reference the contents of all uploaded files, images, and URLs against the Google Search results. If the core claim in ANY of the uploaded files is corroborated by high-authority web search, flag the "multimodal_cross_check" boolean as true. If they contradict the web, or if the user provided no files, flag it as false.
-5. LITERAL FACT-CHECKING ONLY: You must evaluate the literal physical reality of the claim. If a user claims an absurd or impossible entity exists (e.g., "There is a teapot in space"), you must fact-check its physical existence. Do NOT output 'TRUE' just because you found an article describing it as a thought experiment, movie plot, or internet meme. If the literal physical claim cannot be proven by evidence, you MUST output "UNVERIFIABLE".
-6. IDENTIFYING NON-CLAIMS (SHORT-CIRCUIT): You can only fact-check objective, verifiable statements of past or present fact. If the user's input is a subjective opinion (e.g., "Vanilla is the best flavor"), a prediction of the future, a question, or a poem, you must immediately classify the verdict as "NOT_A_CLAIM".
-7. TONE: Maintain an objective, journalistic, and highly analytical tone. Avoid emotional language.
+8. MULTIMODAL CROSS-EXAMINATION & OUTER SEARCH: You must perform a live grounding search for every claim to cross-reference user-provided files with external real-time data. Even if a user-provided file (PDF/Image) seems sufficient, you MUST seek external authoritative sources (Google Search, IFCN, Govt Databases) to verify the current status as of February 28, 2026. 
+9. LITERAL FACT-CHECKING & NO INTERNAL BIAS: You must evaluate the literal physical reality of the claim. Do not rely solely on internal knowledge for "Current" facts. If you find a conflict between a user file and a live search result, cite both sources. If a user claims an absurd or impossible entity exists, you must fact-check its physical existence.
+10. IDENTIFYING NON-CLAIMS (SHORT-CIRCUIT): You can only fact-check objective, verifiable statements of past or present fact. If the user's input is a subjective opinion, a prediction of the future, a question, or a poem, you must immediately classify the verdict as "NOT_A_CLAIM".
+11. MANDATORY SNIPPETS: For every single entry in grounding_citations, you MUST provide a direct, non-null snippet. For PDFs/URLs, provide a 1-2 sentence verbatim quote. For Images, provide a specific description of the visual evidence found.
+12. TONE: Maintain an objective, journalistic, and highly analytical tone. Avoid emotional language.
 
 ### REQUIRED OUTPUT FORMAT:
 You MUST return your final response strictly as a valid JSON object matching the exact structure below. Do NOT wrap the JSON in markdown code blocks (like ```json). Ensure all internal double quotes are escaped (e.g., \") as per standard JSON rules.
@@ -444,8 +465,12 @@ The "analysis" string MUST be formatted in Markdown and strictly use these four 
                         break
                 
                 gc["source_file"] = matched_file
-                if not gc.get("url"):
-                    gc["url"] = "No source link available"
+                if not gc.get("url") or gc.get("url") == "No source link available":
+                    if matched_file:
+                        gc["url"] = f"file://{matched_file}"
+                    else:
+                        gc["url"] = "No source link available"
+                
                 if not gc.get("title"):
                     gc["title"] = matched_file or "Untitled Source"
                 
@@ -456,8 +481,8 @@ The "analysis" string MUST be formatted in Markdown and strictly use these four 
                 if gc.get("snippet"):
                     gc["snippet"] = sanitize_grounding_text(gc["snippet"])
                 
-                url_str = gc.get("url", "").lower()
-                snippet_str = gc.get("snippet", "").lower()
+                url_str = (gc.get("url") or "").lower()
+                snippet_str = (gc.get("snippet") or "").lower()
                 status = "live"
                 social_domains = ["instagram.com", "facebook.com", "twitter.com", "x.com", "tiktok.com", "reddit.com"]
                 if any(domain in url_str for domain in social_domains):
@@ -494,6 +519,25 @@ The "analysis" string MUST be formatted in Markdown and strictly use these four 
                         url=uri,
                         is_cited=norm_uri in cited_urls
                     ).model_dump())
+            
+            # Add fallback scanned sources for referenced but non-web chunks (files)
+            for i, chunk_obj in enumerate(chunks):
+                if not hasattr(chunk_obj, 'web') or not chunk_obj.web:
+                    # This might be a file grounding. Try to find a matching citation by ID.
+                    chunk_id = i + 1
+                    citation = next((c for c in sanitized_citations if c.get("id") == chunk_id), None)
+                    if citation and citation.get("source_file"):
+                        filename = citation["source_file"]
+                        uri = f"file://{filename}"
+                        norm_uri = normalize_url(uri)
+                        if norm_uri not in seen_urls:
+                            seen_urls.add(norm_uri)
+                            scanned_sources.append(ScannedSource(
+                                id=chunk_id,
+                                title=filename,
+                                url=uri,
+                                is_cited=True
+                            ).model_dump())
         
         data["scanned_sources"] = scanned_sources
 

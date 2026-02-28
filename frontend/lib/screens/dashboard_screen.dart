@@ -13,7 +13,6 @@ import '../widgets/juicy_button.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
-import '../widgets/veriscan_drawer.dart';
 import '../widgets/unified_sidebar.dart';
 import '../utils/demo_manager.dart';
 import '../services/demo_service.dart';
@@ -246,13 +245,13 @@ class _DashboardScreenState extends State<DashboardScreen>
       _activeCitationIndices = [];
     });
 
-    print("🔍 DEBUG: Starting Demo Trigger in DashboardScreen.");
+    debugPrint("🔍 DEBUG: Starting Demo Trigger in DashboardScreen.");
 
     try {
       final demoService = DemoService();
       await demoService.simulateLoading();
       final result = await DemoService.loadLemonDemo();
-      print(
+      debugPrint(
           "🔍 DEBUG: Demo data received: ${result != null ? 'SUCCESS' : 'NULL'}");
 
       if (result == null) {
@@ -283,7 +282,7 @@ class _DashboardScreenState extends State<DashboardScreen>
         // Launch Onboarding Tour immediately once mounted
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) {
-            print(
+            debugPrint(
                 "🔍 DEBUG: Attempting to launch Onboarding Tour (Dashboard)...");
             _onboardingService.showDemoTour(
               context,
@@ -319,7 +318,7 @@ class _DashboardScreenState extends State<DashboardScreen>
         String errorMessage = "Demo Hydration Failed.";
         if (e is TypeError) {
           errorMessage = "Forensic Data Corrupted. Reverting to Live Mode.";
-          print("❌ DEBUG TYPE ERROR: $e");
+          debugPrint("❌ DEBUG TYPE ERROR: $e");
         } else {
           errorMessage = "Forensic Asset not found. Reverting to Live Mode.";
         }
@@ -508,23 +507,14 @@ class _DashboardScreenState extends State<DashboardScreen>
     // 1. Wrap in Scaffold to host the Drawer
     return Scaffold(
       backgroundColor: const Color(0xFF121212),
-      drawer: const VeriscanDrawer(), // The Drawer lives here now
-      body: Stack(
-        children: [
-          // 2. Main Content (Padded so button doesn't cover top-left content)
-          Padding(
-            padding: const EdgeInsets.only(top: 60.0),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                if (constraints.maxWidth > 900) {
-                  return _buildDesktopLayout(constraints);
-                } else {
-                  return _buildMobileLayout();
-                }
-              },
-            ),
-          ),
-        ],
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth > 900) {
+            return _buildDesktopLayout(constraints);
+          } else {
+            return _buildMobileLayout();
+          }
+        },
       ),
     );
   }

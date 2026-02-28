@@ -43,9 +43,15 @@ def get_authority_multiplier(domain: str) -> float:
         return 0.9  # High authority orgs/news
     if domain in ['wikipedia.org', 'en.wikipedia.org']:
         return 0.8  # Commendable but crowd-sourced
+    
     social_domains = ['twitter.com', 'x.com', 'facebook.com', 'instagram.com', 'tiktok.com', 'reddit.com', 'youtube.com']
     if any(sd in domain for sd in social_domains):
         return 0.4  # Social media / UGC
+    
+    # Check for file extensions (indicates an uploaded file used as ground truth)
+    if any(domain.lower().endswith(ext) for ext in ['.pdf', '.jpg', '.jpeg', '.png', '.txt', '.docx']):
+        return 1.0 # Direct user-provided evidence
+        
     return 0.7  # Default for unknown .com/.net/...
 
 def extract_domain(url: str) -> str:
@@ -159,7 +165,9 @@ def calculate_reliability(grounding_supports: list, grounding_chunks: list, grou
                 used_domains.add(raw_domain)
 
             auth = get_authority_multiplier(raw_domain)
-            conf = conf_scores[i] if i < len(conf_scores) else 0.0
+            
+            # Default to 1.0 for files if API confidence is missing (it's user context)
+            conf = conf_scores[i] if i < len(conf_scores) else (1.0 if raw_uri.startswith("file://") else 0.0)
             chunk_score = conf * auth
             
             clean_domain_for_check = normalize_domain_name(raw_domain)

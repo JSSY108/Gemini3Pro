@@ -36,10 +36,10 @@ class _FactCheckScreenState extends State<FactCheckScreen> {
   @override
   void initState() {
     super.initState();
-    print(
+    debugPrint(
         "🔍 DEBUG: FactCheckScreen initState. isDemoMode: ${DemoManager.isDemoMode}");
     if (DemoManager.isDemoMode) {
-      print("🔍 DEBUG: Demo Mode detected in FactCheckScreen.");
+      debugPrint("🔍 DEBUG: Demo Mode detected in FactCheckScreen.");
       _handleDemoHydration();
     }
   }
@@ -62,7 +62,7 @@ class _FactCheckScreenState extends State<FactCheckScreen> {
       final demoService = DemoService();
       await demoService.simulateLoading();
       final result = await DemoService.loadLemonDemo();
-      print(
+      debugPrint(
           "🔍 DEBUG: Demo data received: ${result != null ? 'SUCCESS' : 'NULL'}");
 
       if (result == null) {
@@ -88,7 +88,7 @@ class _FactCheckScreenState extends State<FactCheckScreen> {
       // Launch Onboarding Tour immediately once mounted
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          print("🔍 DEBUG: Attempting to launch Onboarding Tour...");
+          debugPrint("🔍 DEBUG: Attempting to launch Onboarding Tour...");
           _onboardingService.showDemoTour(
             context,
             firstSegmentKey: _firstSegmentKey,

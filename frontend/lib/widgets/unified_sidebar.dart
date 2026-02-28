@@ -67,8 +67,6 @@ class UnifiedSidebar extends StatelessWidget {
             },
           ),
           const Spacer(),
-          // Bottom padding or logo if desired
-          const SizedBox(height: 20),
         ],
       ),
     );

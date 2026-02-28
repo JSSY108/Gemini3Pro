@@ -275,8 +275,8 @@ class SourceTile extends StatelessWidget {
                               child: Tooltip(
                                 message: "Verified IFCN Signatory",
                                 child: Container(
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF121212),
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFF121212),
                                     shape: BoxShape.circle,
                                   ),
                                   child: const Icon(
@@ -291,25 +291,20 @@ class SourceTile extends StatelessWidget {
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: Tooltip(
-                          message: (snippet != null && snippet!.isNotEmpty)
-                              ? snippet!
-                              : "Evidence verification in progress...",
-                          child: Text(
-                            unescape.convert(title),
-                            style: GoogleFonts.outfit(
-                              color: isInaccessible
-                                  ? Colors.white24
-                                  : Colors.white.withValues(alpha: 0.9),
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              decoration: isInaccessible
-                                  ? TextDecoration.lineThrough
-                                  : null,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                        child: Text(
+                          unescape.convert(title),
+                          style: GoogleFonts.outfit(
+                            color: isInaccessible
+                                ? Colors.white24
+                                : Colors.white.withValues(alpha: 0.9),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            decoration: isInaccessible
+                                ? TextDecoration.lineThrough
+                                : null,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       const SizedBox(width: 8),

@@ -282,7 +282,9 @@ class _CommunityVoteBoxState extends State<CommunityVoteBox> {
 
                                   if (!mounted ||
                                       !dialogContext.mounted ||
-                                      !context.mounted) return;
+                                      !context.mounted) {
+                                    return;
+                                  }
 
                                   if (success) {
                                     Navigator.of(dialogContext).pop();

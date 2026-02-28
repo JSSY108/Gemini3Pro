@@ -2,18 +2,14 @@ import 'dart:math';
 import 'dart:ui'; // Required for lerpDouble
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../widgets/veriscan_drawer.dart';
 import '../widgets/juicy_button.dart';
 import '../widgets/unified_sidebar.dart';
 
 class DashboardLandingView extends StatefulWidget {
   final VoidCallback onStartAnalysis;
-  final VoidCallback onOpenMenu;
-
   const DashboardLandingView({
     super.key,
     required this.onStartAnalysis,
-    required this.onOpenMenu,
   });
 
   @override
@@ -21,15 +17,10 @@ class DashboardLandingView extends StatefulWidget {
 }
 
 class _DashboardLandingViewState extends State<DashboardLandingView> {
-  // 1. GLOBAL KEY: This fixes the Hamburger Menu issue
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      key: _scaffoldKey, // Attach the key here
       backgroundColor: const Color(0xFF0D0D0D),
-      drawer: const VeriscanDrawer(),
       body: Row(
         children: [
           const UnifiedSidebar(activeIndex: 0),
@@ -41,7 +32,6 @@ class _DashboardLandingViewState extends State<DashboardLandingView> {
                   pinned: false,
                   floating: false,
                   delegate: _LandingHeaderDelegate(
-                    onOpenMenu: () => _scaffoldKey.currentState?.openDrawer(),
                     minHeight: 140.0, // Compact when scrolled
                     maxHeight: 200.0, // Tall when at the top
                   ),
@@ -312,12 +302,10 @@ class _DashboardLandingViewState extends State<DashboardLandingView> {
 // 4. THE HEADER DELEGATE (Mobile Overflow Fixed)
 // ==============================================================================
 class _LandingHeaderDelegate extends SliverPersistentHeaderDelegate {
-  final VoidCallback onOpenMenu;
   final double minHeight;
   final double maxHeight;
 
   _LandingHeaderDelegate({
-    required this.onOpenMenu,
     required this.minHeight,
     required this.maxHeight,
   });
