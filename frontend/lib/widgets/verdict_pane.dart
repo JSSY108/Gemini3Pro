@@ -9,8 +9,9 @@ import 'community_vote_box.dart';
 
 class VerdictPane extends StatelessWidget {
   final AnalysisResponse? result;
+  final GlobalKey? gaugeKey;
 
-  const VerdictPane({super.key, required this.result});
+  const VerdictPane({super.key, required this.result, this.gaugeKey});
 
   @override
   Widget build(BuildContext context) {
@@ -51,7 +52,7 @@ class VerdictPane extends StatelessWidget {
             const SizedBox(height: 24),
 
             // 2. AI Certainty Card
-            ConfidenceCard(score: result!.confidenceScore),
+            ConfidenceCard(score: result!.confidenceScore, gaugeKey: gaugeKey),
 
             const SizedBox(height: 16),
 

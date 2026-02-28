@@ -290,6 +290,17 @@
             "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGRs4KpyiUDBUI3ES7M9ZvGXS4uqOmz5N5p8cvrpEAygMuPuk4kr7PgjDuF1EIkIWzDr9E5ZjXq97hb5Zo0tkyJlUI3rWrjnGGUhlq2Nzv299qwgXhW4455O3glEYAX5UQMrtUk9LJkxm54dxTG5wUV3QnjVG54SSkqdRr4Zy4xlN1nzf30HqsWqdKi1GRMCZMw5DB5_g5fMdYLgc18kU1fnsip_-wwR9R2pt-KObhVes7FYqHV_9YhtmOc1qw0f5kaXZJNVkWrOsPlAb-e",
             "is_cited": true,
             "snippet": "Medical experts warn that excessive lemon water consumption can lead to dental erosion and may exacerbate symptoms of gastroesophageal reflux disease (GERD) in sensitive individuals."
+        },
+        {
+            "id": 7,
+            "title": "mayoclinic.org",
+            "url": "https://www.mayoclinic.org/healthy-lifestyle/nutrition-and-healthy-eating/expert-answers/digestion/faq-20058348",
+            "is_verified": true,
+            "is_cited": false,
+            "confidence": 0.92,
+            "authority": 0.98,
+            "reliability_score": 0.95,
+            "snippet": "Clinical review of lemon water's impact on digestive enzymes."
         }
     ],
     "grounding_supports": [

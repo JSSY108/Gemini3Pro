@@ -5,6 +5,8 @@ import '../models/grounding_models.dart';
 import '../widgets/veriscan_interactive_text.dart';
 import '../utils/demo_manager.dart';
 import '../services/demo_service.dart';
+import '../widgets/confidence_gauge.dart';
+import '../services/onboarding_service.dart';
 
 class FactCheckScreen extends StatefulWidget {
   const FactCheckScreen({super.key});
@@ -22,6 +24,14 @@ class _FactCheckScreenState extends State<FactCheckScreen> {
   bool _isRecoveringFromHallucination = false;
   bool _isHydratingDemo = false;
   GroundingSupport? _activeSupport;
+
+  // Tutorial Keys
+  final GlobalKey _analysisKey = GlobalKey();
+  final GlobalKey _evidenceTrayKey = GlobalKey();
+  final GlobalKey _globalRingKey = GlobalKey();
+  final GlobalKey _firstSegmentKey = GlobalKey();
+
+  final OnboardingService _onboardingService = OnboardingService();
 
   @override
   void initState() {
@@ -75,13 +85,30 @@ class _FactCheckScreenState extends State<FactCheckScreen> {
         _result = result;
       });
 
-      // Interactive Hook: Auto-select first segment after 1.5s
-      Future.delayed(const Duration(milliseconds: 1500), () {
-        if (mounted &&
-            _result != null &&
-            _result!.groundingSupports.isNotEmpty) {
-          print("🔍 DEBUG: Auto-selecting first segment for demo.");
-          _handleSupportSelected(_result!.groundingSupports.first);
+      // Launch Onboarding Tour after hydration (no auto-select)
+      Future.delayed(const Duration(milliseconds: 2000), () {
+        if (mounted) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            print("🔍 DEBUG: Attempting to launch Onboarding Tour...");
+            _onboardingService.showDemoTour(
+              context,
+              firstSegmentKey: _firstSegmentKey,
+              evidenceTrayKey: _evidenceTrayKey,
+              globalRingKey: _globalRingKey,
+              onSelectFirstSegment: () {
+                if (_result != null && _result!.groundingSupports.isNotEmpty) {
+                  _handleSupportSelected(_result!.groundingSupports.first);
+                }
+              },
+              onFinish: () {
+                if (mounted) {
+                  setState(() {
+                    DemoManager.isDemoMode = false;
+                  });
+                }
+              },
+            );
+          });
         }
       });
     } catch (e) {
@@ -315,16 +342,24 @@ class _FactCheckScreenState extends State<FactCheckScreen> {
                   letterSpacing: 1.2,
                 ),
               ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: accentColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  '${(_result!.confidenceScore * 100).toInt()}% Confidence',
-                  style: TextStyle(color: accentColor, fontSize: 12),
+              SizedBox(
+                key: _globalRingKey,
+                height: 80,
+                width: 80,
+                child: ConfidenceGauge(
+                  score: _activeSupport != null
+                      ? (_result!.reliabilityMetrics?.segments
+                              .firstWhere(
+                                  (s) => s.text == _activeSupport!.segment.text,
+                                  orElse: () => SegmentAudit(
+                                      text: '',
+                                      sources: [],
+                                      topSourceScore: 0.0,
+                                      topSourceDomain: 'N/A'))
+                              .topSourceScore ??
+                          _result!.confidenceScore)
+                      : (_result!.reliabilityMetrics?.reliabilityScore ??
+                          _result!.confidenceScore),
                 ),
               ),
             ],
@@ -342,6 +377,7 @@ class _FactCheckScreenState extends State<FactCheckScreen> {
 
           // --- Interactive Grounding Text ---
           VeriscanInteractiveText(
+            key: _analysisKey,
             analysisText: _result!.analysis,
             groundingSupports: _result!.groundingSupports,
             groundingCitations: _result!.groundingCitations,
@@ -349,6 +385,9 @@ class _FactCheckScreenState extends State<FactCheckScreen> {
             attachments: const [],
             activeSupport: _activeSupport,
             onSupportSelected: _handleSupportSelected,
+            reliabilityMetrics: _result!.reliabilityMetrics,
+            evidenceTrayKey: _evidenceTrayKey,
+            firstSegmentKey: _firstSegmentKey,
           ),
           // ----------------------------------
 

@@ -3,14 +3,16 @@ import 'package:google_fonts/google_fonts.dart';
 
 class ConfidenceCard extends StatelessWidget {
   final double score;
+  final GlobalKey? gaugeKey;
 
-  const ConfidenceCard({super.key, required this.score});
+  const ConfidenceCard({super.key, required this.score, this.gaugeKey});
 
   @override
   Widget build(BuildContext context) {
     final percentage = (score * 100).toInt();
 
     return Container(
+      key: gaugeKey,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.02),
@@ -58,7 +60,8 @@ class ConfidenceCard extends StatelessWidget {
                       backgroundColor: const Color(0xFF1E1E1E),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
-                        side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                        side: BorderSide(
+                            color: Colors.white.withValues(alpha: 0.1)),
                       ),
                       title: Text(
                         "AI Certainty",

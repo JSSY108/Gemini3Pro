@@ -17,6 +17,7 @@ class SourceSidebarContainer extends StatefulWidget {
   final Function(int) onCitationSelected;
   final Function(String) onDeleteAttachment;
   final ScrollController scrollController;
+  final GlobalKey? scannedRingKey;
 
   const SourceSidebarContainer({
     super.key,
@@ -31,6 +32,7 @@ class SourceSidebarContainer extends StatefulWidget {
     required this.onCitationSelected,
     required this.onDeleteAttachment,
     required this.scrollController,
+    this.scannedRingKey,
   });
 
   @override
@@ -196,7 +198,7 @@ class _SourceSidebarContainerState extends State<SourceSidebarContainer> {
       key: const ValueKey("evidence"),
       controller: widget.scrollController,
       slivers: [
-        // --- SECTION 1: VERIFIED EVIDENCE ---
+        // --- SECTION 1: CITED SOURCES ---
         if (citedSources.isNotEmpty) ...[
           SliverToBoxAdapter(
             child: Padding(
@@ -210,7 +212,7 @@ class _SourceSidebarContainerState extends State<SourceSidebarContainer> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    "VERIFIED EVIDENCE",
+                    "CITED SOURCES",
                     style: GoogleFonts.outfit(
                       color: const Color(0xFFD4AF37),
                       fontSize: 10,
@@ -431,6 +433,15 @@ class _SourceSidebarContainerState extends State<SourceSidebarContainer> {
                 }
               }
 
+              // Final fallback: use the ScannedSource's own fields
+              if (tileScore == null &&
+                  (source.confidence != null || source.authority != null)) {
+                tileConf = source.confidence;
+                tileAuth = source.authority;
+                tileScore = (tileConf ?? 0.0) * (tileAuth ?? 1.0);
+                tileIsVerified = source.isVerified;
+              }
+
               return Padding(
                 key: ValueKey('sidebar_scanned_${source.url}'),
                 padding: const EdgeInsets.symmetric(
@@ -438,7 +449,9 @@ class _SourceSidebarContainerState extends State<SourceSidebarContainer> {
                   vertical: 4,
                 ),
                 child: AnimatedContainer(
-                  key: _sourceKeys[keyStr],
+                  key: (index == 0 && widget.scannedRingKey != null)
+                      ? widget.scannedRingKey
+                      : _sourceKeys[keyStr],
                   duration: const Duration(milliseconds: 300),
                   child: SourceTile(
                     title: source.title,

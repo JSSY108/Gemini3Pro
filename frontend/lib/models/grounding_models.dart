@@ -49,6 +49,9 @@ class ScannedSource {
   final String url;
   final bool isCited;
   final String? snippet;
+  final double? confidence;
+  final double? authority;
+  final bool isVerified;
 
   ScannedSource({
     required this.id,
@@ -56,6 +59,9 @@ class ScannedSource {
     required this.url,
     required this.isCited,
     this.snippet,
+    this.confidence,
+    this.authority,
+    this.isVerified = false,
   });
 
   factory ScannedSource.fromJson(Map<String, dynamic> json) {
@@ -65,6 +71,9 @@ class ScannedSource {
       url: json['url'] as String? ?? '',
       isCited: json['is_cited'] as bool? ?? false,
       snippet: json['snippet'] as String?,
+      confidence: (json['confidence'] as num?)?.toDouble(),
+      authority: (json['authority'] as num?)?.toDouble(),
+      isVerified: json['is_verified'] as bool? ?? false,
     );
   }
 }

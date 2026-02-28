@@ -18,6 +18,7 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import '../utils/demo_manager.dart';
 import '../services/demo_service.dart';
+import '../services/onboarding_service.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -33,6 +34,13 @@ class _DashboardScreenState extends State<DashboardScreen>
   final ScrollController _sidebarScrollController = ScrollController();
   final GlobalKey _sidebarKey = GlobalKey();
   final GlobalKey _sourcesTabKey = GlobalKey();
+
+  // Tutorial Keys
+  final GlobalKey _evidenceTrayKey = GlobalKey();
+  final GlobalKey _globalRingKey = GlobalKey();
+  final GlobalKey _firstSegmentKey = GlobalKey();
+  final GlobalKey _scannedRingKey = GlobalKey();
+  final OnboardingService _onboardingService = OnboardingService();
 
   AnalysisResponse? _result;
   bool _isLoading = false;
@@ -273,12 +281,33 @@ class _DashboardScreenState extends State<DashboardScreen>
           _isLoading = false;
         });
 
-        // Interactive Hook: Auto-select first segment after 1.5s
-        Future.delayed(const Duration(milliseconds: 1500), () {
-          if (mounted &&
-              _result != null &&
-              _result!.groundingSupports.isNotEmpty) {
-            _handleSupportSelected(_result!.groundingSupports.first);
+        // Launch Onboarding Tour after hydration (no auto-select)
+        Future.delayed(const Duration(milliseconds: 2000), () {
+          if (mounted) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              print(
+                  "🔍 DEBUG: Attempting to launch Onboarding Tour (Dashboard)...");
+              _onboardingService.showDemoTour(
+                context,
+                firstSegmentKey: _firstSegmentKey,
+                evidenceTrayKey: _evidenceTrayKey,
+                globalRingKey: _sidebarKey,
+                scannedRingKey: _scannedRingKey,
+                onSelectFirstSegment: () {
+                  if (_result != null &&
+                      _result!.groundingSupports.isNotEmpty) {
+                    _handleSupportSelected(_result!.groundingSupports.first);
+                  }
+                },
+                onFinish: () {
+                  if (mounted) {
+                    setState(() {
+                      DemoManager.isDemoMode = false;
+                    });
+                  }
+                },
+              );
+            });
           }
         });
       }
@@ -573,6 +602,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                 onCitationSelected: _handleCitationSelected,
                 onDeleteAttachment: _handleDeleteMigratedAttachment,
                 scrollController: _sidebarScrollController,
+                scannedRingKey: _scannedRingKey,
               ),
             ),
           // Analysis Hub
@@ -684,6 +714,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                                                       ?.reliabilityMetrics,
                                                   onSupportSelected:
                                                       _handleSupportSelected,
+                                                  firstSegmentKey:
+                                                      _firstSegmentKey,
+                                                  evidenceTrayKey:
+                                                      _evidenceTrayKey,
                                                 ),
                                               ))),
                               ),
@@ -730,7 +764,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                   ),
                 ),
                 child: SingleChildScrollView(
-                  child: VerdictPane(result: _result),
+                  child: VerdictPane(result: _result, gaugeKey: _globalRingKey),
                 ),
               ),
             ),
@@ -870,6 +904,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                         attachments: _migratedAttachments,
                         activeSupport: _activeSupport,
                         onSupportSelected: _handleSupportSelected,
+                        firstSegmentKey: _firstSegmentKey,
+                        evidenceTrayKey: _evidenceTrayKey,
                       ),
                     ],
                   ),

@@ -13,6 +13,7 @@ class EvidenceTray extends StatelessWidget {
   final ReliabilityMetrics? reliabilityMetrics;
   final GroundingSupport? activeSupport;
   final VoidCallback onClose;
+  final GlobalKey? evidenceTrayKey;
 
   const EvidenceTray({
     super.key,
@@ -23,6 +24,7 @@ class EvidenceTray extends StatelessWidget {
     this.reliabilityMetrics,
     this.activeSupport,
     required this.onClose,
+    this.evidenceTrayKey,
   });
 
   @override
@@ -63,63 +65,71 @@ class EvidenceTray extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (citedSources.isNotEmpty) ...[
-                    _buildSectionTitle("VERIFIED EVIDENCE"),
-                    ...citedSources.map((citation) {
-                      double? computedScore;
-                      double? sourceConfidence;
-                      double? sourceAuthority;
+                  if (citedSources.isNotEmpty)
+                    Column(
+                      key: evidenceTrayKey,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildSectionTitle("CITED SOURCES"),
+                        ...citedSources.map((citation) {
+                          double? computedScore;
+                          double? sourceConfidence;
+                          double? sourceAuthority;
 
-                      if (activeSupport != null &&
-                          reliabilityMetrics != null &&
-                          reliabilityMetrics!.segments.isNotEmpty) {
-                        try {
-                          final currentSegmentText =
-                              activeSupport!.segment.text;
-                          final segmentAudit = reliabilityMetrics!.segments
-                              .firstWhere((s) => s.text == currentSegmentText);
+                          if (activeSupport != null &&
+                              reliabilityMetrics != null &&
+                              reliabilityMetrics!.segments.isNotEmpty) {
+                            try {
+                              final currentSegmentText =
+                                  activeSupport!.segment.text;
+                              final segmentAudit = reliabilityMetrics!.segments
+                                  .firstWhere(
+                                      (s) => s.text == currentSegmentText);
 
-                          final sourceAudit = segmentAudit.sources.firstWhere(
-                            (s) => s.id == citation.id,
-                          );
+                              final sourceAudit =
+                                  segmentAudit.sources.firstWhere(
+                                (s) => s.id == citation.id,
+                              );
 
-                          // Find confidence score index
-                          final chunkIndexInSupport = activeSupport!
-                              .groundingChunkIndices
-                              .indexOf(citation.id - 1);
+                              // Find confidence score index
+                              final chunkIndexInSupport = activeSupport!
+                                  .groundingChunkIndices
+                                  .indexOf(citation.id - 1);
 
-                          if (chunkIndexInSupport != -1 &&
-                              chunkIndexInSupport <
-                                  activeSupport!.confidenceScores.length) {
-                            sourceConfidence = activeSupport!
-                                .confidenceScores[chunkIndexInSupport];
-                            sourceAuthority = sourceAudit.authority;
+                              if (chunkIndexInSupport != -1 &&
+                                  chunkIndexInSupport <
+                                      activeSupport!.confidenceScores.length) {
+                                sourceConfidence = activeSupport!
+                                    .confidenceScores[chunkIndexInSupport];
+                                sourceAuthority = sourceAudit.authority;
 
-                            computedScore = sourceConfidence * sourceAuthority;
+                                computedScore =
+                                    sourceConfidence * sourceAuthority;
+                              }
+                            } catch (e) {
+                              // Ignore if metrics missing
+                            }
                           }
-                        } catch (e) {
-                          // Ignore if metrics missing
-                        }
-                      }
 
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: EvidenceCard(
-                          title: citation.title,
-                          snippet: citation.snippet,
-                          url: citation.url,
-                          sourceFile: citation.sourceFile,
-                          attachments: attachments,
-                          status: citation.status,
-                          sourceId: citation.id,
-                          isActive: true,
-                          score: computedScore,
-                          confidence: sourceConfidence,
-                          authority: sourceAuthority,
-                        ),
-                      );
-                    }),
-                  ],
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: EvidenceCard(
+                              title: citation.title,
+                              snippet: citation.snippet,
+                              url: citation.url,
+                              sourceFile: citation.sourceFile,
+                              attachments: attachments,
+                              status: citation.status,
+                              sourceId: citation.id,
+                              isActive: true,
+                              score: computedScore,
+                              confidence: sourceConfidence,
+                              authority: sourceAuthority,
+                            ),
+                          );
+                        }).toList(),
+                      ],
+                    ),
                   AnimatedSwitcher(
                     duration: const Duration(milliseconds: 300),
                     child: (displayedScanned.isNotEmpty)
@@ -210,7 +220,7 @@ class EvidenceTray extends StatelessWidget {
             letterSpacing: 1.5,
           ),
         ),
-        if (title == "VERIFIED EVIDENCE" && DemoManager.isDemoMode) ...[
+        if (title == "CITED SOURCES" && DemoManager.isDemoMode) ...[
           const SizedBox(width: 6),
           Tooltip(
             message:

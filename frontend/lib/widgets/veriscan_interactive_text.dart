@@ -13,6 +13,8 @@ class VeriscanInteractiveText extends StatefulWidget {
   final GroundingSupport? activeSupport;
   final ReliabilityMetrics? reliabilityMetrics;
   final Function(GroundingSupport?)? onSupportSelected;
+  final GlobalKey? firstSegmentKey;
+  final GlobalKey? evidenceTrayKey;
 
   const VeriscanInteractiveText({
     super.key,
@@ -24,6 +26,8 @@ class VeriscanInteractiveText extends StatefulWidget {
     this.activeSupport,
     this.reliabilityMetrics,
     this.onSupportSelected,
+    this.firstSegmentKey,
+    this.evidenceTrayKey,
   });
 
   @override
@@ -48,8 +52,7 @@ class _VeriscanInteractiveTextState extends State<VeriscanInteractiveText> {
     );
     final theme = Theme.of(context);
 
-    final baseStyle =
-        theme.textTheme.bodyMedium?.copyWith(
+    final baseStyle = theme.textTheme.bodyMedium?.copyWith(
           fontSize: kFontSize,
           height: 1.0,
         ) ??
@@ -74,9 +77,8 @@ class _VeriscanInteractiveTextState extends State<VeriscanInteractiveText> {
     }
 
     // Always split or treat as single block to keep AnimatedSwitcher in tree for transition
-    final int splitIndex = activeChunkIndex != -1
-        ? activeChunkIndex + 1
-        : chunks.length;
+    final int splitIndex =
+        activeChunkIndex != -1 ? activeChunkIndex + 1 : chunks.length;
     final beforeChunks = chunks.sublist(0, splitIndex);
     final afterChunks = chunks.sublist(splitIndex);
 
@@ -88,7 +90,8 @@ class _VeriscanInteractiveTextState extends State<VeriscanInteractiveText> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildRichTextBlock(beforeChunks, baseStyle, strutStyle),
+            _buildRichTextBlock(beforeChunks, baseStyle, strutStyle,
+                canApplySegmentKey: true),
             if (activeChunkIndex != -1)
               Padding(
                 key: ValueKey(widget.activeSupport!.segment.startIndex),
@@ -101,11 +104,13 @@ class _VeriscanInteractiveTextState extends State<VeriscanInteractiveText> {
                   attachments: widget.attachments,
                   reliabilityMetrics: widget.reliabilityMetrics,
                   activeSupport: widget.activeSupport,
+                  evidenceTrayKey: widget.evidenceTrayKey,
                   onClose: () => widget.onSupportSelected?.call(null),
                 ),
               ),
             if (afterChunks.isNotEmpty)
-              _buildRichTextBlock(afterChunks, baseStyle, strutStyle),
+              _buildRichTextBlock(afterChunks, baseStyle, strutStyle,
+                  canApplySegmentKey: false),
           ],
         ),
       ),
@@ -115,14 +120,15 @@ class _VeriscanInteractiveTextState extends State<VeriscanInteractiveText> {
   Widget _buildRichTextBlock(
     List<TextChunk> chunks,
     TextStyle baseStyle,
-    StrutStyle strutStyle,
-  ) {
+    StrutStyle strutStyle, {
+    bool canApplySegmentKey = false,
+  }) {
     final List<InlineSpan> spans = [];
     bool isBold = false;
+    bool hasAppliedKey = false;
 
     for (final chunk in chunks) {
-      final bool isSelected =
-          widget.activeSupport != null &&
+      final bool isSelected = widget.activeSupport != null &&
           chunk.support != null &&
           chunk.support!.segment.startIndex ==
               widget.activeSupport!.segment.startIndex;
@@ -141,6 +147,12 @@ class _VeriscanInteractiveTextState extends State<VeriscanInteractiveText> {
       final boldRegex = RegExp(r'\*\*');
       int currentIndex = 0;
 
+      // Identify the first supported chunk to apply the tutorial key
+      final bool isFirstSupported = canApplySegmentKey &&
+          !hasAppliedKey &&
+          chunk.type == ChunkType.support;
+      if (isFirstSupported) hasAppliedKey = true;
+
       for (final match in boldRegex.allMatches(text)) {
         if (match.start > currentIndex) {
           spans.add(
@@ -155,6 +167,9 @@ class _VeriscanInteractiveTextState extends State<VeriscanInteractiveText> {
               decorationThickness,
               lineHeight,
               chunk.support,
+              isFirstSupported && currentIndex == 0
+                  ? widget.firstSegmentKey
+                  : null,
             ),
           );
         }
@@ -176,6 +191,9 @@ class _VeriscanInteractiveTextState extends State<VeriscanInteractiveText> {
             decorationThickness,
             lineHeight,
             chunk.support,
+            isFirstSupported && currentIndex == 0
+                ? widget.firstSegmentKey
+                : null,
           ),
         );
       }
@@ -220,7 +238,7 @@ class _VeriscanInteractiveTextState extends State<VeriscanInteractiveText> {
     );
   }
 
-  TextSpan _createTextSpan(
+  InlineSpan _createTextSpan(
     String text,
     TextStyle style,
     ChunkType type,
@@ -229,18 +247,18 @@ class _VeriscanInteractiveTextState extends State<VeriscanInteractiveText> {
     double decorationThickness,
     double lineHeight,
     GroundingSupport? support,
+    GlobalKey? key,
   ) {
     if (type == ChunkType.plain) {
       return TextSpan(text: text, style: style);
     }
 
-    return TextSpan(
+    final span = TextSpan(
       text: text,
       style: style.copyWith(
         height: lineHeight,
-        decoration: shouldUnderline
-            ? TextDecoration.underline
-            : TextDecoration.none,
+        decoration:
+            shouldUnderline ? TextDecoration.underline : TextDecoration.none,
         decorationColor: decorationColor,
         decorationThickness: decorationThickness,
         decorationStyle: TextDecorationStyle.solid,
@@ -255,6 +273,17 @@ class _VeriscanInteractiveTextState extends State<VeriscanInteractiveText> {
       onEnter: (_) => setState(() => _hoveredSupport = support),
       onExit: (_) => setState(() => _hoveredSupport = null),
     );
+
+    if (key != null) {
+      return WidgetSpan(
+        child: Text.rich(
+          span,
+          key: key,
+        ),
+      );
+    }
+
+    return span;
   }
 
   List<GroundingCitation> _getReferencedCitations(GroundingSupport support) {
