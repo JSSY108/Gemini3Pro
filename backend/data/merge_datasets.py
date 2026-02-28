@@ -3,7 +3,7 @@ import urllib.parse
 import os
 
 list_txt_path = r"C:\Users\User\Downloads\list.txt"
-duke_json_path = r"C:\Users\User\Documents\Gemini3Pro\backend\data\duke_lab_data.json"
+factcheckinsights_json_path = r"C:\Users\User\Documents\Gemini3Pro\backend\data\factcheckinsights_data.json"
 output_path = r"C:\Users\User\Documents\Gemini3Pro\backend\data\verified_domains.json"
 
 def normalize_domain(url_or_domain: str) -> str:
@@ -39,24 +39,27 @@ if os.path.exists(list_txt_path):
             if domain:
                 verified_domains.add(domain)
 
-# 2. Parse Duke Reporters' Lab JSON
-print("Parsing Duke Reporters' Lab JSON...")
-if os.path.exists(duke_json_path):
-    with open(duke_json_path, 'r', encoding='utf-8') as f:
+# 2. Parse FactCheckInsights JSON
+print("Parsing FactCheckInsights JSON...")
+if os.path.exists(factcheckinsights_json_path):
+    with open(factcheckinsights_json_path, 'r', encoding='utf-8') as f:
         try:
             duke_data = json.load(f)
-            claim_reviews = duke_data.get('claimReviews', [])
-            for review in claim_reviews:
-                # Extract from author.url or url
-                author_url = review.get('author', {}).get('url', '')
-                domain = normalize_domain(author_url)
-                if domain:
-                    verified_domains.add(domain)
-                    
-                review_url = review.get('url', '')
-                domain2 = normalize_domain(review_url)
-                if domain2:
-                    verified_domains.add(domain2)
+            claim_reviews = duke_data.get('claimReviews', []) if isinstance(duke_data, dict) else duke_data
+            for item in claim_reviews:
+                if isinstance(item, dict):
+                    # Extract from author.url or url
+                    author_url = item.get("author", {}).get("url")
+                    if author_url:
+                        domain = normalize_domain(author_url)
+                        if domain:
+                            verified_domains.add(domain)
+                        
+                    # Assuming 'url' might also be present at the top level of 'item' if it's not an author URL
+                    review_url = item.get('url', '') 
+                    domain2 = normalize_domain(review_url)
+                    if domain2:
+                        verified_domains.add(domain2)
         except Exception as e:
             print(f"Error parsing Duke JSON: {e}")
 

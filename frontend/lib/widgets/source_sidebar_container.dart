@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'dart:ui';
 import '../models/grounding_models.dart';
 import 'source_tile.dart';
 
@@ -215,6 +217,17 @@ class _SourceSidebarContainerState extends State<SourceSidebarContainer> {
                       fontWeight: FontWeight.bold,
                       letterSpacing: 1.5,
                     ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.info_outline,
+                      color: Colors.amber,
+                      size: 18,
+                    ),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    onPressed: () => _showForensicSourceLogic(context),
                   ),
                 ],
               ),
@@ -470,6 +483,190 @@ class _SourceSidebarContainerState extends State<SourceSidebarContainer> {
           ),
         );
       },
+    );
+  }
+
+  void _showForensicSourceLogic(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+          child: AlertDialog(
+            backgroundColor: const Color(0xFF1E1E1E),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Row(
+              children: [
+                const Icon(Icons.info_outline, color: Color(0xFFD4AF37)),
+                const SizedBox(width: 10),
+                Text(
+                  "Forensic Source Logic",
+                  style: GoogleFonts.outfit(
+                    color: const Color(0xFFD4AF37),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // SECTION A: Verified vs Scanned
+                  Text(
+                    "Source Verification Tiers",
+                    style: GoogleFonts.outfit(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    "• Verified (Cited): High-authority domains specifically selected and cited by the AI to support the Evidence Breakdown. These appear with numerical IDs (e.g., [1]).\n\n"
+                    "• Scanned (Uncited): Additional domains processed by the grounding engine. While accurate, the LLM may exclude them if their information is redundant or less precise.",
+                    style:
+                        GoogleFonts.outfit(color: Colors.white70, fontSize: 13),
+                  ),
+                  const SizedBox(height: 16),
+                  const Divider(color: Colors.white24),
+                  const SizedBox(height: 16),
+
+                  // SECTION B: Teal Checkmark & IFCN/Duke Links
+                  Row(
+                    children: [
+                      const Icon(Icons.verified,
+                          color: Colors.tealAccent, size: 18),
+                      const SizedBox(width: 8),
+                      Text(
+                        "Verified Fact-Checkers",
+                        style: GoogleFonts.outfit(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    "Sources belonging to internationally recognized fact-checking networks receive a Teal Verified Checkmark and an automatic 1.00 Domain Authority Multiplier.",
+                    style:
+                        GoogleFonts.outfit(color: Colors.white70, fontSize: 13),
+                  ),
+                  const SizedBox(height: 8),
+                  InkWell(
+                    onTap: () => launchUrl(
+                        Uri.parse('https://www.factcheckinsights.org/apply')),
+                    child: Text(
+                      "➔ FactCheckInsights Database",
+                      style: GoogleFonts.outfit(
+                        color: Colors.blueAccent,
+                        fontSize: 13,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  InkWell(
+                    onTap: () => launchUrl(
+                        Uri.parse('https://ifcncodeofprinciples.poynter.org/')),
+                    child: Text(
+                      "➔ IFCN Verified Signatories",
+                      style: GoogleFonts.outfit(
+                        color: Colors.blueAccent,
+                        fontSize: 13,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Divider(color: Colors.white24),
+                  const SizedBox(height: 16),
+
+                  // SECTION C: Authority Multipliers
+                  Text(
+                    "Authority Heuristics & Fallbacks",
+                    style: GoogleFonts.outfit(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    "If a source is not in the professional fact-checker database, VeriScan falls back to a multi-tiered heuristic system:",
+                    style:
+                        GoogleFonts.outfit(color: Colors.white70, fontSize: 13),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildMultiplierRow(
+                      "1.00",
+                      "Official Institutional (.gov, .edu, .int)",
+                      Colors.green),
+                  _buildMultiplierRow(
+                      "0.90",
+                      "Established Global News (bbc, reuters)",
+                      Colors.lightGreen),
+                  _buildMultiplierRow("0.80",
+                      "Crowd-Sourced Knowledge (wikipedia)", Colors.yellow),
+                  _buildMultiplierRow("0.70",
+                      "Standard Reputable Domains (.com, .net)", Colors.orange),
+                  _buildMultiplierRow(
+                      "0.40",
+                      "User-Generated Content (reddit, social)",
+                      Colors.redAccent),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(
+                  "CLOSE",
+                  style: GoogleFonts.outfit(color: const Color(0xFFD4AF37)),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildMultiplierRow(String score, String desc, Color color) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(color: color.withValues(alpha: 0.5)),
+            ),
+            child: Text(
+              score,
+              style: GoogleFonts.outfit(
+                color: color,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              desc,
+              style: GoogleFonts.outfit(color: Colors.white70, fontSize: 13),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
