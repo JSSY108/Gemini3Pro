@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/community_models.dart';
@@ -11,30 +12,30 @@ class CommunityService {
   Future<CommunityClaimData> getClaimData(String claimText) async {
     final url = '$baseUrl/claim';
     try {
-      print('📤 GET claim data from: $url');
+      debugPrint('📤 GET claim data from: $url');
       final response = await http.post(
         Uri.parse(url),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({'claim_text': claimText}),
       ).timeout(const Duration(seconds: 10));
 
-      print('📥 Response status: ${response.statusCode}');
+      debugPrint('📥 Response status: ${response.statusCode}');
       
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         return CommunityClaimData.fromJson(data);
       } else {
-        print('❌ Error response: ${response.body}');
+        debugPrint('❌ Error response: ${response.body}');
         throw Exception('Failed to get claim data: ${response.statusCode} - ${response.body}');
       }
     } on http.ClientException catch (e) {
-      print('❌ Network error getting claim data: $e');
-      print('   URL attempted: $url');
-      print('   This usually means the backend is not accessible.');
-      print('   In Codespaces, make sure port 8000 is forwarded and accessible.');
+      debugPrint('❌ Network error getting claim data: $e');
+      debugPrint('   URL attempted: $url');
+      debugPrint('   This usually means the backend is not accessible.');
+      debugPrint('   In Codespaces, make sure port 8000 is forwarded and accessible.');
       rethrow;
     } catch (e) {
-      print('❌ Error getting claim data: $e');
+      debugPrint('❌ Error getting claim data: $e');
       rethrow;
     }
   }
@@ -42,9 +43,9 @@ class CommunityService {
   Future<PostClaimResponse> postClaim(String claimText, String aiVerdict) async {
     final url = '$baseUrl/post';
     try {
-      print('📤 Posting claim to: $url');
-      print('   Claim: ${claimText.substring(0, claimText.length > 50 ? 50 : claimText.length)}...');
-      print('   Verdict: $aiVerdict');
+      debugPrint('📤 Posting claim to: $url');
+      debugPrint('   Claim: ${claimText.substring(0, claimText.length > 50 ? 50 : claimText.length)}...');
+      debugPrint('   Verdict: $aiVerdict');
       
       final response = await http.post(
         Uri.parse(url),
@@ -55,28 +56,28 @@ class CommunityService {
         }),
       ).timeout(const Duration(seconds: 15));
 
-      print('📥 Response status: ${response.statusCode}');
-      print('📥 Response body: ${response.body}');
+      debugPrint('📥 Response status: ${response.statusCode}');
+      debugPrint('📥 Response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         return PostClaimResponse.fromJson(data);
       } else {
-        print('❌ Error response body: ${response.body}');
+        debugPrint('❌ Error response body: ${response.body}');
         throw Exception('Failed to post claim: ${response.statusCode} - ${response.body}');
       }
     } on http.ClientException catch (e) {
-      print('❌ Network error posting claim: $e');
-      print('   URL attempted: $url');
-      print('   ');
-      print('   TROUBLESHOOTING:');
-      print('   1. Check that backend is running: curl http://localhost:8000/health');
-      print('   2. In Codespaces: Ensure port 8000 is publicly forwarded');
-      print('   3. Check CORS is enabled on backend');
-      print('   ');
+      debugPrint('❌ Network error posting claim: $e');
+      debugPrint('   URL attempted: $url');
+      debugPrint('   ');
+      debugPrint('   TROUBLESHOOTING:');
+      debugPrint('   1. Check that backend is running: curl http://localhost:8000/health');
+      debugPrint('   2. In Codespaces: Ensure port 8000 is publicly forwarded');
+      debugPrint('   3. Check CORS is enabled on backend');
+      debugPrint('   ');
       rethrow;
     } catch (e) {
-      print('❌ Error posting claim: $e');
+      debugPrint('❌ Error posting claim: $e');
       rethrow;
     }
   }
@@ -90,10 +91,10 @@ class CommunityService {
   }) async {
     final url = '$baseUrl/vote';
     try {
-      print('📤 Submitting vote to: $url');
-      print('   Claim ID: $claimId');
-      print('   User ID: $userId');
-      print('   Verdict: $userVerdict');
+      debugPrint('📤 Submitting vote to: $url');
+      debugPrint('   Claim ID: $claimId');
+      debugPrint('   User ID: $userId');
+      debugPrint('   Verdict: $userVerdict');
       
       final response = await http.post(
         Uri.parse(url),
@@ -107,23 +108,23 @@ class CommunityService {
         }),
       ).timeout(const Duration(seconds: 15));
 
-      print('📥 Vote response status: ${response.statusCode}');
-      print('📥 Vote response body: ${response.body}');
+      debugPrint('📥 Vote response status: ${response.statusCode}');
+      debugPrint('📥 Vote response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         return VoteResponse.fromJson(data);
       } else {
-        print('❌ Error response: ${response.body}');
+        debugPrint('❌ Error response: ${response.body}');
         throw Exception('Failed to submit vote: ${response.statusCode} - ${response.body}');
       }
     } on http.ClientException catch (e) {
-      print('❌ Network error submitting vote: $e');
-      print('   URL attempted: $url');
-      print('   This is likely a connectivity issue between frontend and backend.');
+      debugPrint('❌ Network error submitting vote: $e');
+      debugPrint('   URL attempted: $url');
+      debugPrint('   This is likely a connectivity issue between frontend and backend.');
       rethrow;
     } catch (e) {
-      print('❌ Error submitting vote: $e');
+      debugPrint('❌ Error submitting vote: $e');
       rethrow;
     }
   }
@@ -145,7 +146,7 @@ class CommunityService {
         throw Exception('Failed to get top claims: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error getting top claims: $e');
+      debugPrint('Error getting top claims: $e');
       rethrow;
     }
   }
@@ -168,7 +169,7 @@ class CommunityService {
         throw Exception('Failed to search claims: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error searching claims: $e');
+      debugPrint('Error searching claims: $e');
       rethrow;
     }
   }
@@ -187,7 +188,7 @@ class CommunityService {
         throw Exception('Failed to get user reputation: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error getting user reputation: $e');
+      debugPrint('Error getting user reputation: $e');
       rethrow;
     }
   }
@@ -195,28 +196,28 @@ class CommunityService {
   Future<ClaimDiscussion> getClaimDiscussion(String claimId) async {
     final url = '$baseUrl/discussion/$claimId';
     try {
-      print('📤 GET discussion data from: $url');
+      debugPrint('📤 GET discussion data from: $url');
       final response = await http.get(
         Uri.parse(url),
         headers: {'Content-Type': 'application/json'},
       ).timeout(const Duration(seconds: 10));
 
-      print('📥 Response status: ${response.statusCode}');
+      debugPrint('📥 Response status: ${response.statusCode}');
       
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         return ClaimDiscussion.fromJson(data);
       } else {
-        print('❌ Error response: ${response.body}');
+        debugPrint('❌ Error response: ${response.body}');
         throw Exception('Failed to get discussion: ${response.statusCode} - ${response.body}');
       }
     } on http.ClientException catch (e) {
-      print('❌ Network error getting discussion: $e');
-      print('   URL attempted: $url');
-      print('   This usually means the backend is not accessible.');
+      debugPrint('❌ Network error getting discussion: $e');
+      debugPrint('   URL attempted: $url');
+      debugPrint('   This usually means the backend is not accessible.');
       rethrow;
     } catch (e) {
-      print('❌ Error getting discussion: $e');
+      debugPrint('❌ Error getting discussion: $e');
       rethrow;
     }
   }

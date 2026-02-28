@@ -12,12 +12,10 @@ import '../widgets/mobile/mobile_source_library.dart';
 import '../widgets/veriscan_drawer.dart';
 import '../widgets/global_menu_button.dart';
 import '../widgets/juicy_button.dart';
-import 'dart:async';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'community_screen.dart';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
-import '../widgets/community_vote_box.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -233,12 +231,12 @@ class _DashboardScreenState extends State<DashboardScreen>
             color: const Color(0xFF1E1E1E),
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
-              color: const Color(0xFFD4AF37).withOpacity(0.5),
+              color: const Color(0xFFD4AF37).withValues(alpha: 0.5),
               width: 1,
             ),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFFD4AF37).withOpacity(0.1),
+                color: const Color(0xFFD4AF37).withValues(alpha: 0.1),
                 blurRadius: 40,
                 spreadRadius: 5,
               ),
@@ -250,7 +248,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFD4AF37).withOpacity(0.1),
+                  color: const Color(0xFFD4AF37).withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(

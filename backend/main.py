@@ -106,7 +106,8 @@ def repair_and_parse_json(raw_text: str) -> dict:
     if not raw_text:
         raise ValueError("Empty response text")
 
-    # Extract just the JSON object (first { to last })
+    # 4. Hardened Cleaning (The "Strip" Method): 
+    # Use a Regex to find the first { and the last } and ignore everything else.
     json_match = re.search(r'\{.*\}', raw_text, re.DOTALL)
     if not json_match:
         raise ValueError("No JSON object found in text")
@@ -298,9 +299,10 @@ The "analysis" string MUST be formatted in Markdown and strictly use these four 
         
         import asyncio
         max_attempts = 3
-        response = None
         
+        # We wrap both the API call AND the JSON parsing in a retry loop
         for attempt in range(1, max_attempts + 1):
+            response = None
             try:
                 # Execute the call using genai_client
                 response = genai_client.models.generate_content(
@@ -308,15 +310,16 @@ The "analysis" string MUST be formatted in Markdown and strictly use these four 
                     contents=gemini_parts,
                     config=config
                 )
-                break
             except Exception as e:
                 error_str = str(e)
                 if "429" in error_str or "ResourceExhausted" in error_str or "Quota" in error_str:
                     logger.warning(f"Rate limit hit (429). Retrying... (Attempt {attempt}/{max_attempts})")
                     if attempt == 1:
                         await asyncio.sleep(2)
+                        continue
                     elif attempt == 2:
                         await asyncio.sleep(4)
+                        continue
                     else:
                         logger.error("Rate limit exhausted after 3 attempts.")
                         return AnalysisResponse(
@@ -327,31 +330,81 @@ The "analysis" string MUST be formatted in Markdown and strictly use these four 
                         )
                 else:
                     raise e
+                    
+            # DEBUG: Print raw response to console for deep inspection
+            print("\n[DEBUG] RAW RESPONSE METADATA:")
+            if response.candidates:
+                if response.candidates[0].grounding_metadata:
+                    print(f"Grounding Metadata Attributes: {dir(response.candidates[0].grounding_metadata)}")
+                    print(f"Grounding Metadata Dump: {response.candidates[0].grounding_metadata.model_dump_json(indent=2)}")
+            
+            # Forensic Audit: Write the entire grounding metadata object to a file for review
+            import os
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            dump_path = os.path.join(base_dir, "grounding_metadata_dump.json")
+            if response.candidates and response.candidates[0].grounding_metadata:
+                # Convert the Pydantic model to a dict, then to a pretty string
+                metadata_json = response.candidates[0].grounding_metadata.model_dump_json(indent=2)
+                with open(dump_path, "w") as f:
+                    f.write(metadata_json)
+                print(f"\n[FORENSIC] Grounding metadata dumped to {dump_path}\n")
+            else:
+                with open(dump_path, "w") as f:
+                    f.write('{"error": "NO GROUNDING METADATA FOUND"}')
+                print("NO GROUNDING METADATA FOUND IN RESPONSE")
 
-        # DEBUG: Print raw response to console for deep inspection
-        print("\n[DEBUG] RAW RESPONSE METADATA:")
-        if response.candidates:
-            if response.candidates[0].grounding_metadata:
-                print(f"Grounding Metadata Attributes: {dir(response.candidates[0].grounding_metadata)}")
-                print(f"Grounding Metadata Dump: {response.candidates[0].grounding_metadata.model_dump_json(indent=2)}")
-        
-        # Forensic Audit: Write the entire grounding metadata object to a file for review
-        import os
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        dump_path = os.path.join(base_dir, "grounding_metadata_dump.json")
-        if response.candidates and response.candidates[0].grounding_metadata:
-            # Convert the Pydantic model to a dict, then to a pretty string
-            metadata_json = response.candidates[0].grounding_metadata.model_dump_json(indent=2)
-            with open(dump_path, "w") as f:
-                f.write(metadata_json)
-            print(f"\n[FORENSIC] Grounding metadata dumped to {dump_path}\n")
-        else:
-            with open(dump_path, "w") as f:
-                f.write('{"error": "NO GROUNDING METADATA FOUND"}')
-            print("NO GROUNDING METADATA FOUND IN RESPONSE")
+            try:
+                response_text = response.text or ""
+            except Exception:
+                response_text = ""
+                
+            finish_reason = response.candidates[0].finish_reason if response.candidates else "UNKNOWN"
+            print(f"[DEBUG] Finish Reason: {finish_reason}")
+            print("\n" + "="*50)
+            print(f"[DEBUG] Raw Model Text:\n{response_text}")
+            print("="*50 + "\n")
+            
+            try:
+                # Use our aggressive cleaner
+                data = repair_and_parse_json(response_text)
+                
+                # Debug Dump: Model Output JSON
+                output_dump_path = os.path.join(base_dir, "model_output_dump.json")
+                with open(output_dump_path, "w") as f:
+                    json.dump(data, f, indent=2)
+                print(f"[FORENSIC] Model output dumped to {output_dump_path}")
+
+                is_multimodal_verified = data.get("multimodal_cross_check", False)
+                break # Success! Exit the loop
+                
+            except Exception as e:
+                logger.error(f"[JSON PARSE ERROR on Attempt {attempt}] {e}")
+                
+                # FORENSIC DUMP: Save the exact string that broke the parser
+                dump_path = os.path.join(base_dir, f"failed_json_dump_attempt_{attempt}.txt")
+                with open(dump_path, "w", encoding="utf-8") as f:
+                    f.write(f"ERROR: {str(e)}\n")
+                    f.write("="*50 + "\n")
+                    f.write(response_text or "NONE")
+                print(f"[FORENSIC] Broken JSON dumped to {dump_path}")
+                
+                if attempt < max_attempts:
+                    logger.warning("JSON severed or hallucinated. Retrying prompt.")
+                    continue
+                else:
+                    # FALLBACK: If the LLM crashed, returned text, or got blocked by safety filters 3 times
+                    logger.error("JSON parsing failed 3 times. Returning RECOVERING_FROM_HALLUCINATION fallback.")
+                    
+                    # We will return our new status code to UI
+                    return AnalysisResponse(
+                        verdict="RECOVERING_FROM_HALLUCINATION",
+                        confidence_score=0.0,
+                        analysis="**1. System Status:**\nVeriScan engines detected an anomaly in the AI response format. The system is re-validating the evidence block...",
+                        grounding_citations=[]
+                    )
         
         grounding_citations_fallback = []
-        if response.candidates and response.candidates[0].grounding_metadata:
+        if response and response.candidates and response.candidates[0].grounding_metadata:
             chunks = getattr(response.candidates[0].grounding_metadata, 'grounding_chunks', []) or []
             if chunks:
                 for i, chunk_obj in enumerate(chunks):
@@ -365,65 +418,13 @@ The "analysis" string MUST be formatted in Markdown and strictly use these four 
                             url=uri,
                             snippet=title # Fallback snippet if LLM fails
                         ))
-        
-        try:
-            raw_text = response.text
-            logging.info(f"[RAW LLM DUMP] Raw text from Gemini before parsing:\n{raw_text}")
-        except Exception as e:
-            logging.error(f"[RAW LLM DUMP] Failed to extract text from response. Reason: {e}")
-            logging.error(f"[RAW LLM DUMP] Response object: {response}")
-            
-        try:
-            response_text = response.text or ""
-        except Exception:
-            response_text = ""
-            
-        finish_reason = response.candidates[0].finish_reason if response.candidates else "UNKNOWN"
-        print(f"[DEBUG] Finish Reason: {finish_reason}")
-        print("\n" + "="*50)
-        print(f"[DEBUG] Raw Model Text:\n{response_text}")
-        print("="*50 + "\n")
-        try:
-            # Use our aggressive cleaner
-            data = repair_and_parse_json(response_text)
-            
-            # Debug Dump: Model Output JSON
-            output_dump_path = os.path.join(base_dir, "model_output_dump.json")
-            with open(output_dump_path, "w") as f:
-                json.dump(data, f, indent=2)
-            print(f"[FORENSIC] Model output dumped to {output_dump_path}")
 
-            is_multimodal_verified = data.get("multimodal_cross_check", False)
-            
-        except Exception as e:
-            logger.error(f"[JSON PARSE ERROR] {e}")
-            
-            # FORENSIC DUMP: Save the exact string that broke the parser
-            dump_path = os.path.join(base_dir, "failed_json_dump.txt")
-            with open(dump_path, "w", encoding="utf-8") as f:
-                f.write(f"ERROR: {str(e)}\n")
-                f.write("="*50 + "\n")
-                f.write(response_text or "NONE")
-            print(f"[FORENSIC] Broken JSON dumped to {dump_path}")
-            
-            is_multimodal_verified = False
-            # FALLBACK: If the LLM crashed, returned text, or got blocked by safety filters
-            data = {
-                "verdict": "UNVERIFIABLE",
-                "confidence_score": 0.0,
-                "analysis": "**1. The Core Claim(s):**\nThe provided text could not be independently verified.\n\n**2. Evidence Breakdown:**\n* The AI safety or recitation filters prevented a deep analysis of this specific phrasing.\n* No verifiable search data could be extracted.\n\n**3. Context & Nuance:**\nPlease try rewording your claim or providing more specific factual context.\n\n**4. Red Flags & Discrepancies:**\nNo major discrepancies found in the verified sources.",
-                "multimodal_cross_check": False,
-                "source_metadata": {"types_analyzed": ["text"]},
-                "grounding_citations": [],
-                "media_literacy": {"logical_fallacies": [], "tone_analysis": "Neutral"},
-            }
-            
         if not data.get("grounding_citations") and grounding_citations_fallback:
              data["grounding_citations"] = [g.model_dump() for g in grounding_citations_fallback]
         
         # Prepare a URI to ID map from grounding chips
         uri_to_id = {}
-        if response.candidates and response.candidates[0].grounding_metadata:
+        if response and response.candidates and response.candidates[0].grounding_metadata:
             chunks = getattr(response.candidates[0].grounding_metadata, 'grounding_chunks', []) or []
             for i, chunk_obj in enumerate(chunks):
                 web_node = getattr(chunk_obj, 'web', None)
@@ -472,7 +473,7 @@ The "analysis" string MUST be formatted in Markdown and strictly use these four 
 
         # --- Populate Scanned Sources ---
         scanned_sources = []
-        if response.candidates and response.candidates[0].grounding_metadata:
+        if response and response.candidates and response.candidates[0].grounding_metadata:
             chunks = getattr(response.candidates[0].grounding_metadata, 'grounding_chunks', []) or []
             cited_urls = {normalize_url(gc.get("url")) for gc in sanitized_citations if gc.get("url")}
             
@@ -524,7 +525,7 @@ The "analysis" string MUST be formatted in Markdown and strictly use these four 
             # PRIORITY: If API returned supports directly, use them (they have real confidence scores).
             # FALLBACK: Use heuristic keyword-mapped supports.
             api_supports = []
-            if response.candidates and hasattr(response.candidates[0].grounding_metadata, 'grounding_supports'):
+            if response and response.candidates and hasattr(response.candidates[0].grounding_metadata, 'grounding_supports'):
                 raw_api_supports = response.candidates[0].grounding_metadata.grounding_supports or []
                 # Convert Pydantic models to camelCase dicts for AnalysisResponse consistency
                 for sup in raw_api_supports:
@@ -568,7 +569,7 @@ The "analysis" string MUST be formatted in Markdown and strictly use these four 
             
             # Grounding chunks (Sources)
             grounding_chunks = []
-            if response.candidates and response.candidates[0].grounding_metadata.grounding_chunks:
+            if response and response.candidates and response.candidates[0].grounding_metadata.grounding_chunks:
                 grounding_chunks = response.candidates[0].grounding_metadata.grounding_chunks
             
             import sys

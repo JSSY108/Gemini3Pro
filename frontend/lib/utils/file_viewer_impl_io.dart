@@ -34,11 +34,14 @@ Future<void> openFileImpl(BuildContext context, PlatformFile file) async {
   } catch (_) {}
 
   // Last resort: show a dialog with a save option
+  if (!context.mounted) return;
   showDialog(
     context: context,
     builder: (context) => AlertDialog(
       title: Text('Open file', style: GoogleFonts.outfit()),
-      content: Text('Could not open ${file.name} directly. You can save it to the device instead.', style: GoogleFonts.outfit()),
+      content: Text(
+          'Could not open ${file.name} directly. You can save it to the device instead.',
+          style: GoogleFonts.outfit()),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),

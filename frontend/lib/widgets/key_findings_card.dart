@@ -52,10 +52,10 @@ class KeyFindingsCard extends StatelessWidget {
       margin: const EdgeInsets.symmetric(vertical: 20),
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.03),
+        color: Colors.white.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: const Color(0xFFD4AF37).withOpacity(0.2),
+          color: const Color(0xFFD4AF37).withValues(alpha: 0.2),
           width: 0.5,
         ),
       ),
@@ -102,7 +102,7 @@ class KeyFindingsCard extends StatelessWidget {
                           boxShadow: [
                             BoxShadow(
                               color:
-                                  _getReliabilityColor(score).withOpacity(0.4),
+                                  _getReliabilityColor(score).withValues(alpha: 0.4),
                               blurRadius: 6,
                               spreadRadius: 1,
                             ),
@@ -115,7 +115,7 @@ class KeyFindingsCard extends StatelessWidget {
                           text: TextSpan(
                             text: finding,
                             style: GoogleFonts.outfit(
-                              color: Colors.white.withOpacity(0.9),
+                              color: Colors.white.withValues(alpha: 0.9),
                               fontSize: 15,
                               height: 1.5,
                             ),

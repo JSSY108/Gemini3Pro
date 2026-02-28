@@ -139,12 +139,12 @@ class _GlassActionBarState extends State<GlassActionBar> {
             color: Colors.black, // Pure black
             borderRadius: BorderRadius.circular(28),
             border: Border.all(
-              color: const Color(0xFFD4AF37).withOpacity(0.5),
+              color: const Color(0xFFD4AF37).withValues(alpha: 0.5),
               width: 0.5,
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.5),
+                color: Colors.black.withValues(alpha: 0.5),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
@@ -261,7 +261,7 @@ class _GlassActionBarState extends State<GlassActionBar> {
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFFD4AF37).withOpacity(0.3),
+                            color: const Color(0xFFD4AF37).withValues(alpha: 0.3),
                             blurRadius: 8,
                             spreadRadius: 1,
                           ),

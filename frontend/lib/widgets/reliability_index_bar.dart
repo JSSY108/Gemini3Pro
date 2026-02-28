@@ -224,12 +224,12 @@ class _ReliabilityIndexBarState extends State<ReliabilityIndexBar> {
                 padding: const EdgeInsets.all(12),
                 margin: const EdgeInsets.symmetric(horizontal: 20),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.9),
+                  color: Colors.black.withValues(alpha: 0.9),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: Colors.white24, width: 0.5),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.5),
+                      color: Colors.black.withValues(alpha: 0.5),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),

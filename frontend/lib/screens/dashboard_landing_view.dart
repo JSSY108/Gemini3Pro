@@ -125,7 +125,7 @@ class _DashboardLandingViewState extends State<DashboardLandingView> {
             backgroundColor: const Color(0xFFD4AF37),
             foregroundColor: Colors.black,
             elevation: 10,
-            shadowColor: const Color(0xFFD4AF37).withOpacity(0.5),
+            shadowColor: const Color(0xFFD4AF37).withValues(alpha: 0.5),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
           ),
           child: Row(
@@ -169,11 +169,11 @@ class _DashboardLandingViewState extends State<DashboardLandingView> {
       constraints: const BoxConstraints(maxWidth: 800),
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E).withOpacity(0.6),
+        color: const Color(0xFF1E1E1E).withValues(alpha: 0.6),
         border: Border.all(color: Colors.white10),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 20, offset: const Offset(0, 10)),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.5), blurRadius: 20, offset: const Offset(0, 10)),
         ],
       ),
       child: child,
@@ -190,7 +190,7 @@ class _DashboardLandingViewState extends State<DashboardLandingView> {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             boxShadow: [
-              BoxShadow(color: const Color(0xFFD4AF37).withOpacity(0.15), blurRadius: 40, spreadRadius: 0),
+              BoxShadow(color: const Color(0xFFD4AF37).withValues(alpha: 0.15), blurRadius: 40, spreadRadius: 0),
             ],
           ),
           child: ClipOval(
@@ -257,7 +257,7 @@ class _DashboardLandingViewState extends State<DashboardLandingView> {
            decoration: BoxDecoration(
              shape: BoxShape.circle,
              boxShadow: [
-                BoxShadow(color: Colors.cyan.withOpacity(0.1), blurRadius: 30, spreadRadius: 0),
+                BoxShadow(color: Colors.cyan.withValues(alpha: 0.1), blurRadius: 30, spreadRadius: 0),
              ],
            ),
            child: ClipOval(
@@ -323,7 +323,7 @@ class _LandingHeaderDelegate extends SliverPersistentHeaderDelegate {
                 end: Alignment.bottomCenter,
                 colors: [
                   const Color(0xFF0D1B2A), 
-                  const Color(0xFF0D0D0D).withOpacity(progress), 
+                  const Color(0xFF0D0D0D).withValues(alpha: progress), 
                 ],
               ),
             ),
@@ -347,7 +347,7 @@ class _LandingHeaderDelegate extends SliverPersistentHeaderDelegate {
                         border: Border.all(color: const Color(0xFFD4AF37), width: 1.5),
                         boxShadow: [
                            BoxShadow(
-                             color: const Color(0xFFD4AF37).withOpacity(0.3 * (1 - progress)), 
+                             color: const Color(0xFFD4AF37).withValues(alpha: 0.3 * (1 - progress)), 
                              blurRadius: 15
                            )
                         ]

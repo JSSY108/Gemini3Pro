@@ -65,39 +65,6 @@ class ForensicReliabilityBar extends StatelessWidget {
       barColor = Colors.green;
     }
 
-    void showInfoDialog(BuildContext context, String title, Widget content) {
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          backgroundColor: const Color(0xFF1E1E1E),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-            side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
-          ),
-          title: Text(
-            title,
-            style: GoogleFonts.outfit(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          content: DefaultTextStyle(
-            style: GoogleFonts.outfit(color: Colors.white70, fontSize: 14),
-            child: content,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(
-                "CLOSE",
-                style: GoogleFonts.outfit(color: const Color(0xFFD4AF37)),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisAlignment: MainAxisAlignment.center,

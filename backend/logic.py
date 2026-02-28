@@ -1,8 +1,40 @@
+import json
+import os
 import urllib.parse
+
+# Load verified signatories at module level
+VERIFIED_DOMAINS = set()
+try:
+    data_dir = os.path.join(os.path.dirname(__file__), 'data')
+    verified_path = os.path.join(data_dir, 'verified_domains.json')
+    if os.path.exists(verified_path):
+        with open(verified_path, 'r', encoding='utf-8') as f:
+            VERIFIED_DOMAINS = set(json.load(f))
+except Exception as e:
+    print(f"Warning: Could not load verified domains: {e}")
+
+# Helper for enforcing strict domain checks
+def normalize_domain_name(domain: str) -> str:
+    if not domain:
+        return ""
+    domain = urllib.parse.unquote(domain).strip().lower()
+    if domain.startswith("http://") or domain.startswith("https://"):
+        try:
+            domain = urllib.parse.urlparse(domain).netloc
+        except Exception:
+            pass
+    if domain.startswith("www."):
+        domain = domain[4:]
+    return domain
 
 # Domain Authority Multipliers (from V2 logic or similar heuristics)
 def get_authority_multiplier(domain: str) -> float:
-    domain = domain.lower()
+    domain = normalize_domain_name(domain)
+    
+    # NEW: Tier 1 override for Verified Fact-Checkers
+    if domain in VERIFIED_DOMAINS:
+        return 1.0
+        
     if domain.endswith('.gov') or domain.endswith('.edu') or domain.endswith('.int'):
         return 1.0  # Highest authority
     if domain.endswith('.org') or domain in ['bbc.com', 'bbc.co.uk', 'reuters.com', 'apnews.com', 'npr.org']:
@@ -128,6 +160,9 @@ def calculate_reliability(grounding_supports: list, grounding_chunks: list, grou
             conf = conf_scores[i] if i < len(conf_scores) else 0.0
             chunk_score = conf * auth
             
+            clean_domain_for_check = normalize_domain_name(raw_domain)
+            is_verified = clean_domain_for_check in VERIFIED_DOMAINS
+            
             evaluated_sources.append({
                 "id": chunk_idx + 1, # 1-indexed source ID
                 "chunk_index": chunk_idx,
@@ -136,7 +171,8 @@ def calculate_reliability(grounding_supports: list, grounding_chunks: list, grou
                 "score": chunk_score,
                 "quote_text": quote_text,
                 "confidence": conf,
-                "authority": auth
+                "authority": auth,
+                "is_verified": is_verified
             })
             
             print(f"[DEBUG_EVAL] Seg {seg_idx} | Chunk {chunk_idx} | DocIdx {source_index} | Domain: {raw_domain} | Conf: {conf:.2f} | Auth: {auth:.2f} | Score: {chunk_score:.2f}")

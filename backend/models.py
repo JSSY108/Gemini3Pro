@@ -43,6 +43,7 @@ class SourceAudit(BaseModel):
     quote_text: str
     confidence: Optional[float] = 0.0
     authority: Optional[float] = 0.0
+    is_verified: bool = False
 
 class SegmentAudit(BaseModel):
     text: str

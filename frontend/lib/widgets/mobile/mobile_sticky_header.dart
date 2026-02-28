@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../models/grounding_models.dart';
-import '../confidence_gauge.dart';
 import '../verdict_card.dart';
 
 class MobileStickyHeader extends StatelessWidget {
@@ -77,7 +76,7 @@ class _HeaderContent extends StatelessWidget {
               height: 100,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.05),
+                color: Colors.white.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: Colors.white12),
               ),
@@ -119,7 +118,7 @@ class _HeaderContent extends StatelessWidget {
                           child: Text(
                             "CONFIDENCE",
                             style: GoogleFonts.outfit(
-                              color: Colors.indigoAccent.withOpacity(0.8),
+                              color: Colors.indigoAccent.withValues(alpha: 0.8),
                               fontSize: 9,
                               fontWeight: FontWeight.bold,
                             ),

@@ -42,10 +42,11 @@ class EvidenceTray extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF1A1A1A),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.2)),
+        border:
+            Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.2)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.4),
+            color: Colors.black.withValues(alpha: 0.4),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -94,11 +95,7 @@ class EvidenceTray extends StatelessWidget {
                                 .confidenceScores[chunkIndexInSupport];
                             sourceAuthority = sourceAudit.authority;
 
-                            if (sourceConfidence != null &&
-                                sourceAuthority != null) {
-                              computedScore =
-                                  sourceConfidence! * sourceAuthority!;
-                            }
+                            computedScore = sourceConfidence * sourceAuthority;
                           }
                         } catch (e) {
                           // Ignore if metrics missing
@@ -215,7 +212,7 @@ class EvidenceTray extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.03),
+            color: Colors.white.withValues(alpha: 0.03),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: Colors.white10),
           ),

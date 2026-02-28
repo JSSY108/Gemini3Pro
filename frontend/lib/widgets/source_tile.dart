@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:html_unescape/html_unescape.dart';
 import '../utils/file_viewer_helper.dart';
 import '../models/grounding_models.dart';
@@ -19,6 +18,7 @@ class SourceTile extends StatelessWidget {
   final double? score;
   final double? confidence;
   final double? authority;
+  final bool isVerified;
   final VoidCallback? onTap;
   final VoidCallback? onDelete;
 
@@ -34,6 +34,7 @@ class SourceTile extends StatelessWidget {
     this.score,
     this.confidence,
     this.authority,
+    this.isVerified = false,
     this.onTap,
     this.onDelete,
   });
@@ -226,7 +227,7 @@ class SourceTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool isInaccessible = status == 'dead' || status == 'restricted';
-    final _unescape = HtmlUnescape();
+    final unescape = HtmlUnescape();
 
     return RepaintBoundary(
       child: Stack(
@@ -236,8 +237,8 @@ class SourceTile extends StatelessWidget {
             margin: const EdgeInsets.only(bottom: 8),
             decoration: BoxDecoration(
               color: isActive
-                  ? const Color(0xFFD4AF37).withValues(alpha: 0.1)
-                  : Colors.white.withValues(alpha: 0.03),
+                  ? const Color(0xFFD4AF37).withOpacity(0.1)
+                  : Colors.white.withOpacity(0.03),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: Colors.amber.withOpacity(0.5)),
             ),
@@ -265,11 +266,11 @@ class SourceTile extends StatelessWidget {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          _unescape.convert(title),
+                          unescape.convert(title),
                           style: GoogleFonts.outfit(
                             color: isInaccessible
                                 ? Colors.white24
-                                : Colors.white.withValues(alpha: 0.9),
+                                : Colors.white.withOpacity(0.9),
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
                             decoration: isInaccessible
@@ -280,6 +281,18 @@ class SourceTile extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
+                      if (isVerified)
+                        const Padding(
+                          padding: EdgeInsets.only(left: 4.0),
+                          child: Tooltip(
+                            message: "Verified IFCN Signatory",
+                            child: Icon(
+                              Icons.verified,
+                              color: Colors.tealAccent,
+                              size: 14,
+                            ),
+                          ),
+                        ),
                       const SizedBox(width: 8),
                       if (onDelete != null)
                         IconButton(
@@ -327,7 +340,7 @@ class SourceTile extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
+                      color: Colors.black.withValues(alpha: 0.3),
                       blurRadius: 4,
                       offset: const Offset(0, 2),
                     ),

@@ -29,9 +29,9 @@ class ReliabilityCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: accentColor.withOpacity(0.05),
+        color: accentColor.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: accentColor.withOpacity(0.2), width: 1),
+        border: Border.all(color: accentColor.withValues(alpha: 0.2), width: 1),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -44,7 +44,7 @@ class ReliabilityCard extends StatelessWidget {
               Text(
                 "EVIDENCE STRENGTH",
                 style: GoogleFonts.outfit(
-                  color: accentColor.withOpacity(0.8),
+                  color: accentColor.withValues(alpha: 0.8),
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 1.5,
@@ -83,7 +83,7 @@ class ReliabilityCard extends StatelessWidget {
                     Flexible(
                       flex: ((1.0 - (baseGrounding + consistencyBonus)) * 100)
                           .toInt(),
-                      child: Container(color: Colors.white.withOpacity(0.1)),
+                      child: Container(color: Colors.white.withValues(alpha: 0.1)),
                     ),
                 ],
               ),

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/community_models.dart';
@@ -290,7 +291,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
             width: double.infinity,
             child: OutlinedButton(
               onPressed: () {
-                print('🔍 Opening discussion for claim ID: ${claim.claimId}');
+                debugPrint('🔍 Opening discussion for claim ID: ${claim.claimId}');
                 showDialog(
                   context: context,
                   builder: (BuildContext context) => DiscussionModal(

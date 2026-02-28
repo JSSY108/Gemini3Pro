@@ -17,7 +17,7 @@ class _FactCheckScreenState extends State<FactCheckScreen> {
   AnalysisResponse? _result;
   bool _isLoading = false;
   bool _isRateLimited = false;
-
+  bool _isRecoveringFromHallucination = false;
   Future<void> _handleVerify() async {
     if (_controller.text.isEmpty) return;
 
@@ -25,6 +25,7 @@ class _FactCheckScreenState extends State<FactCheckScreen> {
       _isLoading = true;
       _result = null;
       _isRateLimited = false;
+      _isRecoveringFromHallucination = false;
     });
 
     try {
@@ -32,6 +33,8 @@ class _FactCheckScreenState extends State<FactCheckScreen> {
       setState(() {
         _result = result;
         _isRateLimited = result.verdict == 'RATE_LIMIT_ERROR';
+        _isRecoveringFromHallucination =
+            result.verdict == 'RECOVERING_FROM_HALLUCINATION';
       });
     } catch (e) {
       if (!mounted) return;
@@ -129,7 +132,11 @@ class _FactCheckScreenState extends State<FactCheckScreen> {
             ),
             const SizedBox(height: 32),
             if (_isRateLimited) _buildRateLimitBanner(),
-            if (_result != null && !_isRateLimited) _buildResultCard(),
+            if (_isRecoveringFromHallucination) _buildHallucinationBanner(),
+            if (_result != null &&
+                !_isRateLimited &&
+                !_isRecoveringFromHallucination)
+              _buildResultCard(),
           ],
         ),
       ),
@@ -258,6 +265,64 @@ class _FactCheckScreenState extends State<FactCheckScreen> {
                 const SizedBox(height: 4),
                 Text(
                   'VeriScan engines are at capacity. Retrying forensic analysis...',
+                  style: GoogleFonts.outfit(
+                    color: Colors.white70,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHallucinationBanner() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      decoration: BoxDecoration(
+        color: Colors.amber.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.amber.withValues(alpha: 0.5),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFD4AF37).withValues(alpha: 0.2),
+            blurRadius: 15,
+            spreadRadius: 2,
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          const SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFD4AF37)),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'SYSTEM OVERLOADED',
+                  style: GoogleFonts.outfit(
+                    color: const Color(0xFFD4AF37),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'AI Hallucination detected. VeriScan is re-validating the evidence for accuracy...',
                   style: GoogleFonts.outfit(
                     color: Colors.white70,
                     fontSize: 12,

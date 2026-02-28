@@ -1,5 +1,4 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'dart:io' show Platform; // Safe to use with kIsWeb checks
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 
 class ApiConfig {
   static String getBaseUrl() {
@@ -21,14 +20,12 @@ class ApiConfig {
         if (uri.host.contains('app.github.dev')) {
           final hostParts = uri.host.split('-');
           if (hostParts.length >= 2) {
-            final lastPart = hostParts.last.split('.').first;
-
             final codespacePrefix =
                 hostParts.sublist(0, hostParts.length - 1).join('-');
             final backendUrl = 'https://$codespacePrefix-8000.app.github.dev';
 
-            print('🌐 Detected Codespaces environment');
-            print('🔗 Using backend URL: $backendUrl/community');
+            debugPrint('🌐 Detected Codespaces environment');
+            debugPrint('🔗 Using backend URL: $backendUrl/community');
             return '$backendUrl/community';
           }
         }
@@ -38,27 +35,27 @@ class ApiConfig {
           if (uri.host != 'localhost' && uri.host != '127.0.0.1') {
             final backendUrl =
                 '${uri.scheme}://${uri.host.split('-').first}-8000.${uri.host.split('-').sublist(1).join('-')}';
-            print('🔗 Using forwarded port URL: $backendUrl/community');
+            debugPrint('🔗 Using forwarded port URL: $backendUrl/community');
             return '$backendUrl/community';
           }
         }
       } catch (e) {
-        print('⚠️ Error detecting environment: $e');
+        debugPrint('⚠️ Error detecting environment: $e');
       }
     }
 
     // 2. MOBILE LOGIC (Physical Device & Emulator)
     if (!kIsWeb) {
       // Default for mobile / emulator: use localhost / emulator mapping.
-      final String physicalDeviceIp = '127.0.0.1';
+      const String physicalDeviceIp = '127.0.0.1';
       // Note: For Android emulator you may need to use 10.0.2.2 instead.
-      print(
+      debugPrint(
           '📱 Using Physical Device/Emulator backend: http://$physicalDeviceIp:8000/community');
       return 'http://$physicalDeviceIp:8000/community';
     }
 
     // 3. DEFAULT FALLBACK
-    print('🏠 Using localhost backend: http://localhost:8000/community');
+    debugPrint('🏠 Using localhost backend: http://localhost:8000/community');
     return 'http://localhost:8000/community';
   }
 }

@@ -79,7 +79,7 @@ class VeriscanDrawer extends StatelessWidget {
       leading: Icon(icon, color: Colors.white70),
       title: Text(label, style: GoogleFonts.outfit(color: Colors.white, fontSize: 16)),
       onTap: onTap,
-      hoverColor: Colors.white.withOpacity(0.05),
+      hoverColor: Colors.white.withValues(alpha: 0.05),
       contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
     );
   }

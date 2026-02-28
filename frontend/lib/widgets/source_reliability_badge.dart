@@ -58,7 +58,7 @@ class SourceReliabilityBadge extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.3),
+                color: Colors.black.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: Colors.white10),
               ),
@@ -136,7 +136,7 @@ class SourceReliabilityBadge extends StatelessWidget {
                 value: score,
                 backgroundColor: isActive
                     ? Colors.black12
-                    : Colors.white.withOpacity(0.05),
+                    : Colors.white.withValues(alpha: 0.05),
                 color: _getRingColor(score!),
                 strokeWidth: 2.0,
               ),
@@ -150,8 +150,8 @@ class SourceReliabilityBadge extends StatelessWidget {
               color: sourceId > 0
                   ? (isActive
                         ? const Color(0xFFD4AF37)
-                        : const Color(0xFFD4AF37).withOpacity(0.1))
-                  : const Color(0xFFD4AF37).withOpacity(0.1),
+                        : const Color(0xFFD4AF37).withValues(alpha: 0.1))
+                  : const Color(0xFFD4AF37).withValues(alpha: 0.1),
               shape: BoxShape.circle,
               border: Border.all(
                 color: sourceId > 0 && score == null

@@ -35,10 +35,10 @@ class VerdictCard extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(isSmall ? 12 : 20),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(isSmall ? 16 : 20),
         border: Border.all(
-          color: color.withOpacity(0.3),
+          color: color.withValues(alpha: 0.3),
           width: isSmall ? 1.5 : 1,
         ),
       ),
@@ -54,7 +54,7 @@ class VerdictCard extends StatelessWidget {
                   softWrap: true,
                   maxLines: 2,
                   style: GoogleFonts.outfit(
-                    color: color.withOpacity(0.8),
+                    color: color.withValues(alpha: 0.8),
                     letterSpacing: 2.0,
                     fontSize: isSmall ? 9 : 10,
                     fontWeight: FontWeight.bold,
@@ -66,7 +66,7 @@ class VerdictCard extends StatelessWidget {
                 icon: Icon(
                   Icons.info_outline,
                   size: isSmall ? 10 : 14,
-                  color: color.withOpacity(0.8),
+                  color: color.withValues(alpha: 0.8),
                 ),
                 constraints: const BoxConstraints(),
                 padding: EdgeInsets.zero,
@@ -98,7 +98,7 @@ class VerdictCard extends StatelessWidget {
         backgroundColor: const Color(0xFF1E1E1E),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: Colors.white.withOpacity(0.1)),
+          side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
         ),
         title: Text(
           "8-Tier Verdict Glossary",

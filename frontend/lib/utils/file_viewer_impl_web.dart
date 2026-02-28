@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'dart:html' as html;
+import 'package:web/web.dart' as web;
+import 'dart:js_interop';
 import 'dart:ui_web' as ui_web;
 
 Future<void> openFileImpl(BuildContext context, PlatformFile file) async {
@@ -11,13 +12,14 @@ Future<void> openFileImpl(BuildContext context, PlatformFile file) async {
   String mimeType = 'application/octet-stream';
   if (ext == 'pdf') mimeType = 'application/pdf';
 
-  final blob = html.Blob([file.bytes!], mimeType);
-  final url = html.Url.createObjectUrlFromBlob(blob);
+  final blob =
+      web.Blob([file.bytes!.toJS].toJS, web.BlobPropertyBag(type: mimeType));
+  final url = web.URL.createObjectURL(blob);
 
   if (mimeType == 'application/pdf') {
     final viewId = 'pdf-tile-view-${file.name.hashCode}';
     ui_web.platformViewRegistry.registerViewFactory(viewId, (int viewId) {
-      return html.IFrameElement()
+      return web.HTMLIFrameElement()
         ..src = url
         ..style.border = 'none'
         ..style.width = '100%'
@@ -40,7 +42,10 @@ Future<void> openFileImpl(BuildContext context, PlatformFile file) async {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(file.name, style: GoogleFonts.outfit(color: const Color(0xFFD4AF37), fontWeight: FontWeight.bold)),
+                  Text(file.name,
+                      style: GoogleFonts.outfit(
+                          color: const Color(0xFFD4AF37),
+                          fontWeight: FontWeight.bold)),
                   IconButton(
                     icon: const Icon(Icons.close, color: Colors.white54),
                     onPressed: () => Navigator.pop(context),
@@ -50,7 +55,8 @@ Future<void> openFileImpl(BuildContext context, PlatformFile file) async {
             ),
             Expanded(
               child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
+                borderRadius:
+                    const BorderRadius.vertical(bottom: Radius.circular(16)),
                 child: HtmlElementView(viewType: viewId),
               ),
             ),
@@ -59,6 +65,6 @@ Future<void> openFileImpl(BuildContext context, PlatformFile file) async {
       ),
     );
   } else {
-    html.window.open(url, '_blank');
+    web.window.open(url, '_blank', '');
   }
 }

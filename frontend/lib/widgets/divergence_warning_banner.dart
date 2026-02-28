@@ -10,10 +10,10 @@ class DivergenceWarningBanner extends StatelessWidget {
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFC107).withOpacity(0.1),
+        color: const Color(0xFFFFC107).withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: const Color(0xFFFFC107).withOpacity(0.3),
+          color: const Color(0xFFFFC107).withValues(alpha: 0.3),
         ),
       ),
       child: ClipRRect(
@@ -60,7 +60,7 @@ class _WarningStripePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.black.withOpacity(0.05)
+      ..color = Colors.black.withValues(alpha: 0.05)
       ..style = PaintingStyle.fill;
 
     const double stripeWidth = 20.0;

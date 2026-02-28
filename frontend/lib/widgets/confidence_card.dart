@@ -35,7 +35,7 @@ class ConfidenceCard extends StatelessWidget {
                   softWrap: true,
                   maxLines: 2,
                   style: GoogleFonts.outfit(
-                    color: Colors.indigoAccent.withOpacity(0.8),
+                    color: Colors.indigoAccent.withValues(alpha: 0.8),
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 1.5,
@@ -58,7 +58,7 @@ class ConfidenceCard extends StatelessWidget {
                       backgroundColor: const Color(0xFF1E1E1E),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
-                        side: BorderSide(color: Colors.white.withOpacity(0.1)),
+                        side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
                       ),
                       title: Text(
                         "AI Certainty",
@@ -104,7 +104,7 @@ class ConfidenceCard extends StatelessWidget {
                 height: 70,
                 child: CircularProgressIndicator(
                   value: score,
-                  backgroundColor: Colors.white.withOpacity(0.05),
+                  backgroundColor: Colors.white.withValues(alpha: 0.05),
                   color: Colors.indigoAccent,
                   strokeWidth: 6,
                   strokeCap: StrokeCap.round,

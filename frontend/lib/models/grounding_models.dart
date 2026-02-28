@@ -121,6 +121,7 @@ class SourceAudit {
   final String quoteText;
   final double confidence;
   final double authority;
+  final bool isVerified;
 
   SourceAudit({
     required this.id,
@@ -131,6 +132,7 @@ class SourceAudit {
     required this.quoteText,
     required this.confidence,
     required this.authority,
+    this.isVerified = false,
   });
 
   factory SourceAudit.fromJson(Map<String, dynamic> json) {
@@ -143,6 +145,7 @@ class SourceAudit {
       quoteText: json['quote_text'] as String? ?? json['text'] as String? ?? '',
       confidence: (json['confidence'] as num?)?.toDouble() ?? 0.0,
       authority: (json['authority'] as num?)?.toDouble() ?? 0.0,
+      isVerified: json['is_verified'] as bool? ?? false,
     );
   }
 }
@@ -165,8 +168,7 @@ class SegmentAudit {
       text: json['text'] as String,
       topSourceDomain: json['top_source_domain'] as String,
       topSourceScore: (json['top_source_score'] as num).toDouble(),
-      sources:
-          (json['sources'] as List<dynamic>?)
+      sources: (json['sources'] as List<dynamic>?)
               ?.map((e) => SourceAudit.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
@@ -220,13 +222,11 @@ class ReliabilityMetrics {
       multimodalBonus: (json['multimodal_bonus'] as num?)?.toDouble() ?? 0.0,
       verdictLabel: json['verdict_label'] as String? ?? 'Unknown',
       explanation: json['explanation'] as String? ?? '',
-      segments:
-          (json['segments'] as List<dynamic>?)
+      segments: (json['segments'] as List<dynamic>?)
               ?.map((e) => SegmentAudit.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
-      unusedSources:
-          (json['unused_sources'] as List<dynamic>?)
+      unusedSources: (json['unused_sources'] as List<dynamic>?)
               ?.map(
                 (e) => UnusedSourceAudit.fromJson(e as Map<String, dynamic>),
               )
@@ -260,18 +260,15 @@ class AnalysisResponse {
       verdict: json['verdict'] ?? 'UNVERIFIED',
       confidenceScore: (json['confidence_score'] ?? 0.0).toDouble(),
       analysis: json['analysis'] ?? '',
-      groundingCitations:
-          (json['grounding_citations'] as List<dynamic>?)
+      groundingCitations: (json['grounding_citations'] as List<dynamic>?)
               ?.map((e) => GroundingCitation.fromJson(e))
               .toList() ??
           [],
-      scannedSources:
-          (json['scanned_sources'] as List<dynamic>?)
+      scannedSources: (json['scanned_sources'] as List<dynamic>?)
               ?.map((e) => ScannedSource.fromJson(e))
               .toList() ??
           [],
-      groundingSupports:
-          (json['grounding_supports'] as List<dynamic>?)
+      groundingSupports: (json['grounding_supports'] as List<dynamic>?)
               ?.map((e) => GroundingSupport.fromJson(e))
               .toList() ??
           [],
