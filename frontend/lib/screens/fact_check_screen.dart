@@ -85,30 +85,28 @@ class _FactCheckScreenState extends State<FactCheckScreen> {
         _result = result;
       });
 
-      // Launch Onboarding Tour after hydration (no auto-select)
-      Future.delayed(const Duration(milliseconds: 2000), () {
+      // Launch Onboarding Tour immediately once mounted
+      WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            print("🔍 DEBUG: Attempting to launch Onboarding Tour...");
-            _onboardingService.showDemoTour(
-              context,
-              firstSegmentKey: _firstSegmentKey,
-              evidenceTrayKey: _evidenceTrayKey,
-              globalRingKey: _globalRingKey,
-              onSelectFirstSegment: () {
-                if (_result != null && _result!.groundingSupports.isNotEmpty) {
-                  _handleSupportSelected(_result!.groundingSupports.first);
-                }
-              },
-              onFinish: () {
-                if (mounted) {
-                  setState(() {
-                    DemoManager.isDemoMode = false;
-                  });
-                }
-              },
-            );
-          });
+          print("🔍 DEBUG: Attempting to launch Onboarding Tour...");
+          _onboardingService.showDemoTour(
+            context,
+            firstSegmentKey: _firstSegmentKey,
+            evidenceTrayKey: _evidenceTrayKey,
+            globalRingKey: _globalRingKey,
+            onSelectFirstSegment: () {
+              if (_result != null && _result!.groundingSupports.isNotEmpty) {
+                _handleSupportSelected(_result!.groundingSupports.first);
+              }
+            },
+            onFinish: () {
+              if (mounted) {
+                setState(() {
+                  DemoManager.isDemoMode = false;
+                });
+              }
+            },
+          );
         }
       });
     } catch (e) {
@@ -191,17 +189,7 @@ class _FactCheckScreenState extends State<FactCheckScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF121212),
-      appBar: AppBar(
-        title: Text(
-          'VeriScan AI',
-          style: GoogleFonts.outfit(
-            color: const Color(0xFFD4AF37),
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
+      // appBar removed for sidebar-only navigation
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Column(

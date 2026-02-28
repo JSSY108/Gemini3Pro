@@ -46,22 +46,24 @@ class VeriscanDrawer extends StatelessWidget {
             onTap: () {
               Navigator.pop(context); // Close drawer first
               // Use the smooth slide animation
-              Navigator.of(context).pushReplacement(createSlideRoute(const LandingWrapper()));
+              Navigator.of(context)
+                  .pushReplacement(createSlideRoute(const LandingWrapper()));
             },
           ),
           _buildMenuItem(
             context,
-            icon: Icons.dashboard_customize,
-            label: "Dashboard",
+            icon: Icons.analytics,
+            label: "Analysis",
             onTap: () {
               Navigator.pop(context); // Close drawer first
               // Use the smooth slide animation
-              Navigator.of(context).pushReplacement(createSlideRoute(const DashboardScreen()));
+              Navigator.of(context)
+                  .pushReplacement(createSlideRoute(const DashboardScreen()));
             },
           ),
-          
+
           const Spacer(),
-          
+
           Padding(
             padding: const EdgeInsets.all(24.0),
             child: Text(
@@ -74,13 +76,21 @@ class VeriscanDrawer extends StatelessWidget {
     );
   }
 
-  Widget _buildMenuItem(BuildContext context, {required IconData icon, required String label, required VoidCallback onTap}) {
-    return ListTile(
-      leading: Icon(icon, color: Colors.white70),
-      title: Text(label, style: GoogleFonts.outfit(color: Colors.white, fontSize: 16)),
-      onTap: onTap,
-      hoverColor: Colors.white.withValues(alpha: 0.05),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+  Widget _buildMenuItem(BuildContext context,
+      {required IconData icon,
+      required String label,
+      required VoidCallback onTap}) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: ListTile(
+        leading: Icon(icon, color: Colors.white70),
+        title: Text(label,
+            style: GoogleFonts.outfit(color: Colors.white, fontSize: 16)),
+        onTap: onTap,
+        hoverColor: Colors.white
+            .withOpacity(0.05), // Corrected from withValues to withOpacity
+        contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      ),
     );
   }
 }

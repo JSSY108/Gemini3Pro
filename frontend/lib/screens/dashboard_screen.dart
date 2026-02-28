@@ -9,13 +9,12 @@ import '../widgets/verdict_pane.dart';
 import '../widgets/veriscan_interactive_text.dart';
 import '../widgets/mobile/mobile_sticky_header.dart';
 import '../widgets/mobile/mobile_source_library.dart';
-import '../widgets/veriscan_drawer.dart';
-import '../widgets/global_menu_button.dart';
 import '../widgets/juicy_button.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
-import 'community_screen.dart';
-import 'dart:io';
 import 'package:file_picker/file_picker.dart';
+import 'dart:io';
+import '../widgets/veriscan_drawer.dart';
+import '../widgets/unified_sidebar.dart';
 import '../utils/demo_manager.dart';
 import '../services/demo_service.dart';
 import '../services/onboarding_service.dart';
@@ -281,33 +280,30 @@ class _DashboardScreenState extends State<DashboardScreen>
           _isLoading = false;
         });
 
-        // Launch Onboarding Tour after hydration (no auto-select)
-        Future.delayed(const Duration(milliseconds: 2000), () {
+        // Launch Onboarding Tour immediately once mounted
+        WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              print(
-                  "🔍 DEBUG: Attempting to launch Onboarding Tour (Dashboard)...");
-              _onboardingService.showDemoTour(
-                context,
-                firstSegmentKey: _firstSegmentKey,
-                evidenceTrayKey: _evidenceTrayKey,
-                globalRingKey: _sidebarKey,
-                scannedRingKey: _scannedRingKey,
-                onSelectFirstSegment: () {
-                  if (_result != null &&
-                      _result!.groundingSupports.isNotEmpty) {
-                    _handleSupportSelected(_result!.groundingSupports.first);
-                  }
-                },
-                onFinish: () {
-                  if (mounted) {
-                    setState(() {
-                      DemoManager.isDemoMode = false;
-                    });
-                  }
-                },
-              );
-            });
+            print(
+                "🔍 DEBUG: Attempting to launch Onboarding Tour (Dashboard)...");
+            _onboardingService.showDemoTour(
+              context,
+              firstSegmentKey: _firstSegmentKey,
+              evidenceTrayKey: _evidenceTrayKey,
+              globalRingKey: _sidebarKey,
+              scannedRingKey: _scannedRingKey,
+              onSelectFirstSegment: () {
+                if (_result != null && _result!.groundingSupports.isNotEmpty) {
+                  _handleSupportSelected(_result!.groundingSupports.first);
+                }
+              },
+              onFinish: () {
+                if (mounted) {
+                  setState(() {
+                    DemoManager.isDemoMode = false;
+                  });
+                }
+              },
+            );
           }
         });
       }
@@ -528,18 +524,6 @@ class _DashboardScreenState extends State<DashboardScreen>
               },
             ),
           ),
-
-          // 3. The Global Button (Floats on top of everything)
-          Positioned(
-            top: 0,
-            left: 0,
-            child: Builder(
-              // Builder needed to find the Scaffold above
-              builder: (innerContext) => GlobalMenuButton(
-                onTap: () => Scaffold.of(innerContext).openDrawer(),
-              ),
-            ),
-          ),
         ],
       ),
     );
@@ -557,34 +541,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       body: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Nav Rail
-          Container(
-            width: 72,
-            color: Colors.black,
-            child: Column(
-              children: [
-                const SizedBox(height: 30),
-                const Icon(Icons.shield_outlined,
-                    color: Color(0xFFD4AF37), size: 40),
-                const SizedBox(height: 40),
-                const _SidebarIcons(icon: Icons.dashboard, isActive: true),
-                const _SidebarIcons(icon: Icons.history, isActive: false),
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const CommunityScreen(),
-                      ),
-                    );
-                  },
-                  child:
-                      const _SidebarIcons(icon: Icons.groups, isActive: false),
-                ),
-                const _SidebarIcons(icon: Icons.settings, isActive: false),
-              ],
-            ),
-          ),
+          const UnifiedSidebar(activeIndex: 1),
           // Sidebar (Responsive)
           if (showSidebar || _isSidebarExpanded)
             Flexible(
@@ -1058,23 +1015,6 @@ class _DashboardScreenState extends State<DashboardScreen>
         uploadedAttachments: _migratedAttachments,
         onCitationSelected: _handleCitationSelected,
         onDeleteAttachment: _handleDeleteMigratedAttachment,
-      ),
-    );
-  }
-}
-
-class _SidebarIcons extends StatelessWidget {
-  final IconData icon;
-  final bool isActive;
-  const _SidebarIcons({required this.icon, required this.isActive});
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 12),
-      child: Icon(
-        icon,
-        color: isActive ? const Color(0xFFD4AF37) : Colors.white24,
-        size: 24,
       ),
     );
   }

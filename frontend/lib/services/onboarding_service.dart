@@ -342,9 +342,10 @@ class OnboardingService {
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            "Each ring is a veracity meter. Click any ring "
-                            "to see the forensic formula that calculates "
-                            "its reliability score.",
+                            "\u2022 Global Score: Shows the highest reliability found "
+                            "among all evidence when no claim is selected.\n\n"
+                            "\u2022 Local Score: Click a specific claim to see the "
+                            "score update for only that sentence.",
                             style: GoogleFonts.outfit(
                               color: Colors.white,
                               fontSize: 14,
