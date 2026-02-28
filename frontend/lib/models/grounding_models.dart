@@ -136,6 +136,7 @@ class SourceAudit {
   });
 
   factory SourceAudit.fromJson(Map<String, dynamic> json) {
+    print("DEBUG: Source ${json['id']} isVerified: ${json['is_verified']}");
     return SourceAudit(
       id: json['id'] as int,
       sourceIndex: json['source_index'] as int? ?? -1,

@@ -32,7 +32,9 @@ def get_authority_multiplier(domain: str) -> float:
     domain = normalize_domain_name(domain)
     
     # NEW: Tier 1 override for Verified Fact-Checkers
-    if domain in VERIFIED_DOMAINS:
+    is_verified_signatory = domain in VERIFIED_DOMAINS
+    print(f"DEBUG: Domain {domain} verified status: {is_verified_signatory}")
+    if is_verified_signatory:
         return 1.0
         
     if domain.endswith('.gov') or domain.endswith('.edu') or domain.endswith('.int'):

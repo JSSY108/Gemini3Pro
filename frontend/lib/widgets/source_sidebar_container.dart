@@ -185,12 +185,10 @@ class _SourceSidebarContainerState extends State<SourceSidebarContainer> {
 
   Widget _buildTieredEvidenceList() {
     // 1. Identify "Verified" (Cited) vs "Context" (Scanned but not cited)
-    final List<ScannedSource> citedSources = widget.scannedSources
-        .where((s) => s.isCited)
-        .toList();
-    final List<ScannedSource> contextSources = widget.scannedSources
-        .where((s) => !s.isCited)
-        .toList();
+    final List<ScannedSource> citedSources =
+        widget.scannedSources.where((s) => s.isCited).toList();
+    final List<ScannedSource> contextSources =
+        widget.scannedSources.where((s) => !s.isCited).toList();
 
     return CustomScrollView(
       key: const ValueKey("evidence"),
@@ -241,6 +239,7 @@ class _SourceSidebarContainerState extends State<SourceSidebarContainer> {
               double? tileScore;
               double? tileConf;
               double? tileAuth;
+              bool tileIsVerified = false;
 
               if (widget.reliabilityMetrics != null && source.id > 0) {
                 final chunkIdx = source.id - 1;
@@ -260,6 +259,7 @@ class _SourceSidebarContainerState extends State<SourceSidebarContainer> {
                         if (src.chunkIndex == chunkIdx) {
                           tileAuth = src.authority;
                           tileScore = src.score;
+                          tileIsVerified = src.isVerified;
                           break;
                         }
                       }
@@ -273,6 +273,7 @@ class _SourceSidebarContainerState extends State<SourceSidebarContainer> {
                   double maxScore = 0.0;
                   double? maxConf;
                   double? maxAuth;
+                  bool maxVerified = false;
                   bool found = false;
                   for (final seg in widget.reliabilityMetrics!.segments) {
                     for (final src in seg.sources) {
@@ -282,6 +283,7 @@ class _SourceSidebarContainerState extends State<SourceSidebarContainer> {
                           maxScore = src.score;
                           maxConf = src.confidence;
                           maxAuth = src.authority;
+                          maxVerified = src.isVerified;
                         }
                       }
                     }
@@ -290,6 +292,7 @@ class _SourceSidebarContainerState extends State<SourceSidebarContainer> {
                     tileScore = maxScore;
                     tileConf = maxConf;
                     tileAuth = maxAuth;
+                    tileIsVerified = maxVerified;
                   }
                 }
               }
@@ -304,9 +307,8 @@ class _SourceSidebarContainerState extends State<SourceSidebarContainer> {
                   key: _sourceKeys[keyStr],
                   duration: const Duration(milliseconds: 300),
                   child: SourceTile(
-                    title: source.title.isNotEmpty
-                        ? source.title
-                        : citation.title,
+                    title:
+                        source.title.isNotEmpty ? source.title : citation.title,
                     url: source.url.isNotEmpty ? source.url : citation.url,
                     attachments: widget.uploadedAttachments,
                     status: citation.status,
@@ -315,6 +317,7 @@ class _SourceSidebarContainerState extends State<SourceSidebarContainer> {
                     score: tileScore,
                     confidence: tileConf,
                     authority: tileAuth,
+                    isVerified: tileIsVerified,
                     onTap: () => widget.onCitationSelected(source.id - 1),
                   ),
                 ),
@@ -357,6 +360,7 @@ class _SourceSidebarContainerState extends State<SourceSidebarContainer> {
               double? tileScore;
               double? tileConf;
               double? tileAuth;
+              bool tileIsVerified = false;
 
               if (widget.reliabilityMetrics != null && source.id > 0) {
                 final chunkIdx = source.id - 1;
@@ -375,6 +379,7 @@ class _SourceSidebarContainerState extends State<SourceSidebarContainer> {
                         if (src.chunkIndex == chunkIdx) {
                           tileAuth = src.authority;
                           tileScore = src.score;
+                          tileIsVerified = src.isVerified;
                           break;
                         }
                       }
@@ -388,6 +393,7 @@ class _SourceSidebarContainerState extends State<SourceSidebarContainer> {
                   double maxScore = 0.0;
                   double? maxConf;
                   double? maxAuth;
+                  bool maxVerified = false;
                   bool found = false;
                   for (final seg in widget.reliabilityMetrics!.segments) {
                     for (final src in seg.sources) {
@@ -397,6 +403,7 @@ class _SourceSidebarContainerState extends State<SourceSidebarContainer> {
                           maxScore = src.score;
                           maxConf = src.confidence;
                           maxAuth = src.authority;
+                          maxVerified = src.isVerified;
                         }
                       }
                     }
@@ -405,6 +412,7 @@ class _SourceSidebarContainerState extends State<SourceSidebarContainer> {
                     tileScore = maxScore;
                     tileConf = maxConf;
                     tileAuth = maxAuth;
+                    tileIsVerified = maxVerified;
                   }
                 }
               }
@@ -428,6 +436,7 @@ class _SourceSidebarContainerState extends State<SourceSidebarContainer> {
                     score: tileScore,
                     confidence: tileConf,
                     authority: tileAuth,
+                    isVerified: tileIsVerified,
                     onTap: () => widget.onCitationSelected(source.id - 1),
                   ),
                 ),

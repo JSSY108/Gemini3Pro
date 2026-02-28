@@ -256,12 +256,36 @@ class SourceTile extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       // Source ID Badge with Radial Ring
-                      SourceReliabilityBadge(
-                        sourceId: sourceId,
-                        isActive: isActive,
-                        score: score,
-                        confidence: confidence,
-                        authority: authority,
+                      Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          SourceReliabilityBadge(
+                            sourceId: sourceId,
+                            isActive: isActive,
+                            score: score,
+                            confidence: confidence,
+                            authority: authority,
+                          ),
+                          if (isVerified)
+                            Positioned(
+                              top: -4,
+                              right: -4,
+                              child: Tooltip(
+                                message: "Verified IFCN Signatory",
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF121212),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.verified,
+                                    color: Colors.tealAccent,
+                                    size: 14,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -281,18 +305,6 @@ class SourceTile extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      if (isVerified)
-                        const Padding(
-                          padding: EdgeInsets.only(left: 4.0),
-                          child: Tooltip(
-                            message: "Verified IFCN Signatory",
-                            child: Icon(
-                              Icons.verified,
-                              color: Colors.tealAccent,
-                              size: 14,
-                            ),
-                          ),
-                        ),
                       const SizedBox(width: 8),
                       if (onDelete != null)
                         IconButton(
