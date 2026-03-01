@@ -862,7 +862,12 @@ def analyze(req: https_fn.Request) -> https_fn.Response:
                     notes=data.get('notes')
                 )
                 score, votes = community_db.calculate_weighted_trust_score(data.get('claim_id'))
-                res_data = {"success": success, "trust_score": round(score, 2), "vote_count": votes}
+                res_data = {
+                    "success": success, 
+                    "trust_score": round(score, 2), 
+                    "vote_count": votes,
+                    "message": "Vote recorded successfully" if success else "Failed to submit vote"
+                }
                 
             elif path == '/community/top' and req.method == 'GET':
                 limit = int(req.args.get('limit', 5))

@@ -158,10 +158,10 @@ class VoteResponse {
 
   factory VoteResponse.fromJson(Map<String, dynamic> json) {
     return VoteResponse(
-      success: json['success'] as bool,
+      success: json['success'] as bool? ?? false,
       trustScore: (json['trust_score'] as num?)?.toDouble() ?? 0.0,
       voteCount: json['vote_count'] as int? ?? 0,
-      message: json['message'] as String,
+      message: json['message'] as String? ?? '',
     );
   }
 }
