@@ -17,9 +17,18 @@ VeriScan is a multimodal fact-checking dashboard powered by Google's Gemini 2.0 
 - **"Try With Demo" Onboarding:** To solve the "cold start" problem, VeriScan features a guided ingestion flow. It loads pre-configured forensic case studies (e.g., medical claims about lemon water) to teach users how to navigate the Explainable AI (XAI) dashboard, audit trails, and tooltips before they analyze their own data.
 - **Explainable Grounding:** Every verdict includes a forensic breakdown of logical fallacies and evidence cards linked to real-world sources via Google Search Grounding.
 
+## 🖱️ Interactive UI & Forensic Navigation
+VeriScan is designed for radical transparency. We don’t just show results; we show the work behind them through interactive elements:
+
+- **Underlined Claims**: Every verifiable claim in a story is highlighted. Clicking an underline focuses the analysis on that specific "factual atom."
+- **Audit Trays (Micro-Audit)**: Triggered by clicking claims, these slide-out panels show the exact high-fidelity text snippets extracted from source documents used for verification.
+- **Reliability Rings**: Dynamic circular gauges that visualize the Composite Reliability Metric.
+- **Info Hover**: Hovering over the ring reveals the specific mathematical breakdown: Base Score + Bonuses - Penalties.
+- **Info Icons (XAI Help)**: Found next to every metric (Verdict, AI Certainty, Reliability). These provide instant tooltips explaining the technical definition of the score to improve user media literacy.
+
 ## ⚙️ Core Mechanics: Composite Forensic Reliability Engine
 
-VeriScan has moved beyond simple "AI confidence" metrics. We now use a **Composite Reliability Metric** that provides objective trust scores visualized through interactive Reliability Rings.
+VeriScan has moved beyond simple "AI confidence" metrics. We now use a **Composite Reliability Metric** that provides objective trust scores visualized through interactive Reliability Rings. Our systems are built upon the [Vertex AI Grounding Metadata](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/reference/rest/v1beta1/GroundingMetadata?hl=en#GroundingSupport) framework to ensure high-fidelity evidence mapping.
 
 ### Mathematical Foundations
 
@@ -49,7 +58,19 @@ The final reliability score is calibrated with two mathematical boosts:
 - **Multimodal Bonus (+0.05):** Applied if a textual claim is cross-referenced and confirmed by Gemini vision models analyzing user-uploaded images or documents.
 
 ## Features
-- **8-Tier Verdict System**: We have moved past a simple True/False binary. VeriScan handles nuanced misinformation with a precision lexicon: `TRUE`, `MOSTLY_TRUE`, `MIXTURE`, `MISLEADING`, `MOSTLY_FALSE`, `FALSE`, `UNVERIFIABLE`, and `NOT_A_CLAIM`.
+- **8-Tier Verdict System**: To handle the nuances of modern misinformation, VeriScan employs a precision lexicon:
+    - `TRUE`: The claim is 100% factual based on external evidence.
+    - `MOSTLY_TRUE`: The core claim is factual but contains minor technicalities or rounding errors.
+    - `MIXTURE`: The input contains multiple facts where some are true and others are false.
+    - `MISLEADING`: The facts are technically true but presented to imply a false conclusion.
+    - `MOSTLY_FALSE`: The core claim is false but contains a minor element of truth.
+    - `FALSE`: The core claim is refuted by external search results.
+    - `UNVERIFIABLE`: Insufficient independent grounding data exists to reach a conclusion.
+    - `NOT_A_CLAIM`: Subjective opinions, predictions, or non-factual statements.
+- **Source Categorization**: VeriScan distinguishes between tiers of evidence:
+    1.  **Scanned Sources**: The complete list of documents, URLs, and images analyzed by the forensic engine.
+    2.  **Cited Sources**: Specific documents used to verify or refute a claim.
+    3.  **Verified Sources**: Trusted authorities (e.g., IFCN signatories) and established databases like [insightchecking.org](https://insightchecking.org).
 - **Multimodal Input**: Text, URL, and Image analysis.
 - **Forensic Analysis**: Breakdown of logical fallacies and tone.
 - **Google Search Grounding**: Evidence cards linked to real-world sources.

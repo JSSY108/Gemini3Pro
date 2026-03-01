@@ -86,20 +86,25 @@ def init_vertex():
         if env_creds and os.path.exists(env_creds):
             genai_client = genai.Client(vertexai=True, project=PROJECT_ID, location=LOCATION)
             VERTEX_AI_READY = True
-            logger.info("Vertex AI Client (google-genai) initialized via environment variable.")
+            logger.info("Vertex AI Client initialized via environment variable.")
         elif os.path.exists(CREDENTIALS_PATH):
-            # The new SDK can use os.environ to find credentials if we set it temporarily or just use it
             os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = CREDENTIALS_PATH
             genai_client = genai.Client(vertexai=True, project=PROJECT_ID, location=LOCATION)
             VERTEX_AI_READY = True
-            logger.info(f"Vertex AI Client (google-genai) initialized with bundled Service Account: {CREDENTIALS_PATH}")
+            logger.info(f"Vertex AI Client initialized with bundled Service Account: {CREDENTIALS_PATH}")
         else:
-            # Fallback to default credentials (works on some GCP environments)
+            # CRITICAL FIX: If someone set the env var but the file is missing (like in .env),
+            # it might block the Client from finding Application Default Credentials.
+            if "GOOGLE_APPLICATION_CREDENTIALS" in os.environ:
+                del os.environ["GOOGLE_APPLICATION_CREDENTIALS"]
+                logger.warning("Invalid GOOGLE_APPLICATION_CREDENTIALS path cleared to allow ADC fallback.")
+            
+            # Fallback to default credentials (works on GCP Cloud Functions)
             genai_client = genai.Client(vertexai=True, project=PROJECT_ID, location=LOCATION)
             VERTEX_AI_READY = True
-            logger.info("Vertex AI Client (google-genai) initialized with Application Default Credentials.")
+            logger.info("Vertex AI Client initialized with Application Default Credentials.")
     except Exception as e:
-        logger.error(f"FATAL: Vertex AI (google-genai) Initialization Failed: {e}")
+        logger.error(f"FATAL: Vertex AI Initialization Failed: {e}")
         VERTEX_AI_READY = False
 
 def normalize_for_search(text: str) -> str:
