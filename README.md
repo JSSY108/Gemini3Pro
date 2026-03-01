@@ -1,12 +1,64 @@
 # VeriScan: Antigravity Update 🚀
 
-VeriScan is a multimodal fact-checking dashboard powered by Google's Gemini 2.5 Flash-Lite model with Google Search Grounding. It analyzes text, URLs, and images to provide forensic verdicts on potential misinformation.
+VeriScan is a multimodal fact-checking dashboard powered by Google's Gemini 2.0 Flash model with Google Search Grounding. It analyzes text, URLs, and images to provide forensic verdicts on potential misinformation.
 
-## features
+## Technology Stack
+
+- **AI Engine:** GCP Vertex AI (Gemini 2.0 Flash) for multimodal processing of text, images, and links.
+- **Backend:** Python & FastAPI acting as a high-performance orchestrator for AI inference.
+- **Frontend:** Flutter for a consistent, high-performance UI across Web and Mobile deployments.
+- **Database & Hosting:** Firebase (Firestore & Hosting) for scalable data storage, user history, and rapid deployment.
+
+## 💡 Innovation & Unique Selling Point (USP)
+
+- **Direct-Share Listener:** VeriScan features a system-level integration allowing users to share media directly from apps like WhatsApp, Instagram, and Facebook via native "Share Sheets".
+- **Multimodal Reasoning:** Unlike traditional tools, VeriScan uses Vertex AI to perform cross-modal analysis, checking if an image's visual context contradicts the claims in the associated text.
+- **Human-in-the-Loop:** A unique Community Vote feature allows everyday users to verify AI verdicts, adding cultural nuance and building collective trust.
+- **"Try With Demo" Onboarding:** To solve the "cold start" problem, VeriScan features a guided ingestion flow. It loads pre-configured forensic case studies (e.g., medical claims about lemon water) to teach users how to navigate the Explainable AI (XAI) dashboard, audit trails, and tooltips before they analyze their own data.
+- **Explainable Grounding:** Every verdict includes a forensic breakdown of logical fallacies and evidence cards linked to real-world sources via Google Search Grounding.
+
+## ⚙️ Core Mechanics: Composite Forensic Reliability Engine
+
+VeriScan has moved beyond simple "AI confidence" metrics. We now use a **Composite Reliability Metric** that provides objective trust scores visualized through interactive Reliability Rings.
+
+### Mathematical Foundations
+
+#### 1. Contextual Reliability (Local Claim Score)
+Calculated per factual segment to determine the specific trust level of an individual claim.
+$$Score_{seg} = \max(Conf_i \times Auth_j)$$
+
+#### 2. Base Grounding (Global Score)
+Represents the core factual density across the entire analysis.
+$$BaseScore = \frac{1}{n} \sum_{i=1}^{n} \max(Conf_i \times Auth_j)$$
+
+**Variables:**
+- $Conf_i$: Grounding confidence returned by the Gemini API.
+- $Auth_j$: Domain Authority Weight.
+
+### Forensic Source Logic & Authority Heuristics
+The $Auth_j$ variable is determined by a strict hierarchical fallback system:
+- **1.00:** Verified Fact-Checkers (IFCN) & Official Institutional (.gov, .edu)
+- **0.90:** Established Global News
+- **0.80:** Crowd-Sourced Knowledge (Wikipedia)
+- **0.70:** Standard Reputable Domains
+- **0.40:** User-Generated Content (Reddit, social media)
+
+### Verification Bonuses
+The final reliability score is calibrated with two mathematical boosts:
+- **Consistency Bonus (+0.05):** Applied when a factual segment is supported by at least three distinct domains to mitigate single-source bias.
+- **Multimodal Bonus (+0.05):** Applied if a textual claim is cross-referenced and confirmed by Gemini vision models analyzing user-uploaded images or documents.
+
+## Features
+- **8-Tier Verdict System**: We have moved past a simple True/False binary. VeriScan handles nuanced misinformation with a precision lexicon: `TRUE`, `MOSTLY_TRUE`, `MIXTURE`, `MISLEADING`, `MOSTLY_FALSE`, `FALSE`, `UNVERIFIABLE`, and `NOT_A_CLAIM`.
 - **Multimodal Input**: Text, URL, and Image analysis.
 - **Forensic Analysis**: Breakdown of logical fallacies and tone.
 - **Google Search Grounding**: Evidence cards linked to real-world sources.
 - **Bento Grid Dashboard**: A "Obsidian & Gilded" themed high-performance UI.
+
+## Challenges Faced
+- **Multi-Platform Integration**: We encountered significant "Java version" configurations and library compatibility issues where certain Dart packages worked on Web but failed on Mobile. We resolved this by auditing our dependencies and switching to strictly cross-platform compatible libraries.
+- **CORS & API Connectivity**: During the implementation of the Community Vote feature, we faced `ClientException: Failed to fetch` errors due to Cross-Origin Resource Sharing (CORS) restrictions. We implemented custom CORS middleware in FastAPI and refactored the frontend to dynamically generate backend URLs based on the environment.
+- **Accuracy vs. Latency Trade-off**: Balancing the deep-search capabilities of Google Search Grounding with user expectations for speed was a hurdle. We prioritized accuracy, deciding that a slightly longer wait for a verified, evidence-backed verdict was more valuable than a near-instant but ungrounded response.
 
 ---
 
