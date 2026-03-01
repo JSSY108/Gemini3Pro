@@ -813,15 +813,100 @@ async def analyze_endpoint(
     max_instances=10
 )
 def analyze(req: https_fn.Request) -> https_fn.Response:
-    if req.method == 'OPTIONS':
-        return https_fn.Response(status=204, headers={
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        })
+    # --- CORS Headers ---
+    headers = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    }
 
+    if req.method == 'OPTIONS':
+        return https_fn.Response(status=204, headers=headers)
+
+    path = req.path
+    
+    # --- Community Routing Logic ---
+    if path.startswith('/community/'):
+        from community_routes import community_db
+        try:
+            data = req.get_json(silent=True) or {}
+            res_data = None
+            
+            if path == '/community/claim' and req.method == 'POST':
+                claim = community_db.get_claim_by_text(data.get('claim_text', ''))
+                if not claim:
+                    res_data = {"exists": False, "message": "Claim not found"}
+                else:
+                    score, votes = community_db.calculate_weighted_trust_score(claim['claim_id'])
+                    res_data = {
+                        "exists": True, "claim_id": claim['claim_id'], "claim_text": claim['claim_text'],
+                        "ai_verdict": claim['ai_verdict'], "trust_score": round(score, 2),
+                        "vote_count": votes, "created_at": claim['created_at']
+                    }
+            
+            elif path == '/community/post' and req.method == 'POST':
+                claim_id = community_db.post_claim(data.get('claim_text', ''), data.get('ai_verdict', ''))
+                res_data = {"success": True, "claim_id": claim_id, "message": "Claim posted"}
+                
+            elif path == '/community/vote' and req.method == 'POST':
+                user_verdict = data.get('user_verdict', '')
+                vote_bool = data.get('vote')
+                if vote_bool is None:
+                    vote_bool = (user_verdict.upper() == 'LEGIT')
+                    
+                success = community_db.submit_vote(
+                    claim_id=data.get('claim_id'),
+                    user_id=data.get('user_id'),
+                    vote=vote_bool,
+                    user_verdict=user_verdict,
+                    notes=data.get('notes')
+                )
+                score, votes = community_db.calculate_weighted_trust_score(data.get('claim_id'))
+                res_data = {"success": success, "trust_score": round(score, 2), "vote_count": votes}
+                
+            elif path == '/community/top' and req.method == 'GET':
+                limit = int(req.args.get('limit', 5))
+                claims = community_db.get_top_claims(limit)
+                res_data = {
+                    "success": True, 
+                    "claims": [{
+                        "claim_id": c['claim_id'], "claim_text": c['claim_text'], 
+                        "ai_verdict": c['ai_verdict'], "trust_score": round(c['trust_score'], 2), 
+                        "vote_count": c['vote_count'], "created_at": c['created_at']
+                    } for c in claims]
+                }
+                
+            elif path == '/community/search' and req.method == 'POST':
+                claims = community_db.search_claims(data.get('query', ''))
+                res_data = {
+                    "success": True, 
+                    "claims": [{
+                        "claim_id": c['claim_id'], "claim_text": c['claim_text'], 
+                        "ai_verdict": c['ai_verdict'], "trust_score": round(c['trust_score'], 2), 
+                        "vote_count": c['vote_count'], "created_at": c['created_at']
+                    } for c in claims]
+                }
+                
+            elif path.startswith('/community/reputation/'):
+                user_id = path.split('/')[-1]
+                rep = community_db.get_user_reputation(user_id)
+                res_data = {"success": True, **rep}
+                
+            elif path.startswith('/community/discussion/'):
+                claim_id = path.split('/')[-1]
+                disc = community_db.get_claim_discussion(claim_id)
+                res_data = {"success": True, **(disc or {"votes": []})}
+
+            if res_data is not None:
+                return https_fn.Response(json.dumps(res_data), status=200, mimetype='application/json', headers=headers)
+            
+        except Exception as e:
+            logger.error(f"Community Route Error: {str(e)}")
+            return https_fn.Response(json.dumps({"error": str(e)}), status=500, mimetype='application/json', headers=headers)
+
+    # --- Standard Multimodal Gemini Analysis ---
     if req.method != 'POST':
-        return https_fn.Response("Method Not Allowed. Use POST.", status=405, headers={'Access-Control-Allow-Origin': '*'})
+        return https_fn.Response("Method Not Allowed. Use POST.", status=405, headers=headers)
 
     import asyncio
     import traceback
@@ -829,7 +914,7 @@ def analyze(req: https_fn.Request) -> https_fn.Response:
     try:
         metadata_str = req.form.get("metadata")
         if not metadata_str:
-             return https_fn.Response(json.dumps({"error": "Missing metadata field"}), status=400, mimetype='application/json')
+             return https_fn.Response(json.dumps({"error": "Missing metadata field"}), status=400, mimetype='application/json', headers=headers)
         
         meta_data = json.loads(metadata_str)
         request_id = meta_data.get("request_id", "prod_req")
@@ -844,6 +929,7 @@ def analyze(req: https_fn.Request) -> https_fn.Response:
         
         async def _run():
             nonlocal prompt_content
+            # Fetch content for URLs if provided
             for url in provided_urls:
                 content = await fetch_url_content(url)
                 prompt_content += f"URL CONTENT (from {url}):\n{content}\n"
@@ -856,6 +942,7 @@ def analyze(req: https_fn.Request) -> https_fn.Response:
                     file_names.append(f.filename)
                     mime_type = f.content_type or "application/octet-stream"
                     part_args = {"data": file_bytes, "mime_type": mime_type}
+                    
                     if "image" in mime_type:
                         gemini_parts.append(types.Part.from_bytes(**part_args))
                         prompt_content += f"[Image Attached: {f.filename}]\n"
@@ -872,7 +959,7 @@ def analyze(req: https_fn.Request) -> https_fn.Response:
                 json.dumps(result.model_dump()),
                 status=200,
                 mimetype='application/json',
-                headers={'Access-Control-Allow-Origin': '*'}
+                headers=headers
             )
         finally:
             loop.close()
@@ -883,7 +970,7 @@ def analyze(req: https_fn.Request) -> https_fn.Response:
         return https_fn.Response(json.dumps({
             "error": "Internal Server Error during forensic analysis.",
             "debug_trace": error_msg
-        }), status=500, mimetype='application/json', headers={'Access-Control-Allow-Origin': '*'})
+        }), status=500, mimetype='application/json', headers=headers)
 
 if __name__ == "__main__":
     import uvicorn
